@@ -261,6 +261,7 @@ export default function MarathonTracker() {
   const [selectedWeek, setSelectedWeek] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [logDialogOpen, setLogDialogOpen] = useState(false);
+  const [runDetailsOpen, setRunDetailsOpen] = useState(false);
   const [selectedWorkout, setSelectedWorkout] = useState<(typeof trainingPlan)[0] | null>(null);
   const [logForm, setLogForm] = useState({
     actualMiles: "",
@@ -268,6 +269,75 @@ export default function MarathonTracker() {
     feeling: "good" as RunLog["feeling"],
     notes: "",
   });
+
+  // LIC/Hunters Point running routes
+  const routes: Record<number, { name: string; description: string; mapUrl: string }[]> = {
+    3: [
+      { name: "Gantry Plaza Loop", description: "Scenic waterfront path with Manhattan views", mapUrl: "https://www.google.com/maps/dir/Gantry+Plaza+State+Park,+Long+Island+City,+NY/40.7433,-73.9562/40.7480,-73.9590/Gantry+Plaza+State+Park/@40.7458,-73.9615,15z" },
+      { name: "Hunters Point South", description: "Quiet loop around the new park", mapUrl: "https://www.google.com/maps/dir/Hunters+Point+South+Park/40.7395,-73.9575/40.7420,-73.9610/Hunters+Point+South+Park/@40.7408,-73.9592,16z" },
+    ],
+    4: [
+      { name: "East River Path North", description: "Up to Socrates Sculpture Park and back", mapUrl: "https://www.google.com/maps/dir/Gantry+Plaza+State+Park/Socrates+Sculpture+Park/@40.7553,-73.9475,14z" },
+      { name: "Pulaski Bridge Out & Back", description: "Cross the bridge to Greenpoint, great views", mapUrl: "https://www.google.com/maps/dir/Hunters+Point/Pulaski+Bridge/Greenpoint/@40.7350,-73.9550,14z" },
+    ],
+    5: [
+      { name: "LIC to Astoria Park", description: "Waterfront to Astoria Park and back", mapUrl: "https://www.google.com/maps/dir/Hunters+Point+South+Park/Astoria+Park/@40.7600,-73.9350,13z" },
+      { name: "Pulaski + McCarren Loop", description: "Bridge to Brooklyn, loop McCarren Park", mapUrl: "https://www.google.com/maps/dir/Hunters+Point/McCarren+Park/@40.7200,-73.9500,14z" },
+    ],
+    6: [
+      { name: "East River Full", description: "Hunters Point to Astoria Park loop", mapUrl: "https://www.google.com/maps/dir/Hunters+Point+South+Park/Astoria+Park/Rainey+Park/Hunters+Point+South+Park/@40.7550,-73.9350,13z" },
+    ],
+    8: [
+      { name: "Greenpoint + Williamsburg", description: "Pulaski to McCarren, down to Williamsburg waterfront", mapUrl: "https://www.google.com/maps/dir/Hunters+Point/McCarren+Park/Domino+Park/Hunters+Point/@40.7150,-73.9500,13z" },
+    ],
+    10: [
+      { name: "Brooklyn Bridge Loop", description: "East River path to Brooklyn Bridge and back", mapUrl: "https://www.google.com/maps/dir/Hunters+Point+South+Park/Brooklyn+Bridge/Hunters+Point+South+Park/@40.7200,-73.9700,13z" },
+    ],
+  };
+
+  // Get route suggestions for a given distance
+  const getRouteSuggestions = (miles: number) => {
+    // Find closest distance with routes
+    const distances = Object.keys(routes).map(Number).sort((a, b) => a - b);
+    const closest = distances.reduce((prev, curr) => 
+      Math.abs(curr - miles) < Math.abs(prev - miles) ? curr : prev
+    );
+    return routes[closest] || routes[4]; // Default to 4mi routes
+  };
+
+  // Generate mile splits for a run
+  const generateMileSplits = (miles: number, type: RunType) => {
+    const config = runTypes[type];
+    if (type === "rest" || miles === 0) return [];
+    
+    const [minPace, maxPace] = config.pace.range.split("-").map(p => {
+      const [m, s] = p.trim().split(":").map(Number);
+      return m * 60 + s;
+    });
+    const targetSecs = minPace && maxPace ? (minPace + maxPace) / 2 : minPace;
+    
+    const splits: { mile: number; pace: string; cumulative: string }[] = [];
+    let totalSecs = 0;
+    
+    for (let i = 1; i <= Math.ceil(miles); i++) {
+      const mileDistance = i <= miles ? 1 : miles % 1;
+      const mileTime = targetSecs * mileDistance;
+      totalSecs += mileTime;
+      
+      const paceMin = Math.floor(targetSecs / 60);
+      const paceSec = Math.round(targetSecs % 60);
+      const cumMin = Math.floor(totalSecs / 60);
+      const cumSec = Math.round(totalSecs % 60);
+      
+      splits.push({
+        mile: i <= miles ? i : miles,
+        pace: `${paceMin}:${paceSec.toString().padStart(2, "0")}`,
+        cumulative: `${cumMin}:${cumSec.toString().padStart(2, "0")}`,
+      });
+    }
+    
+    return splits;
+  };
 
   // Calculate current week
   useEffect(() => {
@@ -626,8 +696,17 @@ export default function MarathonTracker() {
                         )}
                       </div>
 
-                      {/* Workout Info */}
-                      <div className="flex-1 min-w-0">
+                      {/* Workout Info - Clickable for details */}
+                      <button 
+                        className="flex-1 min-w-0 text-left group"
+                        onClick={() => {
+                          if (workout.type !== "rest") {
+                            setSelectedWorkout(workout);
+                            setRunDetailsOpen(true);
+                          }
+                        }}
+                        disabled={workout.type === "rest"}
+                      >
                         <div className="flex items-center gap-2 flex-wrap">
                           <Badge variant="outline" className={`${config.colorMuted} ${config.textColor} ${config.borderColor}`}>
                             {config.label}
@@ -641,7 +720,12 @@ export default function MarathonTracker() {
                           {log && <span className="text-emerald-500">✓</span>}
                         </div>
                         <p className="text-sm text-muted-foreground mt-1 truncate">{workout.description}</p>
-                      </div>
+                        {workout.type !== "rest" && (
+                          <p className="text-xs text-primary/60 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            Click for pace breakdown & routes →
+                          </p>
+                        )}
+                      </button>
 
                       {/* Logged Stats */}
                       {log && (
@@ -932,6 +1016,113 @@ export default function MarathonTracker() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Run Details Modal */}
+        <Dialog open={runDetailsOpen} onOpenChange={setRunDetailsOpen}>
+          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+            {selectedWorkout && selectedWorkout.type !== "rest" && (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <Badge 
+                      variant="outline" 
+                      className={`${runTypes[selectedWorkout.type].colorMuted} ${runTypes[selectedWorkout.type].textColor} ${runTypes[selectedWorkout.type].borderColor}`}
+                    >
+                      {runTypes[selectedWorkout.type].label}
+                    </Badge>
+                    <span>{selectedWorkout.miles} miles</span>
+                  </DialogTitle>
+                  <DialogDescription>{selectedWorkout.description}</DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-6 mt-4">
+                  {/* Target Pace */}
+                  <div className="bg-muted/50 rounded-lg p-4">
+                    <h3 className="font-semibold mb-2">Target Pace</h3>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-2xl font-bold">{runTypes[selectedWorkout.type].pace.target}</span>
+                      <span className="text-muted-foreground">/mile</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Range: {runTypes[selectedWorkout.type].pace.range}/mi • {runTypes[selectedWorkout.type].pace.description}
+                    </p>
+                  </div>
+
+                  {/* Mile Splits */}
+                  <div>
+                    <h3 className="font-semibold mb-3">Mile-by-Mile Breakdown</h3>
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-3 text-xs text-muted-foreground font-medium px-2">
+                        <span>Mile</span>
+                        <span className="text-center">Pace</span>
+                        <span className="text-right">Cumulative</span>
+                      </div>
+                      {generateMileSplits(selectedWorkout.miles, selectedWorkout.type).map((split, i) => (
+                        <div 
+                          key={i} 
+                          className="grid grid-cols-3 text-sm p-2 rounded bg-muted/30"
+                        >
+                          <span className="font-medium">
+                            {split.mile === Math.ceil(selectedWorkout.miles) && selectedWorkout.miles % 1 !== 0
+                              ? `${(selectedWorkout.miles % 1).toFixed(2)} mi`
+                              : `Mile ${split.mile}`}
+                          </span>
+                          <span className="text-center font-mono">{split.pace}</span>
+                          <span className="text-right font-mono text-muted-foreground">{split.cumulative}</span>
+                        </div>
+                      ))}
+                      <div className="grid grid-cols-3 text-sm p-2 rounded bg-primary/10 font-medium">
+                        <span>Total</span>
+                        <span className="text-center">{selectedWorkout.miles} mi</span>
+                        <span className="text-right font-mono">
+                          {generateMileSplits(selectedWorkout.miles, selectedWorkout.type).slice(-1)[0]?.cumulative || "-"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Suggested Routes */}
+                  <div>
+                    <h3 className="font-semibold mb-3">🗺️ Suggested Routes (LIC/Hunters Point)</h3>
+                    <div className="space-y-2">
+                      {getRouteSuggestions(selectedWorkout.miles).map((route, i) => (
+                        <a
+                          key={i}
+                          href={route.mapUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block p-3 rounded-lg border border-border hover:border-primary/50 hover:bg-muted/30 transition-colors"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="font-medium text-sm">{route.name}</p>
+                              <p className="text-xs text-muted-foreground">{route.description}</p>
+                            </div>
+                            <span className="text-primary text-sm">Open Map →</span>
+                          </div>
+                        </a>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Routes are approximate. Adjust as needed for exact mileage.
+                    </p>
+                  </div>
+
+                  {/* Log Run Button */}
+                  <Button
+                    className="w-full"
+                    onClick={() => {
+                      setRunDetailsOpen(false);
+                      setLogDialogOpen(true);
+                    }}
+                  >
+                    Log This Run
+                  </Button>
+                </div>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
