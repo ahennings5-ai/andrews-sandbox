@@ -386,6 +386,12 @@ export default function MealPlanner() {
     }
   };
 
+  // Helper to hydrate saved meals with current definitions (in case DB has old data)
+  const hydrateMeal = useCallback((savedMeal: { id: string }, type: "breakfast" | "lunch" | "dinner"): Meal => {
+    const mealList = type === "breakfast" ? breakfasts : type === "lunch" ? lunches : dinners;
+    return mealList.find(m => m.id === savedMeal.id) || mealList[0];
+  }, []);
+
   // Load from database
   useEffect(() => {
     async function loadData() {
@@ -407,8 +413,14 @@ export default function MealPlanner() {
           const data = await planResponse.json();
           if (data && data.planData) {
             const defaultAttendance = Array(7).fill(null).map(() => ({ andrew: true, olivia: true }));
+            // Hydrate saved meals with current definitions (ensures all fields like instructions exist)
+            const hydratedDays = data.planData.map((day: DayPlan) => ({
+              breakfast: hydrateMeal(day.breakfast, "breakfast"),
+              lunch: hydrateMeal(day.lunch, "lunch"),
+              dinner: hydrateMeal(day.dinner, "dinner"),
+            }));
             setPlan({
-              days: data.planData,
+              days: hydratedDays,
               generatedAt: data.updatedAt,
               checkedItems: data.checkedItems || {},
               attendance: data.attendance || defaultAttendance,
@@ -433,7 +445,7 @@ export default function MealPlanner() {
       }
     }
     loadData();
-  }, [savePlanToDb]);
+  }, [savePlanToDb, hydrateMeal]);
 
   // Revise a single meal - swap it for a different option
   const handleRevise = (dayIndex: number, mealType: "breakfast" | "lunch" | "dinner") => {
