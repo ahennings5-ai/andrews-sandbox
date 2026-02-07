@@ -93,9 +93,22 @@ function generateWeekPlan(existingPlan?: WeekPlan): WeekPlan {
   const shuffledBreakfasts = shuffleArray(breakfasts);
   const shuffledDinners = shuffleArray(dinners);
   const shuffledSnacks = shuffleArray(snacks);
+  const shuffledLunches = shuffleArray(lunches);
   
-  // For lunches: pick 2-3 options and batch them across the week (easier meal prep)
-  const lunchOptions = shuffleArray(lunches).slice(0, 2 + Math.floor(Math.random() * 2)); // 2-3 lunches
+  // Pick 2 breakfasts (alternating pattern: A, B, A, B, A, B, A)
+  const breakfastA = shuffledBreakfasts[0];
+  const breakfastB = shuffledBreakfasts[1];
+  
+  // Pick 2 lunches for weekdays: 2 days of one, 3 days of another (Mon-Fri only)
+  // Pattern: A, A, B, B, B (or randomly swap which gets 2 vs 3)
+  const lunchA = shuffledLunches[0];
+  const lunchB = shuffledLunches[1];
+  const lunchPattern = Math.random() > 0.5 
+    ? [lunchA, lunchA, lunchB, lunchB, lunchB, lunchA, lunchB] // weekends get variety
+    : [lunchB, lunchB, lunchA, lunchA, lunchA, lunchB, lunchA];
+  
+  // Dinners: different every night (7 unique)
+  const weekDinners = shuffledDinners.slice(0, 7);
   
   const days: DayPlan[] = [];
 
@@ -104,12 +117,12 @@ function generateWeekPlan(existingPlan?: WeekPlan): WeekPlan {
     const locked = existing?.locked || { breakfast: false, lunch: false, dinner: false, snack: false };
 
     days.push({
-      // Breakfasts: different each day (7 options, cycles if needed)
-      breakfast: locked.breakfast && existing ? existing.breakfast : shuffledBreakfasts[i % shuffledBreakfasts.length],
-      // Lunches: batch prep - same 2-3 options repeated across the week
-      lunch: locked.lunch && existing ? existing.lunch : lunchOptions[i % lunchOptions.length],
-      // Dinners: variety - different each day (12 options, plenty for a week)
-      dinner: locked.dinner && existing ? existing.dinner : shuffledDinners[i % shuffledDinners.length],
+      // Breakfasts: 2 types alternating (A, B, A, B, A, B, A)
+      breakfast: locked.breakfast && existing ? existing.breakfast : (i % 2 === 0 ? breakfastA : breakfastB),
+      // Lunches: 2 types batched (2 days + 3 days for weekdays)
+      lunch: locked.lunch && existing ? existing.lunch : lunchPattern[i],
+      // Dinners: different every night
+      dinner: locked.dinner && existing ? existing.dinner : weekDinners[i],
       snack: locked.snack && existing ? existing.snack : shuffledSnacks[i % shuffledSnacks.length],
       locked,
     });
@@ -573,9 +586,28 @@ export default function MealPlanner() {
                     );
                   })()}
 
-                  {/* Lunch prep - the batch lunches */}
+                  {/* Breakfast prep - 2 types alternating */}
                   <div className="p-4 rounded-lg border border-border bg-muted/30">
-                    <h3 className="font-medium mb-3">🥡 Lunch Prep (batch these!)</h3>
+                    <h3 className="font-medium mb-3">🍳 Breakfasts (2 types, alternating)</h3>
+                    <ul className="space-y-2 text-sm">
+                      {Array.from(new Set(plan.days.map(d => d.breakfast.name))).map((name) => {
+                        const count = plan.days.filter(d => d.breakfast.name === name).length;
+                        const meal = plan.days.find(d => d.breakfast.name === name)?.breakfast;
+                        return (
+                          <li key={name} className="flex items-center gap-2">
+                            <span className="w-4 h-4 rounded border border-border" />
+                            <span>{name}</span>
+                            <Badge variant="secondary" className="text-xs">×{count} days</Badge>
+                            {meal?.prepAhead && <Badge variant="outline" className="text-xs">prep ahead</Badge>}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+
+                  {/* Lunch prep - 2 types batched */}
+                  <div className="p-4 rounded-lg border border-border bg-muted/30">
+                    <h3 className="font-medium mb-3">🥡 Lunches (2 types, batch prep)</h3>
                     <ul className="space-y-2 text-sm">
                       {Array.from(new Set(plan.days.map(d => d.lunch.name))).map((lunchName) => {
                         const count = plan.days.filter(d => d.lunch.name === lunchName).length;
