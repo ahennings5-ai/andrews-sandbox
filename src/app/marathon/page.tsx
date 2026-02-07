@@ -226,6 +226,16 @@ const typeColors: Record<string, string> = {
   race: "bg-purple-500/20 text-purple-400 border-purple-500/30",
 };
 
+// Target paces for sub-4 hour marathon (9:09/mi race pace)
+const targetPaces: Record<string, { pace: string; range: string; description: string }> = {
+  easy: { pace: "10:30", range: "10:00-11:00", description: "Conversational, build aerobic base" },
+  tempo: { pace: "8:20", range: "8:15-8:30", description: "Comfortably hard, lactate threshold" },
+  intervals: { pace: "7:45", range: "7:30-8:00", description: "Fast, builds speed & VO2max" },
+  long: { pace: "10:15", range: "10:00-10:30", description: "Steady, builds endurance" },
+  race: { pace: "9:00", range: "9:00", description: "Goal marathon pace for sub-4:00" },
+  rest: { pace: "-", range: "-", description: "Recovery" },
+};
+
 const feelingEmojis = {
   great: "🔥",
   good: "😊",
@@ -453,6 +463,25 @@ export default function MarathonTracker() {
           </Card>
         </div>
 
+        {/* Pace Guide */}
+        <Card className="bg-slate-800/50 border-slate-700 mb-6">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-white text-lg">🎯 Target Paces for Sub-4:00 Marathon</CardTitle>
+            <CardDescription className="text-slate-400">Race pace: 9:00/mi | Goal: 3:56:XX</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              {(["easy", "long", "tempo", "intervals", "race"] as const).map((type) => (
+                <div key={type} className={`p-3 rounded-lg border ${typeColors[type]}`}>
+                  <div className="font-medium capitalize">{type}</div>
+                  <div className="text-lg font-bold">{targetPaces[type].range}/mi</div>
+                  <div className="text-xs opacity-75">{targetPaces[type].description}</div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
         <Tabs defaultValue="schedule" className="space-y-4">
           <TabsList className="bg-slate-800">
             <TabsTrigger value="schedule">Training Schedule</TabsTrigger>
@@ -555,6 +584,9 @@ export default function MarathonTracker() {
                               <Badge className={typeColors[workout.type]}>{workout.type}</Badge>
                               {workout.miles > 0 && (
                                 <span className="text-white font-medium">{workout.miles} mi</span>
+                              )}
+                              {workout.type !== "rest" && targetPaces[workout.type] && (
+                                <span className="text-slate-500 text-sm">@ {targetPaces[workout.type].range}/mi</span>
                               )}
                               {log && <span className="text-green-400">✓</span>}
                             </div>
