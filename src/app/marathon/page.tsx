@@ -270,39 +270,73 @@ export default function MarathonTracker() {
     notes: "",
   });
 
-  // LIC/Hunters Point running routes
-  const routes: Record<number, { name: string; description: string; mapUrl: string }[]> = {
+  // Running routes from 5241 Center Blvd, LIC
+  const HOME_ADDRESS = "5241+Center+Blvd,+Long+Island+City,+NY";
+  
+  const routes: Record<number, { name: string; description: string; miles: number; mapUrl: string }[]> = {
     3: [
-      { name: "Gantry Plaza Loop", description: "Scenic waterfront path with Manhattan views", mapUrl: "https://www.google.com/maps/dir/Gantry+Plaza+State+Park,+Long+Island+City,+NY/40.7433,-73.9562/40.7480,-73.9590/Gantry+Plaza+State+Park/@40.7458,-73.9615,15z" },
-      { name: "Hunters Point South", description: "Quiet loop around the new park", mapUrl: "https://www.google.com/maps/dir/Hunters+Point+South+Park/40.7395,-73.9575/40.7420,-73.9610/Hunters+Point+South+Park/@40.7408,-73.9592,16z" },
+      { name: "Hunters Point South Loop", miles: 3, description: "Waterfront loop around the park", mapUrl: `https://www.google.com/maps/dir/${HOME_ADDRESS}/Hunters+Point+South+Park/Gantry+Plaza+State+Park/${HOME_ADDRESS}` },
+      { name: "Gantry to Vernon", miles: 3, description: "North along waterfront and back", mapUrl: `https://www.google.com/maps/dir/${HOME_ADDRESS}/Vernon+Blvd,+Long+Island+City/${HOME_ADDRESS}` },
     ],
     4: [
-      { name: "East River Path North", description: "Up to Socrates Sculpture Park and back", mapUrl: "https://www.google.com/maps/dir/Gantry+Plaza+State+Park/Socrates+Sculpture+Park/@40.7553,-73.9475,14z" },
-      { name: "Pulaski Bridge Out & Back", description: "Cross the bridge to Greenpoint, great views", mapUrl: "https://www.google.com/maps/dir/Hunters+Point/Pulaski+Bridge/Greenpoint/@40.7350,-73.9550,14z" },
+      { name: "Roosevelt Island Loop", miles: 4, description: "Cross the bridge, loop the island", mapUrl: `https://www.google.com/maps/dir/${HOME_ADDRESS}/Roosevelt+Island+Bridge/Roosevelt+Island/${HOME_ADDRESS}` },
+      { name: "Waterfront to Rainey Park", miles: 4, description: "North along East River to Rainey Park", mapUrl: `https://www.google.com/maps/dir/${HOME_ADDRESS}/Rainey+Park,+Queens/${HOME_ADDRESS}` },
     ],
     5: [
-      { name: "LIC to Astoria Park", description: "Waterfront to Astoria Park and back", mapUrl: "https://www.google.com/maps/dir/Hunters+Point+South+Park/Astoria+Park/@40.7600,-73.9350,13z" },
-      { name: "Pulaski + McCarren Loop", description: "Bridge to Brooklyn, loop McCarren Park", mapUrl: "https://www.google.com/maps/dir/Hunters+Point/McCarren+Park/@40.7200,-73.9500,14z" },
+      { name: "Queensboro Bridge Out & Back", miles: 5, description: "Waterfront to the bridge and back", mapUrl: `https://www.google.com/maps/dir/${HOME_ADDRESS}/Queensboro+Bridge/${HOME_ADDRESS}` },
+      { name: "Socrates Sculpture Park", miles: 5, description: "North to Socrates and Astoria", mapUrl: `https://www.google.com/maps/dir/${HOME_ADDRESS}/Socrates+Sculpture+Park/${HOME_ADDRESS}` },
     ],
     6: [
-      { name: "East River Full", description: "Hunters Point to Astoria Park loop", mapUrl: "https://www.google.com/maps/dir/Hunters+Point+South+Park/Astoria+Park/Rainey+Park/Hunters+Point+South+Park/@40.7550,-73.9350,13z" },
+      { name: "Queensboro + Roosevelt Island", miles: 6, description: "Over the bridge, loop Roosevelt Island", mapUrl: `https://www.google.com/maps/dir/${HOME_ADDRESS}/Queensboro+Bridge/Roosevelt+Island/${HOME_ADDRESS}` },
+      { name: "Astoria Park Loop", miles: 6, description: "Waterfront up to Astoria Park", mapUrl: `https://www.google.com/maps/dir/${HOME_ADDRESS}/Astoria+Park/${HOME_ADDRESS}` },
     ],
     8: [
-      { name: "Greenpoint + Williamsburg", description: "Pulaski to McCarren, down to Williamsburg waterfront", mapUrl: "https://www.google.com/maps/dir/Hunters+Point/McCarren+Park/Domino+Park/Hunters+Point/@40.7150,-73.9500,13z" },
+      { name: "Queensboro + East Side", miles: 8, description: "Over bridge, south on East Side path, back", mapUrl: `https://www.google.com/maps/dir/${HOME_ADDRESS}/Queensboro+Bridge/East+63rd+Street,+Manhattan/Queensboro+Bridge/${HOME_ADDRESS}` },
+      { name: "Full Roosevelt + Astoria", miles: 8, description: "Roosevelt Island + waterfront to Astoria", mapUrl: `https://www.google.com/maps/dir/${HOME_ADDRESS}/Roosevelt+Island/Astoria+Park/${HOME_ADDRESS}` },
     ],
     10: [
-      { name: "Brooklyn Bridge Loop", description: "East River path to Brooklyn Bridge and back", mapUrl: "https://www.google.com/maps/dir/Hunters+Point+South+Park/Brooklyn+Bridge/Hunters+Point+South+Park/@40.7200,-73.9700,13z" },
+      { name: "Central Park South Loop", miles: 10, description: "Queensboro → Central Park south end → back", mapUrl: `https://www.google.com/maps/dir/${HOME_ADDRESS}/Queensboro+Bridge/Central+Park+South,+Manhattan/Queensboro+Bridge/${HOME_ADDRESS}` },
+    ],
+    12: [
+      { name: "Central Park Half Loop", miles: 12, description: "Queensboro → half Central Park loop → back", mapUrl: `https://www.google.com/maps/dir/${HOME_ADDRESS}/Queensboro+Bridge/Central+Park,+Manhattan/Queensboro+Bridge/${HOME_ADDRESS}` },
+    ],
+    14: [
+      { name: "Central Park Full Loop", miles: 14, description: "Queensboro → full Central Park loop (6 mi) → back", mapUrl: `https://www.google.com/maps/dir/${HOME_ADDRESS}/Queensboro+Bridge/Central+Park+North,+Manhattan/Central+Park+South,+Manhattan/Queensboro+Bridge/${HOME_ADDRESS}` },
+    ],
+    16: [
+      { name: "Central Park + Harlem Hill", miles: 16, description: "Full park loop with Harlem Hill repeats", mapUrl: `https://www.google.com/maps/dir/${HOME_ADDRESS}/Queensboro+Bridge/Central+Park,+Manhattan/Harlem+Hill,+Central+Park/Queensboro+Bridge/${HOME_ADDRESS}` },
+    ],
+    18: [
+      { name: "Central Park Double", miles: 18, description: "Queensboro → 1.5 Central Park loops → back", mapUrl: `https://www.google.com/maps/dir/${HOME_ADDRESS}/Queensboro+Bridge/Central+Park,+Manhattan/Queensboro+Bridge/${HOME_ADDRESS}` },
+    ],
+    20: [
+      { name: "Marathon Simulation", miles: 20, description: "Queensboro → 2 full Central Park loops → back", mapUrl: `https://www.google.com/maps/dir/${HOME_ADDRESS}/Queensboro+Bridge/Central+Park,+Manhattan/Queensboro+Bridge/${HOME_ADDRESS}` },
     ],
   };
 
   // Get route suggestions for a given distance
   const getRouteSuggestions = (miles: number) => {
-    // Find closest distance with routes
+    // Find routes that are close to the target distance (within 1 mile)
     const distances = Object.keys(routes).map(Number).sort((a, b) => a - b);
+    
+    // Get exact match or closest
+    const exactMatch = distances.find(d => d === miles);
+    if (exactMatch) return routes[exactMatch];
+    
+    // Find closest distance
     const closest = distances.reduce((prev, curr) => 
       Math.abs(curr - miles) < Math.abs(prev - miles) ? curr : prev
     );
-    return routes[closest] || routes[4]; // Default to 4mi routes
+    
+    // Also include one distance up if it's close
+    const nextUp = distances.find(d => d > miles);
+    const suggestions = [...(routes[closest] || [])];
+    
+    if (nextUp && nextUp - miles <= 2 && routes[nextUp]) {
+      suggestions.push(...routes[nextUp].slice(0, 1)); // Add one longer option
+    }
+    
+    return suggestions.length > 0 ? suggestions : routes[4];
   };
 
   // Generate mile splits for a run
@@ -1083,7 +1117,8 @@ export default function MarathonTracker() {
 
                   {/* Suggested Routes */}
                   <div>
-                    <h3 className="font-semibold mb-3">🗺️ Suggested Routes (LIC/Hunters Point)</h3>
+                    <h3 className="font-semibold mb-2">🗺️ Routes from Home</h3>
+                    <p className="text-xs text-muted-foreground mb-3">Starting from 5241 Center Blvd</p>
                     <div className="space-y-2">
                       {getRouteSuggestions(selectedWorkout.miles).map((route, i) => (
                         <a
@@ -1095,16 +1130,19 @@ export default function MarathonTracker() {
                         >
                           <div className="flex items-center justify-between">
                             <div>
-                              <p className="font-medium text-sm">{route.name}</p>
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium text-sm">{route.name}</p>
+                                <Badge variant="secondary" className="text-xs">{route.miles} mi</Badge>
+                              </div>
                               <p className="text-xs text-muted-foreground">{route.description}</p>
                             </div>
-                            <span className="text-primary text-sm">Open Map →</span>
+                            <span className="text-primary text-sm">Map →</span>
                           </div>
                         </a>
                       ))}
                     </div>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Routes are approximate. Adjust as needed for exact mileage.
+                    <p className="text-xs text-muted-foreground mt-3">
+                      💡 Adjust pace/distance as needed. For exact mileage, add loops or out-and-backs.
                     </p>
                   </div>
 
