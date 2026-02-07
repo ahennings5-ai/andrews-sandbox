@@ -72,10 +72,17 @@ interface DayPlan {
   locked: { breakfast: boolean; lunch: boolean; dinner: boolean; snack: boolean };
 }
 
+// Who's eating at home each day
+interface DayAttendance {
+  andrew: boolean;
+  olivia: boolean;
+}
+
 interface WeekPlan {
   days: DayPlan[];
   generatedAt: string;
   checkedItems: Record<string, boolean>;
+  attendance: DayAttendance[]; // 7 days
 }
 
 const dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -110,7 +117,13 @@ function generateWeekPlan(existingPlan?: WeekPlan): WeekPlan {
     });
   }
 
-  return { days, generatedAt: new Date().toISOString(), checkedItems: existingPlan?.checkedItems || {} };
+  const defaultAttendance: DayAttendance[] = Array(7).fill(null).map(() => ({ andrew: true, olivia: true }));
+  return { 
+    days, 
+    generatedAt: new Date().toISOString(), 
+    checkedItems: existingPlan?.checkedItems || {},
+    attendance: existingPlan?.attendance || defaultAttendance,
+  };
 }
 
 function calculateWeeklyStats(plan: WeekPlan) {
@@ -118,45 +131,55 @@ function calculateWeeklyStats(plan: WeekPlan) {
   let totalCalories = 0;
   let totalProtein = 0;
   let totalCarbs = 0;
+  let totalPeopleDays = 0;
 
   const allIngredients: string[] = [];
+  const ingredientMultipliers: Record<string, number> = {};
   const prepAheadMeals: { day: string; meal: string; name: string }[] = [];
 
   plan.days.forEach((day, i) => {
-    // Cost (x2 for couple)
-    totalCost += (day.breakfast.cost + day.lunch.cost + day.dinner.cost + day.snack.cost) * 2;
+    const attendance = plan.attendance?.[i] || { andrew: true, olivia: true };
+    const peopleCount = (attendance.andrew ? 1 : 0) + (attendance.olivia ? 1 : 0);
+    
+    if (peopleCount === 0) return; // Skip days with no one eating
+    
+    totalPeopleDays += peopleCount;
 
-    // Macros (per person)
-    totalCalories += day.breakfast.calories + day.lunch.calories + day.dinner.calories + day.snack.calories;
-    totalProtein += day.breakfast.protein + day.lunch.protein + day.dinner.protein;
-    totalCarbs += day.breakfast.carbs + day.lunch.carbs + day.dinner.carbs;
+    // Cost based on how many people are eating
+    totalCost += (day.breakfast.cost + day.lunch.cost + day.dinner.cost + day.snack.cost) * peopleCount;
 
-    // Ingredients
-    allIngredients.push(...day.breakfast.ingredients, ...day.lunch.ingredients, ...day.dinner.ingredients);
+    // Macros (per person, averaged later)
+    totalCalories += (day.breakfast.calories + day.lunch.calories + day.dinner.calories + day.snack.calories) * peopleCount;
+    totalProtein += (day.breakfast.protein + day.lunch.protein + day.dinner.protein) * peopleCount;
+    totalCarbs += (day.breakfast.carbs + day.lunch.carbs + day.dinner.carbs) * peopleCount;
 
-    // Prep ahead
+    // Ingredients with multiplier based on people count
+    [...day.breakfast.ingredients, ...day.lunch.ingredients, ...day.dinner.ingredients].forEach(ing => {
+      allIngredients.push(ing);
+      ingredientMultipliers[ing] = (ingredientMultipliers[ing] || 0) + peopleCount;
+    });
+
+    // Prep ahead (only if someone is eating)
     if (day.breakfast.prepAhead) prepAheadMeals.push({ day: dayNames[i], meal: "Breakfast", name: day.breakfast.name });
     if (day.lunch.prepAhead) prepAheadMeals.push({ day: dayNames[i], meal: "Lunch", name: day.lunch.name });
     if (day.dinner.prepAhead) prepAheadMeals.push({ day: dayNames[i], meal: "Dinner", name: day.dinner.name });
   });
 
-  // Deduplicate ingredients
-  const ingredientCounts = allIngredients.reduce((acc, ing) => {
-    acc[ing] = (acc[ing] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
-
-  const groceryList = Object.entries(ingredientCounts)
+  // Use multipliers for grocery quantities
+  const groceryList = Object.entries(ingredientMultipliers)
     .sort((a, b) => b[1] - a[1])
-    .map(([name, count]) => ({ name, count }));
+    .map(([name, count]) => ({ name, count: Math.ceil(count) }));
+
+  const avgDays = totalPeopleDays > 0 ? totalPeopleDays : 1;
 
   return {
     totalCost: Math.round(totalCost),
-    avgDailyCalories: Math.round(totalCalories / 7),
-    avgDailyProtein: Math.round(totalProtein / 7),
-    avgDailyCarbs: Math.round(totalCarbs / 7),
+    avgDailyCalories: Math.round(totalCalories / avgDays),
+    avgDailyProtein: Math.round(totalProtein / avgDays),
+    avgDailyCarbs: Math.round(totalCarbs / avgDays),
     groceryList,
     prepAheadMeals,
+    totalPeopleDays,
   };
 }
 
@@ -172,6 +195,7 @@ export default function MealPlanner() {
         body: JSON.stringify({
           planData: planToSave.days,
           checkedItems: planToSave.checkedItems,
+          attendance: planToSave.attendance,
         }),
       });
     } catch (error) {
@@ -195,10 +219,12 @@ export default function MealPlanner() {
         if (response.ok) {
           const data = await response.json();
           if (data && data.planData) {
+            const defaultAttendance = Array(7).fill(null).map(() => ({ andrew: true, olivia: true }));
             setPlan({
               days: data.planData,
               generatedAt: data.updatedAt,
               checkedItems: data.checkedItems || {},
+              attendance: data.attendance || defaultAttendance,
             });
           } else {
             // No plan in DB, generate new one
@@ -232,6 +258,18 @@ export default function MealPlanner() {
         [mealType]: !newPlan.days[dayIndex].locked[mealType],
       },
     };
+    setPlan(newPlan);
+    savePlanToDb(newPlan);
+  };
+
+  const toggleAttendance = (dayIndex: number, person: "andrew" | "olivia") => {
+    if (!plan) return;
+    const newAttendance = [...(plan.attendance || Array(7).fill(null).map(() => ({ andrew: true, olivia: true })))];
+    newAttendance[dayIndex] = {
+      ...newAttendance[dayIndex],
+      [person]: !newAttendance[dayIndex][person],
+    };
+    const newPlan = { ...plan, attendance: newAttendance };
     setPlan(newPlan);
     savePlanToDb(newPlan);
   };
@@ -352,10 +390,71 @@ export default function MealPlanner() {
 
         <Tabs defaultValue="plan" className="space-y-6">
           <TabsList>
+            <TabsTrigger value="schedule">Who&apos;s Eating</TabsTrigger>
             <TabsTrigger value="plan">Meal Plan</TabsTrigger>
             <TabsTrigger value="prep">Sunday Prep</TabsTrigger>
             <TabsTrigger value="grocery">Grocery List</TabsTrigger>
           </TabsList>
+
+          {/* Schedule Tab - Who's eating each day */}
+          <TabsContent value="schedule" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Weekly Schedule</CardTitle>
+                <CardDescription>Toggle who&apos;s eating at home each day — costs adjust automatically</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-8 gap-2 text-center text-sm">
+                  <div></div>
+                  {dayNames.map((day) => (
+                    <div key={day} className="font-medium">{day.slice(0, 3)}</div>
+                  ))}
+                  
+                  {/* Andrew's row */}
+                  <div className="text-left font-medium py-2">Andrew</div>
+                  {plan.attendance?.map((att, i) => (
+                    <button
+                      key={`andrew-${i}`}
+                      onClick={() => toggleAttendance(i, "andrew")}
+                      className={`p-2 rounded-lg border transition-all ${
+                        att.andrew
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-muted text-muted-foreground border-border hover:border-primary/50"
+                      }`}
+                    >
+                      {att.andrew ? "✓" : "—"}
+                    </button>
+                  ))}
+                  
+                  {/* Olivia's row */}
+                  <div className="text-left font-medium py-2">Olivia</div>
+                  {plan.attendance?.map((att, i) => (
+                    <button
+                      key={`olivia-${i}`}
+                      onClick={() => toggleAttendance(i, "olivia")}
+                      className={`p-2 rounded-lg border transition-all ${
+                        att.olivia
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-muted text-muted-foreground border-border hover:border-primary/50"
+                      }`}
+                    >
+                      {att.olivia ? "✓" : "—"}
+                    </button>
+                  ))}
+                </div>
+                
+                <div className="mt-6 pt-4 border-t border-border">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">This week:</span>
+                    <span>
+                      <strong>{plan.attendance?.filter(a => a.andrew).length || 7}</strong> days for Andrew, 
+                      <strong> {plan.attendance?.filter(a => a.olivia).length || 7}</strong> days for Olivia
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           {/* Meal Plan Tab */}
           <TabsContent value="plan" className="space-y-4">
@@ -363,10 +462,21 @@ export default function MealPlanner() {
               🔒 Lock meals you like, then shuffle to regenerate the rest
             </p>
 
-            {plan.days.map((day, dayIndex) => (
-              <Card key={dayIndex}>
+            {plan.days.map((day, dayIndex) => {
+              const attendance = plan.attendance?.[dayIndex] || { andrew: true, olivia: true };
+              const peopleCount = (attendance.andrew ? 1 : 0) + (attendance.olivia ? 1 : 0);
+              
+              return (
+              <Card key={dayIndex} className={peopleCount === 0 ? "opacity-50" : ""}>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-lg">{dayNames[dayIndex]}</CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg">{dayNames[dayIndex]}</CardTitle>
+                    <div className="flex items-center gap-2 text-sm">
+                      {attendance.andrew && <Badge variant="outline">Andrew</Badge>}
+                      {attendance.olivia && <Badge variant="outline">Olivia</Badge>}
+                      {peopleCount === 0 && <Badge variant="secondary">No meals needed</Badge>}
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -408,7 +518,8 @@ export default function MealPlanner() {
                   </div>
                 </CardContent>
               </Card>
-            ))}
+            );
+            })}
           </TabsContent>
 
           {/* Sunday Prep Tab */}

@@ -29,6 +29,7 @@ model MealPlan {
   weekOf       String   @unique // ISO date of the Monday
   planData     Json     // The full week plan as JSON
   checkedItems Json     @default("{}") // Grocery items checked off
+  attendance   Json?    // Who's eating each day [{andrew: bool, olivia: bool}, ...]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }

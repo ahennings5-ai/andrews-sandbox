@@ -28,13 +28,13 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { planData, checkedItems } = body;
+    const { planData, checkedItems, attendance } = body;
     const weekOf = getCurrentWeekMonday();
 
     const plan = await prisma.mealPlan.upsert({
       where: { weekOf },
-      update: { planData, checkedItems },
-      create: { weekOf, planData, checkedItems },
+      update: { planData, checkedItems, attendance },
+      create: { weekOf, planData, checkedItems, attendance },
     });
 
     return NextResponse.json(plan);
