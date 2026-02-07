@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 // Simple password protection
-const SITE_PASSWORD = process.env.SITE_PASSWORD || "marathon2026";
+const SITE_PASSWORD = process.env.SITE_PASSWORD || "wrigley";
 
 export function middleware(request: NextRequest) {
   // Skip API routes and static files
