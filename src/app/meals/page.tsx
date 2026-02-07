@@ -832,7 +832,12 @@ export default function MealPlanner() {
                         return (
                           <li key={name} className="flex items-center gap-2">
                             <span className="w-4 h-4 rounded border border-border" />
-                            <span>{name}</span>
+                            <button 
+                              onClick={() => meal && setSelectedMeal(meal)}
+                              className="text-left hover:text-primary transition-colors"
+                            >
+                              {name} <span className="text-primary/60 text-xs">→ view steps</span>
+                            </button>
                             <Badge variant="secondary" className="text-xs">×{count} days</Badge>
                             {meal?.prepAhead && <Badge variant="outline" className="text-xs">prep ahead</Badge>}
                           </li>
@@ -847,10 +852,16 @@ export default function MealPlanner() {
                     <ul className="space-y-2 text-sm">
                       {Array.from(new Set(plan.days.map(d => d.lunch.name))).map((lunchName) => {
                         const count = plan.days.filter(d => d.lunch.name === lunchName).length;
+                        const meal = plan.days.find(d => d.lunch.name === lunchName)?.lunch;
                         return (
                           <li key={lunchName} className="flex items-center gap-2">
                             <span className="w-4 h-4 rounded border border-border" />
-                            <span>{lunchName}</span>
+                            <button 
+                              onClick={() => meal && setSelectedMeal(meal)}
+                              className="text-left hover:text-primary transition-colors"
+                            >
+                              {lunchName} <span className="text-primary/60 text-xs">→ view steps</span>
+                            </button>
                             <Badge variant="secondary" className="text-xs">×{count} days</Badge>
                           </li>
                         );
@@ -866,13 +877,25 @@ export default function MealPlanner() {
                     <div className="p-4 rounded-lg border border-border bg-muted/30">
                       <h3 className="font-medium mb-3">📋 Other Prep-Ahead</h3>
                       <ul className="space-y-2 text-sm">
-                        {stats.prepAheadMeals.filter(m => m.meal !== "Lunch").map((meal, i) => (
-                          <li key={i} className="flex items-center gap-2">
-                            <span className="w-4 h-4 rounded border border-border" />
-                            <span>{meal.name}</span>
-                            <Badge variant="outline" className="text-xs">{meal.day} {meal.meal}</Badge>
-                          </li>
-                        ))}
+                        {stats.prepAheadMeals.filter(m => m.meal !== "Lunch").map((prepMeal, i) => {
+                          // Find the actual meal object
+                          const dayIndex = dayNames.indexOf(prepMeal.day);
+                          const mealType = prepMeal.meal.toLowerCase() as "breakfast" | "lunch" | "dinner";
+                          const mealObj = dayIndex >= 0 ? plan.days[dayIndex]?.[mealType] : null;
+                          
+                          return (
+                            <li key={i} className="flex items-center gap-2">
+                              <span className="w-4 h-4 rounded border border-border" />
+                              <button 
+                                onClick={() => mealObj && setSelectedMeal(mealObj)}
+                                className="text-left hover:text-primary transition-colors"
+                              >
+                                {prepMeal.name} <span className="text-primary/60 text-xs">→ view steps</span>
+                              </button>
+                              <Badge variant="outline" className="text-xs">{prepMeal.day} {prepMeal.meal}</Badge>
+                            </li>
+                          );
+                        })}
                       </ul>
                     </div>
                   )}
