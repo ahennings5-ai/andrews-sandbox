@@ -357,10 +357,26 @@ export default function MarathonTracker() {
     ],
   };
 
-  // Build a Google Maps URL from starting point and waypoints
-  const buildMapUrl = (waypoints: string[]) => {
-    const allPoints = [startingPoint, ...waypoints, startingPoint];
-    return `https://www.google.com/maps/dir/${allPoints.join("/")}`;
+  // Build an OnTheGoMap URL for route creation
+  // onthegomap.com centers on a location where user can draw their route
+  const buildMapUrl = (waypoints: string[], miles: number) => {
+    // For GPS coordinates (lat,lng format)
+    if (startingPoint.includes(",") && !startingPoint.includes("+")) {
+      const [lat, lng] = startingPoint.split(",");
+      return `https://onthegomap.com/?lat=${lat}&lng=${lng}&zoom=14&d=${miles}`;
+    }
+    // For addresses, use a Google search redirect to get coords, or just center on LIC
+    // Default to Hunters Point coordinates
+    return `https://onthegomap.com/?lat=40.7433&lng=-73.9575&zoom=14&d=${miles}`;
+  };
+  
+  // Also provide a direct link to create a route on OnTheGoMap
+  const getOnTheGoMapLink = () => {
+    if (startingPoint.includes(",") && !startingPoint.includes("+")) {
+      const [lat, lng] = startingPoint.split(",");
+      return `https://onthegomap.com/?lat=${lat}&lng=${lng}&zoom=14`;
+    }
+    return "https://onthegomap.com/?lat=40.7433&lng=-73.9575&zoom=14";
   };
 
   // Get route suggestions for a given distance (with dynamic starting point)
@@ -389,7 +405,7 @@ export default function MarathonTracker() {
       name: route.name,
       description: route.description,
       miles: route.miles,
-      mapUrl: buildMapUrl(route.waypoints),
+      mapUrl: buildMapUrl(route.waypoints, route.miles),
     }));
   };
 
@@ -1241,9 +1257,19 @@ export default function MarathonTracker() {
                       </div>
                     </div>
                     
-                    <p className="text-xs text-muted-foreground mt-3">
-                      💡 Routes are approximate. Adjust as needed for exact mileage.
-                    </p>
+                    <div className="mt-3 flex items-center justify-between">
+                      <p className="text-xs text-muted-foreground">
+                        💡 Click to open in OnTheGoMap
+                      </p>
+                      <a 
+                        href={getOnTheGoMapLink()} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-xs text-primary hover:underline"
+                      >
+                        Draw custom route →
+                      </a>
+                    </div>
                   </div>
 
                   {/* Log Run Button */}
