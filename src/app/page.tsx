@@ -68,7 +68,7 @@ export default function Home() {
                   <span>NYC Marathon</span>
                 </CardTitle>
                 <CardDescription>
-                  18-week training program with run logging & progress tracking
+                  Your road to sub-4. Log every mile, track your progress, and cross that Central Park finish line ready.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -87,7 +87,7 @@ export default function Home() {
                   <span>Meal Planner</span>
                 </CardTitle>
                 <CardDescription>
-                  Weekly meals for two, Sunday prep, $200 NYC budget
+                  Fuel the week ahead. Simple meals for two, easy grocery runs, and zero weeknight stress.
                 </CardDescription>
               </CardHeader>
               <CardContent>
