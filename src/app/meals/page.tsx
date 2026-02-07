@@ -5,47 +5,178 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import Link from "next/link";
 
-// More variety for breakfast/dinner, lunches can repeat (batch prep)
-// Core ingredients: chicken, ground turkey, ground beef, salmon, eggs, shrimp
-// Carbs: rice, pasta, tortillas, bread, potatoes
-// Staples: beans, cheese, salsa, frozen veggies, onion, garlic, canned tomatoes
+// Meal type with full recipe instructions
+interface MealData {
+  id: string;
+  name: string;
+  ingredients: { item: string; amount: string }[];
+  cost: number;
+  prepTime: number;
+  cookTime: number;
+  prepAhead: boolean;
+  protein: number;
+  carbs: number;
+  calories: number;
+  instructions: string[];
+}
 
-const breakfasts = [
-  { id: "b1", name: "Eggs & Toast", ingredients: ["eggs", "bread"], cost: 2.5, prepTime: 10, prepAhead: false, protein: 14, carbs: 25, calories: 320 },
-  { id: "b2", name: "Breakfast Burrito", ingredients: ["eggs", "tortillas", "cheese", "salsa"], cost: 3, prepTime: 10, prepAhead: true, protein: 16, carbs: 28, calories: 380 },
-  { id: "b3", name: "Avocado Toast + Eggs", ingredients: ["eggs", "bread", "avocado"], cost: 4, prepTime: 10, prepAhead: false, protein: 16, carbs: 22, calories: 380 },
-  { id: "b4", name: "Greek Yogurt Parfait", ingredients: ["greek yogurt", "granola", "berries"], cost: 4, prepTime: 5, prepAhead: false, protein: 18, carbs: 35, calories: 340 },
-  { id: "b5", name: "Oatmeal with Banana", ingredients: ["oats", "banana", "peanut butter"], cost: 2, prepTime: 8, prepAhead: false, protein: 12, carbs: 52, calories: 380 },
-  { id: "b6", name: "Veggie Scramble", ingredients: ["eggs", "spinach", "cheese", "onion"], cost: 3, prepTime: 12, prepAhead: false, protein: 18, carbs: 8, calories: 280 },
-  { id: "b7", name: "Smoothie Bowl", ingredients: ["greek yogurt", "banana", "berries", "granola"], cost: 4.5, prepTime: 5, prepAhead: false, protein: 15, carbs: 42, calories: 360 },
+const breakfasts: MealData[] = [
+  { 
+    id: "b1", name: "Eggs & Toast", 
+    ingredients: [{ item: "eggs", amount: "2" }, { item: "bread", amount: "2 slices" }, { item: "butter", amount: "1 tbsp" }],
+    cost: 2.5, prepTime: 2, cookTime: 8, prepAhead: false, protein: 14, carbs: 25, calories: 320,
+    instructions: ["Heat a non-stick pan over medium heat", "Add butter and let it melt", "Crack eggs into pan, season with salt & pepper", "Cook to desired doneness (3-4 min for over-easy)", "Toast bread while eggs cook", "Serve eggs on toast"]
+  },
+  { 
+    id: "b2", name: "Breakfast Burrito", 
+    ingredients: [{ item: "eggs", amount: "2" }, { item: "tortilla", amount: "1 large" }, { item: "cheese", amount: "¼ cup shredded" }, { item: "salsa", amount: "2 tbsp" }],
+    cost: 3, prepTime: 3, cookTime: 7, prepAhead: true, protein: 16, carbs: 28, calories: 380,
+    instructions: ["Scramble eggs in a pan over medium heat", "Warm tortilla in microwave for 15 seconds", "Place scrambled eggs in center of tortilla", "Top with cheese and salsa", "Fold sides in, then roll up burrito-style", "Optional: toast seam-side down in pan for crispiness"]
+  },
+  { 
+    id: "b3", name: "Avocado Toast + Eggs", 
+    ingredients: [{ item: "eggs", amount: "2" }, { item: "bread", amount: "2 slices" }, { item: "avocado", amount: "½" }, { item: "salt & pepper", amount: "to taste" }, { item: "red pepper flakes", amount: "pinch" }],
+    cost: 4, prepTime: 3, cookTime: 7, prepAhead: false, protein: 16, carbs: 22, calories: 380,
+    instructions: ["Toast bread until golden", "While bread toasts, fry or poach eggs", "Mash avocado with salt and pepper", "Spread avocado on toast", "Top with eggs", "Garnish with red pepper flakes"]
+  },
+  { 
+    id: "b4", name: "Greek Yogurt Parfait", 
+    ingredients: [{ item: "greek yogurt", amount: "1 cup" }, { item: "granola", amount: "¼ cup" }, { item: "berries", amount: "½ cup" }, { item: "honey", amount: "1 tbsp" }],
+    cost: 4, prepTime: 5, cookTime: 0, prepAhead: false, protein: 18, carbs: 35, calories: 340,
+    instructions: ["Add half the yogurt to a bowl or jar", "Layer with half the granola and berries", "Add remaining yogurt", "Top with rest of granola and berries", "Drizzle with honey", "Serve immediately (or granola gets soggy)"]
+  },
+  { 
+    id: "b5", name: "Oatmeal with Banana", 
+    ingredients: [{ item: "oats", amount: "½ cup" }, { item: "water or milk", amount: "1 cup" }, { item: "banana", amount: "1" }, { item: "peanut butter", amount: "1 tbsp" }, { item: "cinnamon", amount: "pinch" }],
+    cost: 2, prepTime: 2, cookTime: 6, prepAhead: false, protein: 12, carbs: 52, calories: 380,
+    instructions: ["Combine oats and water/milk in a pot", "Bring to a boil, then reduce to simmer", "Cook 5 minutes, stirring occasionally", "Slice banana", "Transfer oatmeal to bowl", "Top with banana slices, peanut butter, and cinnamon"]
+  },
+  { 
+    id: "b6", name: "Veggie Scramble", 
+    ingredients: [{ item: "eggs", amount: "3" }, { item: "spinach", amount: "1 cup" }, { item: "cheese", amount: "¼ cup" }, { item: "onion", amount: "¼ diced" }, { item: "olive oil", amount: "1 tsp" }],
+    cost: 3, prepTime: 5, cookTime: 7, prepAhead: false, protein: 18, carbs: 8, calories: 280,
+    instructions: ["Heat oil in pan over medium heat", "Sauté onion until softened (2-3 min)", "Add spinach, cook until wilted", "Beat eggs and pour into pan", "Stir gently as eggs cook", "Add cheese in last 30 seconds", "Season with salt & pepper"]
+  },
+  { 
+    id: "b7", name: "Smoothie Bowl", 
+    ingredients: [{ item: "greek yogurt", amount: "½ cup" }, { item: "frozen banana", amount: "1" }, { item: "frozen berries", amount: "½ cup" }, { item: "granola", amount: "¼ cup" }, { item: "milk", amount: "¼ cup" }],
+    cost: 4.5, prepTime: 5, cookTime: 0, prepAhead: false, protein: 15, carbs: 42, calories: 360,
+    instructions: ["Add yogurt, frozen banana, berries, and milk to blender", "Blend until thick and smooth (add more milk if needed)", "Pour into a bowl", "Top with granola", "Add any extra toppings (chia seeds, coconut, more fruit)", "Eat immediately with a spoon"]
+  },
 ];
 
-const lunches = [
-  { id: "l1", name: "Chicken Rice Bowl", ingredients: ["chicken", "rice", "frozen veggies"], cost: 5, prepTime: 5, prepAhead: true, protein: 35, carbs: 45, calories: 480 },
-  { id: "l2", name: "Turkey Taco Bowl", ingredients: ["ground turkey", "rice", "beans", "cheese", "salsa"], cost: 5, prepTime: 5, prepAhead: true, protein: 32, carbs: 42, calories: 460 },
-  { id: "l3", name: "Chicken Caesar Wrap", ingredients: ["chicken", "tortillas", "romaine", "parmesan"], cost: 5.5, prepTime: 5, prepAhead: true, protein: 34, carbs: 32, calories: 440 },
-  { id: "l4", name: "Mediterranean Grain Bowl", ingredients: ["chicken", "rice", "cucumber", "tomatoes", "feta"], cost: 6, prepTime: 5, prepAhead: true, protein: 32, carbs: 48, calories: 480 },
-  { id: "l5", name: "Asian Noodle Bowl", ingredients: ["chicken", "rice noodles", "frozen veggies", "soy sauce"], cost: 5, prepTime: 5, prepAhead: true, protein: 30, carbs: 50, calories: 470 },
+const lunches: MealData[] = [
+  { 
+    id: "l1", name: "Chicken Rice Bowl", 
+    ingredients: [{ item: "cooked chicken", amount: "6 oz" }, { item: "cooked rice", amount: "1 cup" }, { item: "frozen veggies", amount: "1 cup" }, { item: "soy sauce", amount: "1 tbsp" }],
+    cost: 5, prepTime: 2, cookTime: 3, prepAhead: true, protein: 35, carbs: 45, calories: 480,
+    instructions: ["If meal prepped: microwave rice and chicken for 2 min", "Steam or microwave frozen veggies", "Combine in bowl", "Drizzle with soy sauce", "Mix and enjoy"]
+  },
+  { 
+    id: "l2", name: "Turkey Taco Bowl", 
+    ingredients: [{ item: "cooked ground turkey", amount: "5 oz" }, { item: "cooked rice", amount: "1 cup" }, { item: "black beans", amount: "½ cup" }, { item: "cheese", amount: "¼ cup" }, { item: "salsa", amount: "3 tbsp" }],
+    cost: 5, prepTime: 2, cookTime: 3, prepAhead: true, protein: 32, carbs: 42, calories: 460,
+    instructions: ["Heat rice and turkey in microwave (2 min)", "Warm beans (or use straight from can, drained)", "Layer rice, turkey, and beans in bowl", "Top with cheese and salsa", "Optional: add sour cream, lettuce, hot sauce"]
+  },
+  { 
+    id: "l3", name: "Chicken Caesar Wrap", 
+    ingredients: [{ item: "cooked chicken", amount: "5 oz sliced" }, { item: "large tortilla", amount: "1" }, { item: "romaine", amount: "1 cup chopped" }, { item: "parmesan", amount: "2 tbsp" }, { item: "caesar dressing", amount: "2 tbsp" }],
+    cost: 5.5, prepTime: 5, cookTime: 0, prepAhead: true, protein: 34, carbs: 32, calories: 440,
+    instructions: ["Lay tortilla flat", "Spread caesar dressing down the center", "Add chopped romaine", "Layer sliced chicken on top", "Sprinkle with parmesan", "Fold sides in, roll tightly", "Cut in half diagonally to serve"]
+  },
+  { 
+    id: "l4", name: "Mediterranean Grain Bowl", 
+    ingredients: [{ item: "cooked chicken", amount: "5 oz" }, { item: "cooked rice", amount: "1 cup" }, { item: "cucumber", amount: "½ cup diced" }, { item: "tomatoes", amount: "½ cup diced" }, { item: "feta", amount: "2 tbsp" }, { item: "olive oil", amount: "1 tbsp" }, { item: "lemon juice", amount: "1 tbsp" }],
+    cost: 6, prepTime: 5, cookTime: 2, prepAhead: true, protein: 32, carbs: 48, calories: 480,
+    instructions: ["Heat rice and chicken if cold", "Dice cucumber and tomatoes", "Arrange rice in bowl, top with chicken", "Add cucumber and tomatoes around the bowl", "Crumble feta on top", "Drizzle with olive oil and lemon juice", "Season with salt, pepper, oregano"]
+  },
+  { 
+    id: "l5", name: "Asian Noodle Bowl", 
+    ingredients: [{ item: "cooked chicken", amount: "5 oz" }, { item: "rice noodles", amount: "4 oz cooked" }, { item: "frozen stir fry veggies", amount: "1 cup" }, { item: "soy sauce", amount: "2 tbsp" }, { item: "sesame oil", amount: "1 tsp" }],
+    cost: 5, prepTime: 2, cookTime: 3, prepAhead: true, protein: 30, carbs: 50, calories: 470,
+    instructions: ["Heat noodles and chicken in microwave", "Steam or microwave veggies", "Combine in bowl", "Mix soy sauce and sesame oil", "Pour sauce over bowl and toss", "Optional: top with green onions, sesame seeds"]
+  },
 ];
 
-const dinners = [
-  { id: "d1", name: "Chicken Stir Fry + Rice", ingredients: ["chicken", "frozen veggies", "rice", "soy sauce", "garlic"], cost: 7, prepTime: 20, prepAhead: false, protein: 35, carbs: 48, calories: 520 },
-  { id: "d2", name: "Beef Tacos", ingredients: ["ground beef", "tortillas", "cheese", "salsa", "onion"], cost: 8, prepTime: 20, prepAhead: false, protein: 32, carbs: 38, calories: 520 },
-  { id: "d3", name: "Chicken Burrito Bowls", ingredients: ["chicken", "rice", "beans", "cheese", "salsa", "avocado"], cost: 8, prepTime: 15, prepAhead: false, protein: 38, carbs: 52, calories: 580 },
-  { id: "d4", name: "Salmon with Roasted Veggies", ingredients: ["salmon", "broccoli", "potatoes", "olive oil"], cost: 10, prepTime: 25, prepAhead: false, protein: 35, carbs: 30, calories: 480 },
-  { id: "d5", name: "Turkey Bolognese Pasta", ingredients: ["ground turkey", "pasta", "canned tomatoes", "onion", "garlic"], cost: 7, prepTime: 25, prepAhead: false, protein: 32, carbs: 62, calories: 560 },
-  { id: "d6", name: "Shrimp Fried Rice", ingredients: ["shrimp", "rice", "eggs", "frozen veggies", "soy sauce"], cost: 9, prepTime: 20, prepAhead: false, protein: 28, carbs: 52, calories: 500 },
-  { id: "d7", name: "Chicken Fajitas", ingredients: ["chicken", "bell peppers", "onion", "tortillas", "cheese"], cost: 8, prepTime: 20, prepAhead: false, protein: 34, carbs: 35, calories: 490 },
-  { id: "d8", name: "Beef & Broccoli + Rice", ingredients: ["ground beef", "broccoli", "rice", "soy sauce", "garlic"], cost: 8, prepTime: 20, prepAhead: false, protein: 30, carbs: 48, calories: 530 },
-  { id: "d9", name: "Baked Chicken Thighs + Potatoes", ingredients: ["chicken", "potatoes", "onion", "olive oil"], cost: 7, prepTime: 35, prepAhead: false, protein: 38, carbs: 35, calories: 520 },
-  { id: "d10", name: "Veggie Pasta Primavera", ingredients: ["pasta", "frozen veggies", "parmesan", "olive oil", "garlic"], cost: 5, prepTime: 20, prepAhead: false, protein: 14, carbs: 68, calories: 480 },
-  { id: "d11", name: "Black Bean Quesadillas", ingredients: ["beans", "tortillas", "cheese", "salsa", "avocado"], cost: 6, prepTime: 15, prepAhead: false, protein: 20, carbs: 52, calories: 520 },
-  { id: "d12", name: "Lemon Herb Salmon + Rice", ingredients: ["salmon", "rice", "asparagus", "lemon"], cost: 11, prepTime: 20, prepAhead: false, protein: 36, carbs: 42, calories: 500 },
+const dinners: MealData[] = [
+  { 
+    id: "d1", name: "Chicken Stir Fry + Rice", 
+    ingredients: [{ item: "chicken breast", amount: "8 oz sliced" }, { item: "frozen stir fry veggies", amount: "2 cups" }, { item: "rice", amount: "1 cup cooked" }, { item: "soy sauce", amount: "3 tbsp" }, { item: "garlic", amount: "2 cloves minced" }, { item: "vegetable oil", amount: "1 tbsp" }],
+    cost: 7, prepTime: 10, cookTime: 10, prepAhead: false, protein: 35, carbs: 48, calories: 520,
+    instructions: ["Cook rice according to package (or use pre-cooked)", "Heat oil in large pan or wok over high heat", "Add chicken, cook until browned (4-5 min)", "Add garlic, cook 30 seconds", "Add frozen veggies, stir fry 3-4 min", "Pour in soy sauce, toss to coat", "Serve over rice"]
+  },
+  { 
+    id: "d2", name: "Beef Tacos", 
+    ingredients: [{ item: "ground beef", amount: "8 oz" }, { item: "small tortillas", amount: "4" }, { item: "cheese", amount: "½ cup shredded" }, { item: "salsa", amount: "¼ cup" }, { item: "onion", amount: "¼ diced" }, { item: "taco seasoning", amount: "1 tbsp" }],
+    cost: 8, prepTime: 5, cookTime: 15, prepAhead: false, protein: 32, carbs: 38, calories: 520,
+    instructions: ["Brown ground beef in skillet over medium-high heat", "Drain excess fat", "Add diced onion, cook 2 min", "Stir in taco seasoning and ¼ cup water", "Simmer 5 min until thickened", "Warm tortillas in dry pan or microwave", "Fill tortillas with beef, top with cheese and salsa"]
+  },
+  { 
+    id: "d3", name: "Chicken Burrito Bowls", 
+    ingredients: [{ item: "chicken breast", amount: "8 oz" }, { item: "rice", amount: "1 cup cooked" }, { item: "black beans", amount: "½ cup" }, { item: "cheese", amount: "¼ cup" }, { item: "salsa", amount: "¼ cup" }, { item: "avocado", amount: "½" }, { item: "cumin & chili powder", amount: "1 tsp each" }],
+    cost: 8, prepTime: 5, cookTime: 10, prepAhead: false, protein: 38, carbs: 52, calories: 580,
+    instructions: ["Season chicken with cumin, chili powder, salt", "Cook chicken in oiled pan 5-6 min per side until done", "Let rest 3 min, then slice", "Warm rice and beans", "Build bowl: rice base, then beans, then chicken", "Top with cheese, salsa, and sliced avocado", "Optional: add sour cream, lime juice"]
+  },
+  { 
+    id: "d4", name: "Salmon with Roasted Veggies", 
+    ingredients: [{ item: "salmon fillet", amount: "6 oz" }, { item: "broccoli", amount: "2 cups florets" }, { item: "potatoes", amount: "1 cup cubed" }, { item: "olive oil", amount: "2 tbsp" }, { item: "garlic powder", amount: "1 tsp" }, { item: "lemon", amount: "½" }],
+    cost: 10, prepTime: 10, cookTime: 20, prepAhead: false, protein: 35, carbs: 30, calories: 480,
+    instructions: ["Preheat oven to 425°F", "Toss potatoes with 1 tbsp oil, salt, pepper", "Spread on baking sheet, roast 10 min", "Toss broccoli with remaining oil and garlic powder", "Add broccoli to sheet, place salmon on top", "Season salmon with salt, pepper, lemon juice", "Roast 12-15 min until salmon flakes easily"]
+  },
+  { 
+    id: "d5", name: "Turkey Bolognese Pasta", 
+    ingredients: [{ item: "ground turkey", amount: "8 oz" }, { item: "pasta", amount: "8 oz" }, { item: "canned crushed tomatoes", amount: "1 can (14 oz)" }, { item: "onion", amount: "½ diced" }, { item: "garlic", amount: "3 cloves minced" }, { item: "Italian seasoning", amount: "1 tsp" }],
+    cost: 7, prepTime: 5, cookTime: 20, prepAhead: false, protein: 32, carbs: 62, calories: 560,
+    instructions: ["Cook pasta according to package, reserve ½ cup pasta water", "Brown turkey in large pan, breaking up with spoon", "Add onion, cook until soft (3 min)", "Add garlic and Italian seasoning, cook 1 min", "Pour in crushed tomatoes, simmer 10 min", "Add pasta water if sauce is too thick", "Toss pasta with sauce, serve with parmesan"]
+  },
+  { 
+    id: "d6", name: "Shrimp Fried Rice", 
+    ingredients: [{ item: "shrimp", amount: "8 oz peeled" }, { item: "cooked rice", amount: "2 cups (day-old best)" }, { item: "eggs", amount: "2" }, { item: "frozen peas & carrots", amount: "1 cup" }, { item: "soy sauce", amount: "3 tbsp" }, { item: "sesame oil", amount: "1 tsp" }],
+    cost: 9, prepTime: 5, cookTime: 15, prepAhead: false, protein: 28, carbs: 52, calories: 500,
+    instructions: ["Heat oil in large pan or wok over high heat", "Cook shrimp 2 min per side, set aside", "Scramble eggs in same pan, set aside", "Add more oil, stir fry veggies 2 min", "Add rice, break up clumps, cook 3 min", "Add soy sauce and sesame oil, toss", "Return shrimp and eggs, mix everything", "Serve hot, garnish with green onions"]
+  },
+  { 
+    id: "d7", name: "Chicken Fajitas", 
+    ingredients: [{ item: "chicken breast", amount: "8 oz sliced" }, { item: "bell peppers", amount: "2 sliced" }, { item: "onion", amount: "1 sliced" }, { item: "tortillas", amount: "4" }, { item: "fajita seasoning", amount: "1 tbsp" }, { item: "cheese", amount: "½ cup" }, { item: "lime", amount: "1" }],
+    cost: 8, prepTime: 10, cookTime: 10, prepAhead: false, protein: 34, carbs: 35, calories: 490,
+    instructions: ["Season chicken with fajita seasoning", "Heat oil in large skillet over high heat", "Cook chicken 5-6 min until done, set aside", "Add peppers and onions, cook 4-5 min until charred", "Return chicken to pan, squeeze lime over", "Warm tortillas", "Serve with cheese, sour cream, salsa"]
+  },
+  { 
+    id: "d8", name: "Beef & Broccoli + Rice", 
+    ingredients: [{ item: "ground beef", amount: "8 oz" }, { item: "broccoli", amount: "3 cups florets" }, { item: "rice", amount: "1 cup cooked" }, { item: "soy sauce", amount: "3 tbsp" }, { item: "garlic", amount: "2 cloves" }, { item: "brown sugar", amount: "1 tbsp" }, { item: "cornstarch", amount: "1 tsp" }],
+    cost: 8, prepTime: 5, cookTime: 15, prepAhead: false, protein: 30, carbs: 48, calories: 530,
+    instructions: ["Mix soy sauce, brown sugar, and cornstarch for sauce", "Brown beef in skillet, breaking into pieces", "Add garlic, cook 1 min", "Add broccoli and 2 tbsp water, cover and steam 4 min", "Pour sauce over, stir until thickened", "Serve over rice"]
+  },
+  { 
+    id: "d9", name: "Baked Chicken Thighs + Potatoes", 
+    ingredients: [{ item: "chicken thighs", amount: "4 bone-in" }, { item: "potatoes", amount: "1 lb cubed" }, { item: "onion", amount: "1 quartered" }, { item: "olive oil", amount: "2 tbsp" }, { item: "garlic powder", amount: "1 tsp" }, { item: "paprika", amount: "1 tsp" }, { item: "thyme", amount: "1 tsp" }],
+    cost: 7, prepTime: 10, cookTime: 35, prepAhead: false, protein: 38, carbs: 35, calories: 520,
+    instructions: ["Preheat oven to 425°F", "Toss potatoes and onion with 1 tbsp oil, salt, pepper", "Spread on baking sheet", "Rub chicken with remaining oil, garlic powder, paprika, thyme", "Place chicken on top of vegetables", "Bake 35-40 min until chicken reaches 165°F", "Let rest 5 min before serving"]
+  },
+  { 
+    id: "d10", name: "Veggie Pasta Primavera", 
+    ingredients: [{ item: "pasta", amount: "8 oz" }, { item: "frozen mixed veggies", amount: "2 cups" }, { item: "parmesan", amount: "½ cup grated" }, { item: "olive oil", amount: "3 tbsp" }, { item: "garlic", amount: "3 cloves" }, { item: "red pepper flakes", amount: "pinch" }],
+    cost: 5, prepTime: 5, cookTime: 15, prepAhead: false, protein: 14, carbs: 68, calories: 480,
+    instructions: ["Cook pasta according to package, reserve 1 cup pasta water", "Heat oil in large pan over medium heat", "Add garlic and red pepper flakes, cook 1 min", "Add frozen veggies, sauté 5 min until tender", "Add pasta and ½ cup pasta water", "Toss with parmesan until creamy", "Add more pasta water if needed, season to taste"]
+  },
+  { 
+    id: "d11", name: "Black Bean Quesadillas", 
+    ingredients: [{ item: "black beans", amount: "1 can drained" }, { item: "large tortillas", amount: "2" }, { item: "cheese", amount: "1 cup shredded" }, { item: "salsa", amount: "¼ cup" }, { item: "avocado", amount: "1" }, { item: "cumin", amount: "½ tsp" }],
+    cost: 6, prepTime: 5, cookTime: 10, prepAhead: false, protein: 20, carbs: 52, calories: 520,
+    instructions: ["Mash half the beans with cumin, leave rest whole", "Spread bean mixture on half of each tortilla", "Add whole beans, cheese, and a spoonful of salsa", "Fold tortillas in half", "Cook in dry skillet 3 min per side until golden", "Slice into wedges", "Serve with remaining salsa and sliced avocado"]
+  },
+  { 
+    id: "d12", name: "Lemon Herb Salmon + Rice", 
+    ingredients: [{ item: "salmon fillet", amount: "6 oz" }, { item: "rice", amount: "1 cup cooked" }, { item: "asparagus", amount: "1 bunch trimmed" }, { item: "lemon", amount: "1" }, { item: "olive oil", amount: "2 tbsp" }, { item: "dill or parsley", amount: "2 tbsp fresh" }],
+    cost: 11, prepTime: 5, cookTime: 15, prepAhead: false, protein: 36, carbs: 42, calories: 500,
+    instructions: ["Heat oil in oven-safe skillet over medium-high", "Season salmon with salt, pepper, half the lemon zest", "Sear salmon skin-side up 3 min", "Flip salmon, add asparagus around it", "Squeeze lemon juice over everything", "Bake at 400°F for 8-10 min", "Garnish with fresh herbs, serve with rice"]
+  },
 ];
 
-type Meal = typeof breakfasts[0] | typeof lunches[0] | typeof dinners[0];
+type Meal = MealData;
 
 interface DayPlan {
   breakfast: typeof breakfasts[0];
@@ -167,8 +298,8 @@ function calculateWeeklyStats(plan: WeekPlan) {
 
     // Ingredients with multiplier based on people count
     [...day.breakfast.ingredients, ...day.lunch.ingredients, ...day.dinner.ingredients].forEach(ing => {
-      allIngredients.push(ing);
-      ingredientMultipliers[ing] = (ingredientMultipliers[ing] || 0) + peopleCount;
+      allIngredients.push(ing.item);
+      ingredientMultipliers[ing.item] = (ingredientMultipliers[ing.item] || 0) + peopleCount;
     });
 
     // Prep ahead (only if someone is eating)
@@ -199,6 +330,7 @@ export default function MealPlanner() {
   const [plan, setPlan] = useState<WeekPlan | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [preferences, setPreferences] = useState<Preferences>({});
+  const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null);
 
   const savePlanToDb = useCallback(async (planToSave: WeekPlan) => {
     try {
@@ -508,7 +640,7 @@ export default function MealPlanner() {
           {/* Meal Plan Tab */}
           <TabsContent value="plan" className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              🔄 Click revise to swap a meal for something different • 👍👎 Rate meals to improve future suggestions
+              📖 Click a meal for the recipe • 🔄 Revise to swap • 👍👎 Rate to improve suggestions
             </p>
 
             {plan.days.map((day, dayIndex) => {
@@ -534,6 +666,7 @@ export default function MealPlanner() {
                       label="Breakfast"
                       meal={day.breakfast}
                       onRevise={() => handleRevise(dayIndex, "breakfast")}
+                      onClick={() => setSelectedMeal(day.breakfast)}
                       rating={preferences[day.breakfast.id]?.household}
                       onRate={(r) => rateMeal(day.breakfast.id, "breakfast", day.breakfast.name, r)}
                     />
@@ -542,6 +675,7 @@ export default function MealPlanner() {
                       label="Lunch"
                       meal={day.lunch}
                       onRevise={() => handleRevise(dayIndex, "lunch")}
+                      onClick={() => setSelectedMeal(day.lunch)}
                       rating={preferences[day.lunch.id]?.household}
                       onRate={(r) => rateMeal(day.lunch.id, "lunch", day.lunch.name, r)}
                     />
@@ -550,6 +684,7 @@ export default function MealPlanner() {
                       label="Dinner"
                       meal={day.dinner}
                       onRevise={() => handleRevise(dayIndex, "dinner")}
+                      onClick={() => setSelectedMeal(day.dinner)}
                       rating={preferences[day.dinner.id]?.household}
                       onRate={(r) => rateMeal(day.dinner.id, "dinner", day.dinner.name, r)}
                     />
@@ -748,6 +883,66 @@ export default function MealPlanner() {
           </TabsContent>
 
                   </Tabs>
+
+        {/* Recipe Modal */}
+        <Dialog open={!!selectedMeal} onOpenChange={(open) => !open && setSelectedMeal(null)}>
+          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+            {selectedMeal && (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="text-xl">{selectedMeal.name}</DialogTitle>
+                  <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
+                    <span>⏱️ {selectedMeal.prepTime + selectedMeal.cookTime} min total</span>
+                    <span>•</span>
+                    <span>{selectedMeal.calories} cal</span>
+                    <span>•</span>
+                    <span>{selectedMeal.protein}g protein</span>
+                  </div>
+                </DialogHeader>
+                
+                <div className="space-y-4 mt-4">
+                  {/* Time breakdown */}
+                  <div className="flex gap-4 text-sm">
+                    <div className="bg-muted/50 rounded-lg px-3 py-2">
+                      <span className="text-muted-foreground">Prep:</span> {selectedMeal.prepTime} min
+                    </div>
+                    <div className="bg-muted/50 rounded-lg px-3 py-2">
+                      <span className="text-muted-foreground">Cook:</span> {selectedMeal.cookTime} min
+                    </div>
+                  </div>
+
+                  {/* Ingredients */}
+                  <div>
+                    <h3 className="font-semibold mb-2">Ingredients</h3>
+                    <ul className="space-y-1">
+                      {selectedMeal.ingredients.map((ing, i) => (
+                        <li key={i} className="flex items-center gap-2 text-sm">
+                          <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                          <span className="capitalize">{ing.amount} {ing.item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Instructions */}
+                  <div>
+                    <h3 className="font-semibold mb-2">Instructions</h3>
+                    <ol className="space-y-2">
+                      {selectedMeal.instructions.map((step, i) => (
+                        <li key={i} className="flex gap-3 text-sm">
+                          <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center font-medium">
+                            {i + 1}
+                          </span>
+                          <span className="pt-0.5">{step}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                </div>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
@@ -796,31 +991,33 @@ function MealCard({
   label,
   meal,
   onRevise,
+  onClick,
   rating,
   onRate,
 }: {
   label: string;
   meal: Meal;
   onRevise: () => void;
+  onClick: () => void;
   rating?: number; // 1 = dislike, 2 = like
   onRate?: (rating: number) => void;
 }) {
   return (
-    <div className="p-3 rounded-lg border border-border bg-card">
+    <div className="p-3 rounded-lg border border-border bg-card hover:border-primary/50 transition-colors">
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs text-muted-foreground uppercase tracking-wide">{label}</span>
         <div className="flex items-center gap-1">
           {onRate && (
             <>
               <button
-                onClick={() => onRate(1)}
+                onClick={(e) => { e.stopPropagation(); onRate(1); }}
                 className={`text-sm p-1 rounded hover:bg-muted transition-colors ${rating === 1 ? "bg-red-500/20 text-red-500" : "opacity-40 hover:opacity-100"}`}
                 title="Dislike"
               >
                 👎
               </button>
               <button
-                onClick={() => onRate(2)}
+                onClick={(e) => { e.stopPropagation(); onRate(2); }}
                 className={`text-sm p-1 rounded hover:bg-muted transition-colors ${rating === 2 ? "bg-green-500/20 text-green-500" : "opacity-40 hover:opacity-100"}`}
                 title="Like"
               >
@@ -829,7 +1026,7 @@ function MealCard({
             </>
           )}
           <button 
-            onClick={onRevise} 
+            onClick={(e) => { e.stopPropagation(); onRevise(); }}
             className="text-sm p-1 rounded hover:bg-muted transition-colors opacity-60 hover:opacity-100"
             title="Revise - pick a different meal"
           >
@@ -837,19 +1034,22 @@ function MealCard({
           </button>
         </div>
       </div>
-      <p className="font-medium text-sm">{meal.name}</p>
-      <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-        <span>${meal.cost}</span>
-        <span>•</span>
-        <span>{meal.calories} cal</span>
-        <span>•</span>
-        <span>{meal.protein}g protein</span>
-      </div>
-      {meal.prepAhead && (
-        <Badge variant="secondary" className="mt-2 text-xs">
-          Prep ahead
-        </Badge>
-      )}
+      <button onClick={onClick} className="text-left w-full group">
+        <p className="font-medium text-sm group-hover:text-primary transition-colors">{meal.name}</p>
+        <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+          <span className="text-primary/80">⏱️ {meal.prepTime + meal.cookTime} min</span>
+          <span>•</span>
+          <span>{meal.calories} cal</span>
+          <span>•</span>
+          <span>{meal.protein}g protein</span>
+        </div>
+        {meal.prepAhead && (
+          <Badge variant="secondary" className="mt-2 text-xs">
+            Prep ahead
+          </Badge>
+        )}
+        <p className="text-xs text-primary/60 mt-2">Click for recipe →</p>
+      </button>
     </div>
   );
 }
