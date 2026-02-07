@@ -825,48 +825,56 @@ export default function MealPlanner() {
                   {/* Breakfast prep - 2 types alternating */}
                   <div className="p-4 rounded-lg border border-border bg-muted/30">
                     <h3 className="font-medium mb-3">🍳 Breakfasts (2 types, alternating)</h3>
-                    <ul className="space-y-2 text-sm">
+                    <div className="space-y-2">
                       {Array.from(new Set(plan.days.map(d => d.breakfast.name))).map((name) => {
                         const count = plan.days.filter(d => d.breakfast.name === name).length;
                         const meal = plan.days.find(d => d.breakfast.name === name)?.breakfast;
                         return (
-                          <li key={name} className="flex items-center gap-2">
-                            <span className="w-4 h-4 rounded border border-border" />
-                            <button 
-                              onClick={() => meal && setSelectedMeal(meal)}
-                              className="text-left hover:text-primary transition-colors"
-                            >
-                              {name} <span className="text-primary/60 text-xs">→ view steps</span>
-                            </button>
-                            <Badge variant="secondary" className="text-xs">×{count} days</Badge>
-                            {meal?.prepAhead && <Badge variant="outline" className="text-xs">prep ahead</Badge>}
-                          </li>
+                          <button 
+                            key={name}
+                            onClick={() => meal && setSelectedMeal(meal)}
+                            className="w-full flex items-center justify-between gap-2 p-3 rounded-lg border border-border bg-card hover:border-primary hover:bg-primary/5 transition-all text-left"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg">📖</span>
+                              <span className="font-medium">{name}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="secondary" className="text-xs">×{count} days</Badge>
+                              {meal?.prepAhead && <Badge variant="outline" className="text-xs">prep ahead</Badge>}
+                              <span className="text-primary text-sm">View →</span>
+                            </div>
+                          </button>
                         );
                       })}
-                    </ul>
+                    </div>
                   </div>
 
                   {/* Lunch prep - 2 types batched */}
                   <div className="p-4 rounded-lg border border-border bg-muted/30">
                     <h3 className="font-medium mb-3">🥡 Lunches (2 types, batch prep)</h3>
-                    <ul className="space-y-2 text-sm">
+                    <div className="space-y-2">
                       {Array.from(new Set(plan.days.map(d => d.lunch.name))).map((lunchName) => {
                         const count = plan.days.filter(d => d.lunch.name === lunchName).length;
                         const meal = plan.days.find(d => d.lunch.name === lunchName)?.lunch;
                         return (
-                          <li key={lunchName} className="flex items-center gap-2">
-                            <span className="w-4 h-4 rounded border border-border" />
-                            <button 
-                              onClick={() => meal && setSelectedMeal(meal)}
-                              className="text-left hover:text-primary transition-colors"
-                            >
-                              {lunchName} <span className="text-primary/60 text-xs">→ view steps</span>
-                            </button>
-                            <Badge variant="secondary" className="text-xs">×{count} days</Badge>
-                          </li>
+                          <button 
+                            key={lunchName}
+                            onClick={() => meal && setSelectedMeal(meal)}
+                            className="w-full flex items-center justify-between gap-2 p-3 rounded-lg border border-border bg-card hover:border-primary hover:bg-primary/5 transition-all text-left"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg">📖</span>
+                              <span className="font-medium">{lunchName}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="secondary" className="text-xs">×{count} days</Badge>
+                              <span className="text-primary text-sm">View →</span>
+                            </div>
+                          </button>
                         );
                       })}
-                    </ul>
+                    </div>
                     <p className="text-xs text-muted-foreground mt-3">
                       💡 Prep all portions Sunday, store in containers for grab-and-go lunches
                     </p>
@@ -876,7 +884,7 @@ export default function MealPlanner() {
                   {stats.prepAheadMeals.filter(m => m.meal !== "Lunch").length > 0 && (
                     <div className="p-4 rounded-lg border border-border bg-muted/30">
                       <h3 className="font-medium mb-3">📋 Other Prep-Ahead</h3>
-                      <ul className="space-y-2 text-sm">
+                      <div className="space-y-2">
                         {stats.prepAheadMeals.filter(m => m.meal !== "Lunch").map((prepMeal, i) => {
                           // Find the actual meal object
                           const dayIndex = dayNames.indexOf(prepMeal.day);
@@ -884,19 +892,23 @@ export default function MealPlanner() {
                           const mealObj = dayIndex >= 0 ? plan.days[dayIndex]?.[mealType] : null;
                           
                           return (
-                            <li key={i} className="flex items-center gap-2">
-                              <span className="w-4 h-4 rounded border border-border" />
-                              <button 
-                                onClick={() => mealObj && setSelectedMeal(mealObj)}
-                                className="text-left hover:text-primary transition-colors"
-                              >
-                                {prepMeal.name} <span className="text-primary/60 text-xs">→ view steps</span>
-                              </button>
-                              <Badge variant="outline" className="text-xs">{prepMeal.day} {prepMeal.meal}</Badge>
-                            </li>
+                            <button 
+                              key={i}
+                              onClick={() => mealObj && setSelectedMeal(mealObj)}
+                              className="w-full flex items-center justify-between gap-2 p-3 rounded-lg border border-border bg-card hover:border-primary hover:bg-primary/5 transition-all text-left"
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="text-lg">📖</span>
+                                <span className="font-medium">{prepMeal.name}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="text-xs">{prepMeal.day} {prepMeal.meal}</Badge>
+                                <span className="text-primary text-sm">View →</span>
+                              </div>
+                            </button>
                           );
                         })}
-                      </ul>
+                      </div>
                     </div>
                   )}
                 </div>
