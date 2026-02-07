@@ -7,30 +7,50 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Link from "next/link";
 
-// ULTRA SIMPLE meal plan - same meals repeat, minimal groceries
-// Weekly grocery list: chicken, ground turkey, eggs, rice, tortillas, beans, cheese, salsa, frozen veggies
+// More variety for breakfast/dinner, lunches can repeat (batch prep)
+// Core ingredients: chicken, ground turkey, ground beef, salmon, eggs, shrimp
+// Carbs: rice, pasta, tortillas, bread, potatoes
+// Staples: beans, cheese, salsa, frozen veggies, onion, garlic, canned tomatoes
 
 const breakfasts = [
   { id: "b1", name: "Eggs & Toast", ingredients: ["eggs", "bread"], cost: 2.5, prepTime: 10, prepAhead: false, protein: 14, carbs: 25, calories: 320 },
-  { id: "b2", name: "Breakfast Burrito", ingredients: ["eggs", "tortillas", "cheese"], cost: 3, prepTime: 10, prepAhead: true, protein: 16, carbs: 28, calories: 380 },
+  { id: "b2", name: "Breakfast Burrito", ingredients: ["eggs", "tortillas", "cheese", "salsa"], cost: 3, prepTime: 10, prepAhead: true, protein: 16, carbs: 28, calories: 380 },
+  { id: "b3", name: "Avocado Toast + Eggs", ingredients: ["eggs", "bread", "avocado"], cost: 4, prepTime: 10, prepAhead: false, protein: 16, carbs: 22, calories: 380 },
+  { id: "b4", name: "Greek Yogurt Parfait", ingredients: ["greek yogurt", "granola", "berries"], cost: 4, prepTime: 5, prepAhead: false, protein: 18, carbs: 35, calories: 340 },
+  { id: "b5", name: "Oatmeal with Banana", ingredients: ["oats", "banana", "peanut butter"], cost: 2, prepTime: 8, prepAhead: false, protein: 12, carbs: 52, calories: 380 },
+  { id: "b6", name: "Veggie Scramble", ingredients: ["eggs", "spinach", "cheese", "onion"], cost: 3, prepTime: 12, prepAhead: false, protein: 18, carbs: 8, calories: 280 },
+  { id: "b7", name: "Smoothie Bowl", ingredients: ["greek yogurt", "banana", "berries", "granola"], cost: 4.5, prepTime: 5, prepAhead: false, protein: 15, carbs: 42, calories: 360 },
 ];
 
 const lunches = [
   { id: "l1", name: "Chicken Rice Bowl", ingredients: ["chicken", "rice", "frozen veggies"], cost: 5, prepTime: 5, prepAhead: true, protein: 35, carbs: 45, calories: 480 },
-  { id: "l2", name: "Turkey Tacos", ingredients: ["ground turkey", "tortillas", "cheese", "salsa"], cost: 5, prepTime: 5, prepAhead: true, protein: 30, carbs: 35, calories: 450 },
-  { id: "l3", name: "Bean & Cheese Burrito", ingredients: ["beans", "tortillas", "cheese", "salsa"], cost: 4, prepTime: 5, prepAhead: true, protein: 18, carbs: 48, calories: 420 },
+  { id: "l2", name: "Turkey Taco Bowl", ingredients: ["ground turkey", "rice", "beans", "cheese", "salsa"], cost: 5, prepTime: 5, prepAhead: true, protein: 32, carbs: 42, calories: 460 },
+  { id: "l3", name: "Chicken Caesar Wrap", ingredients: ["chicken", "tortillas", "romaine", "parmesan"], cost: 5.5, prepTime: 5, prepAhead: true, protein: 34, carbs: 32, calories: 440 },
+  { id: "l4", name: "Mediterranean Grain Bowl", ingredients: ["chicken", "rice", "cucumber", "tomatoes", "feta"], cost: 6, prepTime: 5, prepAhead: true, protein: 32, carbs: 48, calories: 480 },
+  { id: "l5", name: "Asian Noodle Bowl", ingredients: ["chicken", "rice noodles", "frozen veggies", "soy sauce"], cost: 5, prepTime: 5, prepAhead: true, protein: 30, carbs: 50, calories: 470 },
 ];
 
 const dinners = [
-  { id: "d1", name: "Chicken Stir Fry + Rice", ingredients: ["chicken", "frozen veggies", "rice"], cost: 7, prepTime: 20, prepAhead: false, protein: 35, carbs: 48, calories: 520 },
-  { id: "d2", name: "Turkey Tacos", ingredients: ["ground turkey", "tortillas", "cheese", "salsa", "beans"], cost: 7, prepTime: 20, prepAhead: false, protein: 30, carbs: 40, calories: 480 },
-  { id: "d3", name: "Chicken Burrito Bowls", ingredients: ["chicken", "rice", "beans", "cheese", "salsa"], cost: 7, prepTime: 15, prepAhead: false, protein: 38, carbs: 52, calories: 560 },
-  { id: "d4", name: "Egg Fried Rice", ingredients: ["eggs", "rice", "frozen veggies"], cost: 5, prepTime: 15, prepAhead: false, protein: 16, carbs: 52, calories: 420 },
+  { id: "d1", name: "Chicken Stir Fry + Rice", ingredients: ["chicken", "frozen veggies", "rice", "soy sauce", "garlic"], cost: 7, prepTime: 20, prepAhead: false, protein: 35, carbs: 48, calories: 520 },
+  { id: "d2", name: "Beef Tacos", ingredients: ["ground beef", "tortillas", "cheese", "salsa", "onion"], cost: 8, prepTime: 20, prepAhead: false, protein: 32, carbs: 38, calories: 520 },
+  { id: "d3", name: "Chicken Burrito Bowls", ingredients: ["chicken", "rice", "beans", "cheese", "salsa", "avocado"], cost: 8, prepTime: 15, prepAhead: false, protein: 38, carbs: 52, calories: 580 },
+  { id: "d4", name: "Salmon with Roasted Veggies", ingredients: ["salmon", "broccoli", "potatoes", "olive oil"], cost: 10, prepTime: 25, prepAhead: false, protein: 35, carbs: 30, calories: 480 },
+  { id: "d5", name: "Turkey Bolognese Pasta", ingredients: ["ground turkey", "pasta", "canned tomatoes", "onion", "garlic"], cost: 7, prepTime: 25, prepAhead: false, protein: 32, carbs: 62, calories: 560 },
+  { id: "d6", name: "Shrimp Fried Rice", ingredients: ["shrimp", "rice", "eggs", "frozen veggies", "soy sauce"], cost: 9, prepTime: 20, prepAhead: false, protein: 28, carbs: 52, calories: 500 },
+  { id: "d7", name: "Chicken Fajitas", ingredients: ["chicken", "bell peppers", "onion", "tortillas", "cheese"], cost: 8, prepTime: 20, prepAhead: false, protein: 34, carbs: 35, calories: 490 },
+  { id: "d8", name: "Beef & Broccoli + Rice", ingredients: ["ground beef", "broccoli", "rice", "soy sauce", "garlic"], cost: 8, prepTime: 20, prepAhead: false, protein: 30, carbs: 48, calories: 530 },
+  { id: "d9", name: "Baked Chicken Thighs + Potatoes", ingredients: ["chicken", "potatoes", "onion", "olive oil"], cost: 7, prepTime: 35, prepAhead: false, protein: 38, carbs: 35, calories: 520 },
+  { id: "d10", name: "Veggie Pasta Primavera", ingredients: ["pasta", "frozen veggies", "parmesan", "olive oil", "garlic"], cost: 5, prepTime: 20, prepAhead: false, protein: 14, carbs: 68, calories: 480 },
+  { id: "d11", name: "Black Bean Quesadillas", ingredients: ["beans", "tortillas", "cheese", "salsa", "avocado"], cost: 6, prepTime: 15, prepAhead: false, protein: 20, carbs: 52, calories: 520 },
+  { id: "d12", name: "Lemon Herb Salmon + Rice", ingredients: ["salmon", "rice", "asparagus", "lemon"], cost: 11, prepTime: 20, prepAhead: false, protein: 36, carbs: 42, calories: 500 },
 ];
 
 const snacks = [
   { id: "s1", name: "Hard Boiled Eggs", cost: 1, calories: 140 },
   { id: "s2", name: "Cheese Quesadilla", cost: 1.5, calories: 200 },
+  { id: "s3", name: "Apple + Peanut Butter", cost: 1.5, calories: 220 },
+  { id: "s4", name: "Greek Yogurt", cost: 2, calories: 150 },
+  { id: "s5", name: "Trail Mix", cost: 2, calories: 200 },
 ];
 
 type Meal = typeof breakfasts[0] | typeof lunches[0] | typeof dinners[0];
@@ -69,11 +89,14 @@ function shuffleArray<T>(array: T[]): T[] {
 }
 
 function generateWeekPlan(existingPlan?: WeekPlan): WeekPlan {
+  // Shuffle all options
   const shuffledBreakfasts = shuffleArray(breakfasts);
-  const shuffledLunches = shuffleArray(lunches);
   const shuffledDinners = shuffleArray(dinners);
   const shuffledSnacks = shuffleArray(snacks);
-
+  
+  // For lunches: pick 2-3 options and batch them across the week (easier meal prep)
+  const lunchOptions = shuffleArray(lunches).slice(0, 2 + Math.floor(Math.random() * 2)); // 2-3 lunches
+  
   const days: DayPlan[] = [];
 
   for (let i = 0; i < 7; i++) {
@@ -81,8 +104,11 @@ function generateWeekPlan(existingPlan?: WeekPlan): WeekPlan {
     const locked = existing?.locked || { breakfast: false, lunch: false, dinner: false, snack: false };
 
     days.push({
+      // Breakfasts: different each day (7 options, cycles if needed)
       breakfast: locked.breakfast && existing ? existing.breakfast : shuffledBreakfasts[i % shuffledBreakfasts.length],
-      lunch: locked.lunch && existing ? existing.lunch : shuffledLunches[i % shuffledLunches.length],
+      // Lunches: batch prep - same 2-3 options repeated across the week
+      lunch: locked.lunch && existing ? existing.lunch : lunchOptions[i % lunchOptions.length],
+      // Dinners: variety - different each day (12 options, plenty for a week)
       dinner: locked.dinner && existing ? existing.dinner : shuffledDinners[i % shuffledDinners.length],
       snack: locked.snack && existing ? existing.snack : shuffledSnacks[i % shuffledSnacks.length],
       locked,
@@ -502,45 +528,77 @@ export default function MealPlanner() {
                 <CardDescription>Get these ready for the week ahead</CardDescription>
               </CardHeader>
               <CardContent>
-                {stats.prepAheadMeals.length === 0 ? (
-                  <p className="text-muted-foreground py-8 text-center">No prep-ahead meals this week!</p>
-                ) : (
-                  <div className="space-y-3">
-                    {/* Group by protein */}
-                    <div className="p-4 rounded-lg border border-border bg-muted/30">
-                      <h3 className="font-medium mb-3">🍗 Proteins to Cook</h3>
-                      <ul className="space-y-2 text-sm">
-                        {stats.groceryList
-                          .filter((i) => ["chicken thighs", "ground turkey", "eggs"].includes(i.name))
-                          .map((item) => (
+                <div className="space-y-4">
+                  {/* Proteins to batch cook */}
+                  {(() => {
+                    const proteins = stats.groceryList.filter((i) => 
+                      ["chicken", "ground turkey", "ground beef"].includes(i.name)
+                    );
+                    if (proteins.length === 0) return null;
+                    return (
+                      <div className="p-4 rounded-lg border border-border bg-muted/30">
+                        <h3 className="font-medium mb-3">🍗 Proteins to Cook</h3>
+                        <ul className="space-y-2 text-sm">
+                          {proteins.map((item) => (
                             <li key={item.name} className="flex items-center gap-2">
                               <span className="w-4 h-4 rounded border border-border" />
                               <span className="capitalize">{item.name}</span>
-                              <span className="text-muted-foreground">({item.count}x this week)</span>
+                              <span className="text-muted-foreground">(×{item.count} servings)</span>
                             </li>
                           ))}
-                      </ul>
-                    </div>
+                        </ul>
+                      </div>
+                    );
+                  })()}
 
-                    <div className="p-4 rounded-lg border border-border bg-muted/30">
-                      <h3 className="font-medium mb-3">🍚 Grains to Cook</h3>
-                      <ul className="space-y-2 text-sm">
-                        {stats.groceryList
-                          .filter((i) => ["rice", "quinoa", "farro"].includes(i.name))
-                          .map((item) => (
+                  {/* Grains to batch cook */}
+                  {(() => {
+                    const grains = stats.groceryList.filter((i) => 
+                      ["rice", "pasta"].includes(i.name)
+                    );
+                    if (grains.length === 0) return null;
+                    return (
+                      <div className="p-4 rounded-lg border border-border bg-muted/30">
+                        <h3 className="font-medium mb-3">🍚 Grains to Cook</h3>
+                        <ul className="space-y-2 text-sm">
+                          {grains.map((item) => (
                             <li key={item.name} className="flex items-center gap-2">
                               <span className="w-4 h-4 rounded border border-border" />
                               <span className="capitalize">{item.name}</span>
-                              <span className="text-muted-foreground">({item.count}x this week)</span>
+                              <span className="text-muted-foreground">(×{item.count} servings)</span>
                             </li>
                           ))}
-                      </ul>
-                    </div>
+                        </ul>
+                      </div>
+                    );
+                  })()}
 
+                  {/* Lunch prep - the batch lunches */}
+                  <div className="p-4 rounded-lg border border-border bg-muted/30">
+                    <h3 className="font-medium mb-3">🥡 Lunch Prep (batch these!)</h3>
+                    <ul className="space-y-2 text-sm">
+                      {Array.from(new Set(plan.days.map(d => d.lunch.name))).map((lunchName) => {
+                        const count = plan.days.filter(d => d.lunch.name === lunchName).length;
+                        return (
+                          <li key={lunchName} className="flex items-center gap-2">
+                            <span className="w-4 h-4 rounded border border-border" />
+                            <span>{lunchName}</span>
+                            <Badge variant="secondary" className="text-xs">×{count} days</Badge>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                    <p className="text-xs text-muted-foreground mt-3">
+                      💡 Prep all portions Sunday, store in containers for grab-and-go lunches
+                    </p>
+                  </div>
+
+                  {/* Other prep-ahead meals */}
+                  {stats.prepAheadMeals.filter(m => m.meal !== "Lunch").length > 0 && (
                     <div className="p-4 rounded-lg border border-border bg-muted/30">
-                      <h3 className="font-medium mb-3">📋 Meals to Prep</h3>
+                      <h3 className="font-medium mb-3">📋 Other Prep-Ahead</h3>
                       <ul className="space-y-2 text-sm">
-                        {stats.prepAheadMeals.map((meal, i) => (
+                        {stats.prepAheadMeals.filter(m => m.meal !== "Lunch").map((meal, i) => (
                           <li key={i} className="flex items-center gap-2">
                             <span className="w-4 h-4 rounded border border-border" />
                             <span>{meal.name}</span>
@@ -549,8 +607,8 @@ export default function MealPlanner() {
                         ))}
                       </ul>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -561,8 +619,8 @@ export default function MealPlanner() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle>🛒 Weekly Grocery Run</CardTitle>
-                    <CardDescription>Simple list — buy the same stuff every week</CardDescription>
+                    <CardTitle>🛒 Grocery List</CardTitle>
+                    <CardDescription>Based on this week&apos;s meal plan</CardDescription>
                   </div>
                   {checkedCount > 0 && (
                     <Button variant="outline" size="sm" onClick={clearCheckedItems}>
@@ -572,33 +630,58 @@ export default function MealPlanner() {
                 </div>
               </CardHeader>
               <CardContent>
-                {/* Simple static grocery list */}
-                <div className="space-y-2">
-                  {[
-                    { name: "Chicken thighs (3 lbs)", category: "protein" },
-                    { name: "Ground turkey (2 lbs)", category: "protein" },
-                    { name: "Eggs (dozen)", category: "protein" },
-                    { name: "Rice (bag)", category: "carbs" },
-                    { name: "Tortillas (pack)", category: "carbs" },
-                    { name: "Bread (loaf)", category: "carbs" },
-                    { name: "Frozen stir fry veggies (2 bags)", category: "veggies" },
-                    { name: "Beans - black or pinto (2 cans)", category: "pantry" },
-                    { name: "Salsa (jar)", category: "pantry" },
-                    { name: "Shredded cheese (bag)", category: "dairy" },
-                  ].map((item) => (
-                    <GroceryItem
-                      key={item.name}
-                      item={{ name: item.name, count: 1 }}
-                      checked={plan?.checkedItems[item.name] || false}
-                      onToggle={() => toggleCheckedItem(item.name)}
-                    />
-                  ))}
-                </div>
+                {/* Group ingredients by category */}
+                {(() => {
+                  const categories: Record<string, string[]> = {
+                    protein: ["chicken", "ground beef", "ground turkey", "salmon", "shrimp", "eggs"],
+                    dairy: ["cheese", "greek yogurt", "feta", "parmesan"],
+                    produce: ["avocado", "banana", "berries", "spinach", "onion", "garlic", "bell peppers", "broccoli", "asparagus", "romaine", "cucumber", "tomatoes", "lemon", "potatoes"],
+                    carbs: ["rice", "pasta", "tortillas", "bread", "rice noodles", "oats", "granola"],
+                    pantry: ["beans", "salsa", "soy sauce", "olive oil", "peanut butter", "canned tomatoes", "trail mix"],
+                    frozen: ["frozen veggies"],
+                  };
+                  
+                  const categoryNames: Record<string, string> = {
+                    protein: "🥩 Protein",
+                    dairy: "🧀 Dairy",
+                    produce: "🥬 Produce",
+                    carbs: "🍚 Carbs & Grains",
+                    pantry: "🥫 Pantry",
+                    frozen: "❄️ Frozen",
+                  };
+                  
+                  const categorized: Record<string, typeof stats.groceryList> = {};
+                  stats.groceryList.forEach((item) => {
+                    const cat = Object.entries(categories).find(([, items]) => items.includes(item.name))?.[0] || "other";
+                    if (!categorized[cat]) categorized[cat] = [];
+                    categorized[cat].push(item);
+                  });
+                  
+                  return (
+                    <div className="space-y-6">
+                      {Object.entries(categorized).map(([cat, items]) => (
+                        <div key={cat}>
+                          <h3 className="font-medium mb-3 text-sm text-muted-foreground">{categoryNames[cat] || "📦 Other"}</h3>
+                          <div className="space-y-2">
+                            {items.map((item) => (
+                              <GroceryItem
+                                key={item.name}
+                                item={item}
+                                checked={plan?.checkedItems[item.name] || false}
+                                onToggle={() => toggleCheckedItem(item.name)}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
 
                 <div className="mt-6 p-4 bg-muted/30 rounded-lg border border-border">
                   <p className="text-sm text-muted-foreground">
-                    <strong>That&apos;s it!</strong> These 10 items make every meal for the week. 
-                    Estimated cost: <strong>$80-100</strong> at NYC grocery stores.
+                    <strong>{stats.groceryList.length} items</strong> for {stats.totalPeopleDays} person-days of meals.
+                    Estimated: <strong>${Math.round(stats.totalCost * 0.5)}-${Math.round(stats.totalCost * 0.7)}</strong> at NYC grocery stores.
                   </p>
                 </div>
               </CardContent>
