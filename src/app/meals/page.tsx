@@ -164,30 +164,63 @@ export default function MealPlanner() {
   const [plan, setPlan] = useState<WeekPlan | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const savePlanToDb = useCallback(async (planToSave: WeekPlan) => {
+    try {
+      await fetch("/api/meals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          planData: planToSave.days,
+          checkedItems: planToSave.checkedItems,
+        }),
+      });
+    } catch (error) {
+      console.error("Failed to save meal plan:", error);
+    }
+  }, []);
+
   const regeneratePlan = useCallback(() => {
-    setPlan((current) => generateWeekPlan(current || undefined));
-  }, []);
+    setPlan((current) => {
+      const newPlan = generateWeekPlan(current || undefined);
+      savePlanToDb(newPlan);
+      return newPlan;
+    });
+  }, [savePlanToDb]);
 
+  // Load from database
   useEffect(() => {
-    const saved = localStorage.getItem("meal-plan-v1");
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      // Ensure checkedItems exists for backwards compatibility
-      if (!parsed.checkedItems) {
-        parsed.checkedItems = {};
+    async function loadPlan() {
+      try {
+        const response = await fetch("/api/meals");
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.planData) {
+            setPlan({
+              days: data.planData,
+              generatedAt: data.updatedAt,
+              checkedItems: data.checkedItems || {},
+            });
+          } else {
+            // No plan in DB, generate new one
+            const newPlan = generateWeekPlan();
+            setPlan(newPlan);
+            savePlanToDb(newPlan);
+          }
+        } else {
+          // No plan found, generate new one
+          const newPlan = generateWeekPlan();
+          setPlan(newPlan);
+          savePlanToDb(newPlan);
+        }
+      } catch (error) {
+        console.error("Failed to load meal plan:", error);
+        setPlan(generateWeekPlan());
+      } finally {
+        setIsLoading(false);
       }
-      setPlan(parsed);
-    } else {
-      setPlan(generateWeekPlan());
     }
-    setIsLoading(false);
-  }, []);
-
-  useEffect(() => {
-    if (!isLoading && plan) {
-      localStorage.setItem("meal-plan-v1", JSON.stringify(plan));
-    }
-  }, [plan, isLoading]);
+    loadPlan();
+  }, [savePlanToDb]);
 
   const toggleLock = (dayIndex: number, mealType: "breakfast" | "lunch" | "dinner" | "snack") => {
     if (!plan) return;
@@ -200,22 +233,43 @@ export default function MealPlanner() {
       },
     };
     setPlan(newPlan);
+    savePlanToDb(newPlan);
   };
 
-  const toggleCheckedItem = (itemName: string) => {
+  const toggleCheckedItem = async (itemName: string) => {
     if (!plan) return;
+    const newCheckedItems = {
+      ...plan.checkedItems,
+      [itemName]: !plan.checkedItems[itemName],
+    };
     setPlan({
       ...plan,
-      checkedItems: {
-        ...plan.checkedItems,
-        [itemName]: !plan.checkedItems[itemName],
-      },
+      checkedItems: newCheckedItems,
     });
+    // Save just the checked items
+    try {
+      await fetch("/api/meals", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ checkedItems: newCheckedItems }),
+      });
+    } catch (error) {
+      console.error("Failed to save checked items:", error);
+    }
   };
 
-  const clearCheckedItems = () => {
+  const clearCheckedItems = async () => {
     if (!plan) return;
     setPlan({ ...plan, checkedItems: {} });
+    try {
+      await fetch("/api/meals", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ checkedItems: {} }),
+      });
+    } catch (error) {
+      console.error("Failed to clear checked items:", error);
+    }
   };
 
   const checkedCount = plan ? Object.values(plan.checkedItems).filter(Boolean).length : 0;

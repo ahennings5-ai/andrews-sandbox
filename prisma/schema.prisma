@@ -1,0 +1,34 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Run logs for marathon training
+model RunLog {
+  id          String   @id @default(cuid())
+  week        Int
+  day         Int
+  date        String
+  actualMiles Float
+  duration    String
+  pace        String
+  feeling     String
+  notes       String   @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([week, day])
+}
+
+// Meal plan for the week
+model MealPlan {
+  id           String   @id @default(cuid())
+  weekOf       String   @unique // ISO date of the Monday
+  planData     Json     // The full week plan as JSON
+  checkedItems Json     @default("{}") // Grocery items checked off
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}

@@ -277,16 +277,23 @@ export default function MarathonTracker() {
     setSelectedWeek(currentWeek);
   }, []);
 
-  // Load/save localStorage
+  // Load from database
   useEffect(() => {
-    const saved = localStorage.getItem("marathon-training-v2");
-    if (saved) setState(JSON.parse(saved));
-    setIsLoading(false);
+    async function loadLogs() {
+      try {
+        const response = await fetch("/api/runs");
+        if (response.ok) {
+          const logs = await response.json();
+          setState({ logs: logs || [] });
+        }
+      } catch (error) {
+        console.error("Failed to load runs:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadLogs();
   }, []);
-
-  useEffect(() => {
-    if (!isLoading) localStorage.setItem("marathon-training-v2", JSON.stringify(state));
-  }, [state, isLoading]);
 
   const getDateForWorkout = (week: number, day: number) => {
     const daysToAdd = (week - 1) * 7 + (day - 1);
@@ -313,11 +320,10 @@ export default function MarathonTracker() {
     return `${paceMins}:${paceSecs.toString().padStart(2, "0")}`;
   };
 
-  const handleLogRun = () => {
+  const handleLogRun = async () => {
     if (!selectedWorkout) return;
     const pace = calculatePace(logForm.actualMiles, logForm.duration);
-    const newLog: RunLog = {
-      id: `${selectedWorkout.week}-${selectedWorkout.day}`,
+    const logData = {
       week: selectedWorkout.week,
       day: selectedWorkout.day,
       date: getDateForWorkout(selectedWorkout.week, selectedWorkout.day),
@@ -327,19 +333,44 @@ export default function MarathonTracker() {
       feeling: logForm.feeling,
       notes: logForm.notes,
     };
-    setState((prev) => ({
-      ...prev,
-      logs: [...prev.logs.filter((l) => l.id !== newLog.id), newLog],
-    }));
+
+    try {
+      const response = await fetch("/api/runs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(logData),
+      });
+
+      if (response.ok) {
+        const savedLog = await response.json();
+        setState((prev) => ({
+          ...prev,
+          logs: [...prev.logs.filter((l) => !(l.week === logData.week && l.day === logData.day)), savedLog],
+        }));
+      }
+    } catch (error) {
+      console.error("Failed to save run:", error);
+    }
+
     setLogDialogOpen(false);
     setLogForm({ actualMiles: "", duration: "", feeling: "good", notes: "" });
   };
 
-  const handleDeleteLog = (logId: string) => {
-    setState((prev) => ({
-      ...prev,
-      logs: prev.logs.filter((l) => l.id !== logId),
-    }));
+  const handleDeleteLog = async (logId: string) => {
+    const log = state.logs.find((l) => l.id === logId);
+    if (!log) return;
+
+    try {
+      await fetch(`/api/runs?week=${log.week}&day=${log.day}`, {
+        method: "DELETE",
+      });
+      setState((prev) => ({
+        ...prev,
+        logs: prev.logs.filter((l) => l.id !== logId),
+      }));
+    } catch (error) {
+      console.error("Failed to delete run:", error);
+    }
     setLogDialogOpen(false);
   };
 
