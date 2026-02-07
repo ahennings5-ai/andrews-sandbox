@@ -262,6 +262,7 @@ export default function MarathonTracker() {
   const [isLoading, setIsLoading] = useState(true);
   const [logDialogOpen, setLogDialogOpen] = useState(false);
   const [runDetailsOpen, setRunDetailsOpen] = useState(false);
+  const [warmUpOpen, setWarmUpOpen] = useState(false);
   const [selectedWorkout, setSelectedWorkout] = useState<(typeof trainingPlan)[0] | null>(null);
   const [logForm, setLogForm] = useState({
     actualMiles: "",
@@ -269,6 +270,48 @@ export default function MarathonTracker() {
     feeling: "good" as RunLog["feeling"],
     notes: "",
   });
+
+  // Warm-up exercises based on run type
+  const getWarmUp = (runType: RunType) => {
+    const baseWarmUp = [
+      { name: "Plank Hold", duration: "30 sec", reps: null, description: "Core engaged, body straight from head to heels" },
+      { name: "Side Plank (each side)", duration: "20 sec", reps: null, description: "Stack feet or stagger, hips up" },
+      { name: "Leg Swings (front-back)", duration: null, reps: "10 each leg", description: "Hold wall for balance, swing freely" },
+      { name: "Leg Swings (side-to-side)", duration: null, reps: "10 each leg", description: "Cross body, open hip" },
+      { name: "Walking Lunges", duration: null, reps: "10 each leg", description: "Big step, knee over ankle, upright torso" },
+      { name: "High Knees", duration: "30 sec", reps: null, description: "Drive knees up, quick feet" },
+      { name: "Butt Kicks", duration: "30 sec", reps: null, description: "Heel to glute, stay light" },
+    ];
+
+    const dynamicStrength = [
+      { name: "Squats", duration: null, reps: "15", description: "Weight in heels, chest up, below parallel" },
+      { name: "Push-ups", duration: null, reps: "10", description: "Full range, core tight" },
+      { name: "Glute Bridges", duration: null, reps: "15", description: "Squeeze at top, slow lower" },
+    ];
+
+    const speedActivation = [
+      { name: "A-Skips", duration: "30 sec", reps: null, description: "Drive knee up, skip with power" },
+      { name: "B-Skips", duration: "30 sec", reps: null, description: "Extend leg forward after knee drive" },
+      { name: "Strides", duration: null, reps: "4 x 50m", description: "Build to 80% speed, relax" },
+    ];
+
+    if (runType === "intervals" || runType === "tempo") {
+      return { 
+        title: "Speed Warm-Up (10-12 min)", 
+        exercises: [...baseWarmUp, ...dynamicStrength, ...speedActivation] 
+      };
+    } else if (runType === "long") {
+      return { 
+        title: "Long Run Warm-Up (8-10 min)", 
+        exercises: [...baseWarmUp, ...dynamicStrength] 
+      };
+    } else {
+      return { 
+        title: "Easy Run Warm-Up (5-7 min)", 
+        exercises: baseWarmUp 
+      };
+    }
+  };
   
   // Custom starting location for routes
   const HOME_ADDRESS = "5241+Center+Blvd,+Long+Island+City,+NY";
@@ -841,6 +884,21 @@ export default function MarathonTracker() {
                         </div>
                       )}
 
+                      {/* Warm-up Button */}
+                      {workout.type !== "rest" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedWorkout(workout);
+                            setWarmUpOpen(true);
+                          }}
+                          className="shrink-0"
+                        >
+                          🔥 Warm-up
+                        </Button>
+                      )}
+
                       {/* Log Button */}
                       {workout.type !== "rest" && (
                         <Dialog
@@ -1283,6 +1341,62 @@ export default function MarathonTracker() {
                     Log This Run
                   </Button>
                 </div>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Warm-up Modal */}
+        <Dialog open={warmUpOpen} onOpenChange={setWarmUpOpen}>
+          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+            {selectedWorkout && selectedWorkout.type !== "rest" && (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    🔥 {getWarmUp(selectedWorkout.type).title}
+                  </DialogTitle>
+                  <DialogDescription>
+                    Complete before your {selectedWorkout.miles} mile {runTypes[selectedWorkout.type].label.toLowerCase()} run
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-3 mt-4">
+                  {getWarmUp(selectedWorkout.type).exercises.map((exercise, i) => (
+                    <div 
+                      key={i}
+                      className="flex items-center gap-4 p-3 rounded-lg border border-border bg-card"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-semibold text-sm shrink-0">
+                        {i + 1}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-medium">{exercise.name}</span>
+                          <Badge variant="secondary" className="text-xs">
+                            {exercise.duration || exercise.reps}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-0.5">{exercise.description}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-4 p-4 rounded-lg bg-muted/50 text-sm">
+                  <p className="font-medium mb-1">💡 Pro Tips:</p>
+                  <ul className="text-muted-foreground space-y-1">
+                    <li>• Start slow, increase intensity gradually</li>
+                    <li>• Focus on controlled movements, not speed</li>
+                    <li>• If anything feels tight, add extra time there</li>
+                  </ul>
+                </div>
+
+                <Button 
+                  className="w-full mt-4"
+                  onClick={() => setWarmUpOpen(false)}
+                >
+                  Ready to Run! 🏃
+                </Button>
               </>
             )}
           </DialogContent>
