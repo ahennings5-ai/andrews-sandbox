@@ -13,153 +13,191 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Link from "next/link";
 
-// 18-week marathon training plan
-const trainingPlan = [
-  // Week 1 - Base Building
-  { week: 1, day: 1, type: "easy", miles: 3, description: "Easy run - conversational pace" },
-  { week: 1, day: 2, type: "rest", miles: 0, description: "Rest or cross-train" },
-  { week: 1, day: 3, type: "easy", miles: 4, description: "Easy run" },
-  { week: 1, day: 4, type: "easy", miles: 3, description: "Easy run" },
-  { week: 1, day: 5, type: "rest", miles: 0, description: "Rest" },
-  { week: 1, day: 6, type: "long", miles: 6, description: "Long run - slow and steady" },
-  { week: 1, day: 7, type: "rest", miles: 0, description: "Rest" },
-  // Week 2
-  { week: 2, day: 1, type: "easy", miles: 3, description: "Easy run" },
-  { week: 2, day: 2, type: "tempo", miles: 4, description: "Tempo run - comfortably hard" },
-  { week: 2, day: 3, type: "easy", miles: 3, description: "Easy run" },
-  { week: 2, day: 4, type: "rest", miles: 0, description: "Rest or cross-train" },
-  { week: 2, day: 5, type: "easy", miles: 4, description: "Easy run" },
-  { week: 2, day: 6, type: "long", miles: 8, description: "Long run" },
-  { week: 2, day: 7, type: "rest", miles: 0, description: "Rest" },
-  // Week 3
-  { week: 3, day: 1, type: "easy", miles: 4, description: "Easy run" },
-  { week: 3, day: 2, type: "intervals", miles: 5, description: "Intervals: 6x800m with 400m recovery" },
-  { week: 3, day: 3, type: "easy", miles: 3, description: "Easy recovery run" },
-  { week: 3, day: 4, type: "rest", miles: 0, description: "Rest" },
-  { week: 3, day: 5, type: "tempo", miles: 5, description: "Tempo run" },
-  { week: 3, day: 6, type: "long", miles: 10, description: "Long run" },
-  { week: 3, day: 7, type: "rest", miles: 0, description: "Rest" },
-  // Week 4 - Recovery
-  { week: 4, day: 1, type: "easy", miles: 3, description: "Easy run" },
-  { week: 4, day: 2, type: "easy", miles: 4, description: "Easy run" },
-  { week: 4, day: 3, type: "rest", miles: 0, description: "Rest" },
-  { week: 4, day: 4, type: "easy", miles: 3, description: "Easy run" },
-  { week: 4, day: 5, type: "rest", miles: 0, description: "Rest" },
-  { week: 4, day: 6, type: "long", miles: 6, description: "Easy long run" },
-  { week: 4, day: 7, type: "rest", miles: 0, description: "Rest" },
-  // Week 5
-  { week: 5, day: 1, type: "easy", miles: 4, description: "Easy run" },
-  { week: 5, day: 2, type: "intervals", miles: 6, description: "Intervals: 8x800m" },
-  { week: 5, day: 3, type: "easy", miles: 4, description: "Easy run" },
-  { week: 5, day: 4, type: "rest", miles: 0, description: "Rest" },
-  { week: 5, day: 5, type: "tempo", miles: 5, description: "Tempo run" },
-  { week: 5, day: 6, type: "long", miles: 12, description: "Long run" },
-  { week: 5, day: 7, type: "rest", miles: 0, description: "Rest" },
-  // Week 6
-  { week: 6, day: 1, type: "easy", miles: 4, description: "Easy run" },
-  { week: 6, day: 2, type: "tempo", miles: 6, description: "Tempo run" },
-  { week: 6, day: 3, type: "easy", miles: 4, description: "Easy run" },
-  { week: 6, day: 4, type: "rest", miles: 0, description: "Rest" },
-  { week: 6, day: 5, type: "intervals", miles: 5, description: "Hill repeats: 8x90sec" },
-  { week: 6, day: 6, type: "long", miles: 14, description: "Long run" },
-  { week: 6, day: 7, type: "rest", miles: 0, description: "Rest" },
-  // Week 7
-  { week: 7, day: 1, type: "easy", miles: 5, description: "Easy run" },
-  { week: 7, day: 2, type: "intervals", miles: 7, description: "Intervals: 5x1mile" },
-  { week: 7, day: 3, type: "easy", miles: 4, description: "Easy run" },
-  { week: 7, day: 4, type: "rest", miles: 0, description: "Rest" },
-  { week: 7, day: 5, type: "tempo", miles: 6, description: "Tempo run" },
-  { week: 7, day: 6, type: "long", miles: 16, description: "Long run" },
-  { week: 7, day: 7, type: "rest", miles: 0, description: "Rest" },
-  // Week 8 - Recovery
-  { week: 8, day: 1, type: "easy", miles: 4, description: "Easy run" },
-  { week: 8, day: 2, type: "easy", miles: 5, description: "Easy run" },
-  { week: 8, day: 3, type: "rest", miles: 0, description: "Rest" },
-  { week: 8, day: 4, type: "easy", miles: 4, description: "Easy run" },
-  { week: 8, day: 5, type: "rest", miles: 0, description: "Rest" },
-  { week: 8, day: 6, type: "long", miles: 10, description: "Easy long run" },
-  { week: 8, day: 7, type: "rest", miles: 0, description: "Rest" },
-  // Week 9
-  { week: 9, day: 1, type: "easy", miles: 5, description: "Easy run" },
-  { week: 9, day: 2, type: "tempo", miles: 7, description: "Tempo run" },
-  { week: 9, day: 3, type: "easy", miles: 4, description: "Easy run" },
-  { week: 9, day: 4, type: "rest", miles: 0, description: "Rest" },
-  { week: 9, day: 5, type: "intervals", miles: 6, description: "Intervals: 10x800m" },
-  { week: 9, day: 6, type: "long", miles: 18, description: "Long run" },
-  { week: 9, day: 7, type: "rest", miles: 0, description: "Rest" },
-  // Week 10
-  { week: 10, day: 1, type: "easy", miles: 5, description: "Easy run" },
-  { week: 10, day: 2, type: "intervals", miles: 8, description: "Intervals: 6x1mile" },
-  { week: 10, day: 3, type: "easy", miles: 5, description: "Easy run" },
-  { week: 10, day: 4, type: "rest", miles: 0, description: "Rest" },
-  { week: 10, day: 5, type: "tempo", miles: 6, description: "Tempo run" },
-  { week: 10, day: 6, type: "long", miles: 15, description: "Long run" },
-  { week: 10, day: 7, type: "rest", miles: 0, description: "Rest" },
-  // Week 11
-  { week: 11, day: 1, type: "easy", miles: 5, description: "Easy run" },
-  { week: 11, day: 2, type: "tempo", miles: 8, description: "Tempo run" },
-  { week: 11, day: 3, type: "easy", miles: 5, description: "Easy run" },
-  { week: 11, day: 4, type: "rest", miles: 0, description: "Rest" },
-  { week: 11, day: 5, type: "intervals", miles: 6, description: "Hill repeats" },
-  { week: 11, day: 6, type: "long", miles: 20, description: "Long run - biggest of training!" },
-  { week: 11, day: 7, type: "rest", miles: 0, description: "Rest" },
-  // Week 12 - Recovery
-  { week: 12, day: 1, type: "easy", miles: 4, description: "Easy run" },
-  { week: 12, day: 2, type: "easy", miles: 5, description: "Easy run" },
-  { week: 12, day: 3, type: "rest", miles: 0, description: "Rest" },
-  { week: 12, day: 4, type: "easy", miles: 4, description: "Easy run" },
-  { week: 12, day: 5, type: "rest", miles: 0, description: "Rest" },
-  { week: 12, day: 6, type: "long", miles: 12, description: "Easy long run" },
-  { week: 12, day: 7, type: "rest", miles: 0, description: "Rest" },
-  // Week 13
-  { week: 13, day: 1, type: "easy", miles: 5, description: "Easy run" },
-  { week: 13, day: 2, type: "intervals", miles: 7, description: "Intervals: 8x1000m" },
-  { week: 13, day: 3, type: "easy", miles: 5, description: "Easy run" },
-  { week: 13, day: 4, type: "rest", miles: 0, description: "Rest" },
-  { week: 13, day: 5, type: "tempo", miles: 7, description: "Tempo run" },
-  { week: 13, day: 6, type: "long", miles: 18, description: "Long run" },
-  { week: 13, day: 7, type: "rest", miles: 0, description: "Rest" },
-  // Week 14
-  { week: 14, day: 1, type: "easy", miles: 5, description: "Easy run" },
-  { week: 14, day: 2, type: "tempo", miles: 8, description: "Tempo run" },
-  { week: 14, day: 3, type: "easy", miles: 5, description: "Easy run" },
-  { week: 14, day: 4, type: "rest", miles: 0, description: "Rest" },
-  { week: 14, day: 5, type: "intervals", miles: 6, description: "Race pace intervals" },
-  { week: 14, day: 6, type: "long", miles: 20, description: "Final 20-miler" },
-  { week: 14, day: 7, type: "rest", miles: 0, description: "Rest" },
-  // Week 15 - Taper begins
-  { week: 15, day: 1, type: "easy", miles: 5, description: "Easy run" },
-  { week: 15, day: 2, type: "tempo", miles: 6, description: "Tempo run" },
-  { week: 15, day: 3, type: "easy", miles: 4, description: "Easy run" },
-  { week: 15, day: 4, type: "rest", miles: 0, description: "Rest" },
-  { week: 15, day: 5, type: "easy", miles: 5, description: "Easy run" },
-  { week: 15, day: 6, type: "long", miles: 14, description: "Long run - tapering down" },
-  { week: 15, day: 7, type: "rest", miles: 0, description: "Rest" },
-  // Week 16
-  { week: 16, day: 1, type: "easy", miles: 4, description: "Easy run" },
-  { week: 16, day: 2, type: "tempo", miles: 5, description: "Short tempo" },
-  { week: 16, day: 3, type: "easy", miles: 4, description: "Easy run" },
-  { week: 16, day: 4, type: "rest", miles: 0, description: "Rest" },
-  { week: 16, day: 5, type: "easy", miles: 4, description: "Easy run" },
-  { week: 16, day: 6, type: "long", miles: 10, description: "Long run" },
-  { week: 16, day: 7, type: "rest", miles: 0, description: "Rest" },
-  // Week 17
-  { week: 17, day: 1, type: "easy", miles: 4, description: "Easy run" },
-  { week: 17, day: 2, type: "tempo", miles: 4, description: "Short tempo - stay sharp" },
-  { week: 17, day: 3, type: "easy", miles: 3, description: "Easy run" },
-  { week: 17, day: 4, type: "rest", miles: 0, description: "Rest" },
-  { week: 17, day: 5, type: "easy", miles: 3, description: "Easy shakeout" },
-  { week: 17, day: 6, type: "long", miles: 8, description: "Final long run" },
-  { week: 17, day: 7, type: "rest", miles: 0, description: "Rest" },
-  // Week 18 - Race Week
-  { week: 18, day: 1, type: "easy", miles: 3, description: "Easy run" },
-  { week: 18, day: 2, type: "easy", miles: 3, description: "Easy shakeout with strides" },
-  { week: 18, day: 3, type: "easy", miles: 2, description: "Very easy" },
-  { week: 18, day: 4, type: "rest", miles: 0, description: "Rest - hydrate well" },
-  { week: 18, day: 5, type: "easy", miles: 2, description: "Shakeout run" },
-  { week: 18, day: 6, type: "rest", miles: 0, description: "Rest - prep your gear!" },
-  { week: 18, day: 7, type: "race", miles: 26.2, description: "🏃 NYC MARATHON - YOU'VE GOT THIS! 🗽" },
-];
+// Key dates
+const RACE_DATE = new Date("2026-11-01");
+const PLAN_START = new Date("2026-07-06"); // 18 weeks before race
+const BASE_START = new Date("2026-02-03"); // This week (Monday)
+
+// Calculate weeks between dates
+const weeksBetween = (start: Date, end: Date) => {
+  return Math.floor((end.getTime() - start.getTime()) / (7 * 24 * 60 * 60 * 1000));
+};
+
+const BASE_WEEKS = weeksBetween(BASE_START, PLAN_START); // ~21 weeks
+const TOTAL_WEEKS = BASE_WEEKS + 18; // Base + marathon plan
+
+// Generate base building phase (15 mi/week)
+const generateBasePhase = () => {
+  const workouts = [];
+  for (let week = 1; week <= BASE_WEEKS; week++) {
+    // 15 miles spread across 4 runs: 3, 4, 4, 4 (with 3 rest days)
+    workouts.push({ week, day: 1, type: "easy", miles: 3, description: "Easy run - conversational pace" });
+    workouts.push({ week, day: 2, type: "rest", miles: 0, description: "Rest or cross-train" });
+    workouts.push({ week, day: 3, type: "easy", miles: 4, description: "Easy run" });
+    workouts.push({ week, day: 4, type: "easy", miles: 4, description: "Easy run" });
+    workouts.push({ week, day: 5, type: "rest", miles: 0, description: "Rest" });
+    workouts.push({ week, day: 6, type: "long", miles: 4, description: "Long run - building endurance" });
+    workouts.push({ week, day: 7, type: "rest", miles: 0, description: "Rest" });
+  }
+  return workouts;
+};
+
+// 18-week marathon training plan (offset by BASE_WEEKS)
+const generateMarathonPlan = () => {
+  const offset = BASE_WEEKS;
+  const plan = [
+    // Week 1 - Transition
+    { week: 1, day: 1, type: "easy", miles: 3, description: "Easy run - conversational pace" },
+    { week: 1, day: 2, type: "rest", miles: 0, description: "Rest or cross-train" },
+    { week: 1, day: 3, type: "easy", miles: 4, description: "Easy run" },
+    { week: 1, day: 4, type: "easy", miles: 3, description: "Easy run" },
+    { week: 1, day: 5, type: "rest", miles: 0, description: "Rest" },
+    { week: 1, day: 6, type: "long", miles: 6, description: "Long run - slow and steady" },
+    { week: 1, day: 7, type: "rest", miles: 0, description: "Rest" },
+    // Week 2
+    { week: 2, day: 1, type: "easy", miles: 3, description: "Easy run" },
+    { week: 2, day: 2, type: "tempo", miles: 4, description: "Tempo run - comfortably hard" },
+    { week: 2, day: 3, type: "easy", miles: 3, description: "Easy run" },
+    { week: 2, day: 4, type: "rest", miles: 0, description: "Rest or cross-train" },
+    { week: 2, day: 5, type: "easy", miles: 4, description: "Easy run" },
+    { week: 2, day: 6, type: "long", miles: 8, description: "Long run" },
+    { week: 2, day: 7, type: "rest", miles: 0, description: "Rest" },
+    // Week 3
+    { week: 3, day: 1, type: "easy", miles: 4, description: "Easy run" },
+    { week: 3, day: 2, type: "intervals", miles: 5, description: "Intervals: 6x800m with 400m recovery" },
+    { week: 3, day: 3, type: "easy", miles: 3, description: "Easy recovery run" },
+    { week: 3, day: 4, type: "rest", miles: 0, description: "Rest" },
+    { week: 3, day: 5, type: "tempo", miles: 5, description: "Tempo run" },
+    { week: 3, day: 6, type: "long", miles: 10, description: "Long run" },
+    { week: 3, day: 7, type: "rest", miles: 0, description: "Rest" },
+    // Week 4 - Recovery
+    { week: 4, day: 1, type: "easy", miles: 3, description: "Easy run" },
+    { week: 4, day: 2, type: "easy", miles: 4, description: "Easy run" },
+    { week: 4, day: 3, type: "rest", miles: 0, description: "Rest" },
+    { week: 4, day: 4, type: "easy", miles: 3, description: "Easy run" },
+    { week: 4, day: 5, type: "rest", miles: 0, description: "Rest" },
+    { week: 4, day: 6, type: "long", miles: 6, description: "Easy long run" },
+    { week: 4, day: 7, type: "rest", miles: 0, description: "Rest" },
+    // Week 5
+    { week: 5, day: 1, type: "easy", miles: 4, description: "Easy run" },
+    { week: 5, day: 2, type: "intervals", miles: 6, description: "Intervals: 8x800m" },
+    { week: 5, day: 3, type: "easy", miles: 4, description: "Easy run" },
+    { week: 5, day: 4, type: "rest", miles: 0, description: "Rest" },
+    { week: 5, day: 5, type: "tempo", miles: 5, description: "Tempo run" },
+    { week: 5, day: 6, type: "long", miles: 12, description: "Long run" },
+    { week: 5, day: 7, type: "rest", miles: 0, description: "Rest" },
+    // Week 6
+    { week: 6, day: 1, type: "easy", miles: 4, description: "Easy run" },
+    { week: 6, day: 2, type: "tempo", miles: 6, description: "Tempo run" },
+    { week: 6, day: 3, type: "easy", miles: 4, description: "Easy run" },
+    { week: 6, day: 4, type: "rest", miles: 0, description: "Rest" },
+    { week: 6, day: 5, type: "intervals", miles: 5, description: "Hill repeats: 8x90sec" },
+    { week: 6, day: 6, type: "long", miles: 14, description: "Long run" },
+    { week: 6, day: 7, type: "rest", miles: 0, description: "Rest" },
+    // Week 7
+    { week: 7, day: 1, type: "easy", miles: 5, description: "Easy run" },
+    { week: 7, day: 2, type: "intervals", miles: 7, description: "Intervals: 5x1mile" },
+    { week: 7, day: 3, type: "easy", miles: 4, description: "Easy run" },
+    { week: 7, day: 4, type: "rest", miles: 0, description: "Rest" },
+    { week: 7, day: 5, type: "tempo", miles: 6, description: "Tempo run" },
+    { week: 7, day: 6, type: "long", miles: 16, description: "Long run" },
+    { week: 7, day: 7, type: "rest", miles: 0, description: "Rest" },
+    // Week 8 - Recovery
+    { week: 8, day: 1, type: "easy", miles: 4, description: "Easy run" },
+    { week: 8, day: 2, type: "easy", miles: 5, description: "Easy run" },
+    { week: 8, day: 3, type: "rest", miles: 0, description: "Rest" },
+    { week: 8, day: 4, type: "easy", miles: 4, description: "Easy run" },
+    { week: 8, day: 5, type: "rest", miles: 0, description: "Rest" },
+    { week: 8, day: 6, type: "long", miles: 10, description: "Easy long run" },
+    { week: 8, day: 7, type: "rest", miles: 0, description: "Rest" },
+    // Week 9
+    { week: 9, day: 1, type: "easy", miles: 5, description: "Easy run" },
+    { week: 9, day: 2, type: "tempo", miles: 7, description: "Tempo run" },
+    { week: 9, day: 3, type: "easy", miles: 4, description: "Easy run" },
+    { week: 9, day: 4, type: "rest", miles: 0, description: "Rest" },
+    { week: 9, day: 5, type: "intervals", miles: 6, description: "Intervals: 10x800m" },
+    { week: 9, day: 6, type: "long", miles: 18, description: "Long run" },
+    { week: 9, day: 7, type: "rest", miles: 0, description: "Rest" },
+    // Week 10
+    { week: 10, day: 1, type: "easy", miles: 5, description: "Easy run" },
+    { week: 10, day: 2, type: "intervals", miles: 8, description: "Intervals: 6x1mile" },
+    { week: 10, day: 3, type: "easy", miles: 5, description: "Easy run" },
+    { week: 10, day: 4, type: "rest", miles: 0, description: "Rest" },
+    { week: 10, day: 5, type: "tempo", miles: 6, description: "Tempo run" },
+    { week: 10, day: 6, type: "long", miles: 15, description: "Long run" },
+    { week: 10, day: 7, type: "rest", miles: 0, description: "Rest" },
+    // Week 11
+    { week: 11, day: 1, type: "easy", miles: 5, description: "Easy run" },
+    { week: 11, day: 2, type: "tempo", miles: 8, description: "Tempo run" },
+    { week: 11, day: 3, type: "easy", miles: 5, description: "Easy run" },
+    { week: 11, day: 4, type: "rest", miles: 0, description: "Rest" },
+    { week: 11, day: 5, type: "intervals", miles: 6, description: "Hill repeats" },
+    { week: 11, day: 6, type: "long", miles: 20, description: "Long run - biggest of training!" },
+    { week: 11, day: 7, type: "rest", miles: 0, description: "Rest" },
+    // Week 12 - Recovery
+    { week: 12, day: 1, type: "easy", miles: 4, description: "Easy run" },
+    { week: 12, day: 2, type: "easy", miles: 5, description: "Easy run" },
+    { week: 12, day: 3, type: "rest", miles: 0, description: "Rest" },
+    { week: 12, day: 4, type: "easy", miles: 4, description: "Easy run" },
+    { week: 12, day: 5, type: "rest", miles: 0, description: "Rest" },
+    { week: 12, day: 6, type: "long", miles: 12, description: "Easy long run" },
+    { week: 12, day: 7, type: "rest", miles: 0, description: "Rest" },
+    // Week 13
+    { week: 13, day: 1, type: "easy", miles: 5, description: "Easy run" },
+    { week: 13, day: 2, type: "intervals", miles: 7, description: "Intervals: 8x1000m" },
+    { week: 13, day: 3, type: "easy", miles: 5, description: "Easy run" },
+    { week: 13, day: 4, type: "rest", miles: 0, description: "Rest" },
+    { week: 13, day: 5, type: "tempo", miles: 7, description: "Tempo run" },
+    { week: 13, day: 6, type: "long", miles: 18, description: "Long run" },
+    { week: 13, day: 7, type: "rest", miles: 0, description: "Rest" },
+    // Week 14
+    { week: 14, day: 1, type: "easy", miles: 5, description: "Easy run" },
+    { week: 14, day: 2, type: "tempo", miles: 8, description: "Tempo run" },
+    { week: 14, day: 3, type: "easy", miles: 5, description: "Easy run" },
+    { week: 14, day: 4, type: "rest", miles: 0, description: "Rest" },
+    { week: 14, day: 5, type: "intervals", miles: 6, description: "Race pace intervals" },
+    { week: 14, day: 6, type: "long", miles: 20, description: "Final 20-miler" },
+    { week: 14, day: 7, type: "rest", miles: 0, description: "Rest" },
+    // Week 15 - Taper begins
+    { week: 15, day: 1, type: "easy", miles: 5, description: "Easy run" },
+    { week: 15, day: 2, type: "tempo", miles: 6, description: "Tempo run" },
+    { week: 15, day: 3, type: "easy", miles: 4, description: "Easy run" },
+    { week: 15, day: 4, type: "rest", miles: 0, description: "Rest" },
+    { week: 15, day: 5, type: "easy", miles: 5, description: "Easy run" },
+    { week: 15, day: 6, type: "long", miles: 14, description: "Long run - tapering down" },
+    { week: 15, day: 7, type: "rest", miles: 0, description: "Rest" },
+    // Week 16
+    { week: 16, day: 1, type: "easy", miles: 4, description: "Easy run" },
+    { week: 16, day: 2, type: "tempo", miles: 5, description: "Short tempo" },
+    { week: 16, day: 3, type: "easy", miles: 4, description: "Easy run" },
+    { week: 16, day: 4, type: "rest", miles: 0, description: "Rest" },
+    { week: 16, day: 5, type: "easy", miles: 4, description: "Easy run" },
+    { week: 16, day: 6, type: "long", miles: 10, description: "Long run" },
+    { week: 16, day: 7, type: "rest", miles: 0, description: "Rest" },
+    // Week 17
+    { week: 17, day: 1, type: "easy", miles: 4, description: "Easy run" },
+    { week: 17, day: 2, type: "tempo", miles: 4, description: "Short tempo - stay sharp" },
+    { week: 17, day: 3, type: "easy", miles: 3, description: "Easy run" },
+    { week: 17, day: 4, type: "rest", miles: 0, description: "Rest" },
+    { week: 17, day: 5, type: "easy", miles: 3, description: "Easy shakeout" },
+    { week: 17, day: 6, type: "long", miles: 8, description: "Final long run" },
+    { week: 17, day: 7, type: "rest", miles: 0, description: "Rest" },
+    // Week 18 - Race Week
+    { week: 18, day: 1, type: "easy", miles: 3, description: "Easy run" },
+    { week: 18, day: 2, type: "easy", miles: 3, description: "Easy shakeout with strides" },
+    { week: 18, day: 3, type: "easy", miles: 2, description: "Very easy" },
+    { week: 18, day: 4, type: "rest", miles: 0, description: "Rest - hydrate well" },
+    { week: 18, day: 5, type: "easy", miles: 2, description: "Shakeout run" },
+    { week: 18, day: 6, type: "rest", miles: 0, description: "Rest - prep your gear!" },
+    { week: 18, day: 7, type: "race", miles: 26.2, description: "🏃 NYC MARATHON - YOU'VE GOT THIS! 🗽" },
+  ];
+  
+  // Offset weeks
+  return plan.map(w => ({ ...w, week: w.week + offset }));
+};
+
+// Combined training plan
+const trainingPlan = [...generateBasePhase(), ...generateMarathonPlan()];
 
 interface RunLog {
   id: string;
@@ -174,7 +212,6 @@ interface RunLog {
 }
 
 interface TrainingState {
-  startDate: string;
   logs: RunLog[];
 }
 
@@ -199,7 +236,6 @@ const feelingEmojis = {
 
 export default function MarathonTracker() {
   const [state, setState] = useState<TrainingState>({
-    startDate: "",
     logs: [],
   });
   const [selectedWeek, setSelectedWeek] = useState(1);
@@ -213,21 +249,19 @@ export default function MarathonTracker() {
     notes: "",
   });
 
+  // Calculate current week based on date
+  useEffect(() => {
+    const today = new Date();
+    const daysSinceStart = Math.floor((today.getTime() - BASE_START.getTime()) / (24 * 60 * 60 * 1000));
+    const currentWeek = Math.max(1, Math.min(TOTAL_WEEKS, Math.floor(daysSinceStart / 7) + 1));
+    setSelectedWeek(currentWeek);
+  }, []);
+
   // Load from localStorage
   useEffect(() => {
-    const saved = localStorage.getItem("marathon-training");
+    const saved = localStorage.getItem("marathon-training-v2");
     if (saved) {
       setState(JSON.parse(saved));
-    } else {
-      // Default start date: next Monday
-      const today = new Date();
-      const daysUntilMonday = (8 - today.getDay()) % 7 || 7;
-      const nextMonday = new Date(today);
-      nextMonday.setDate(today.getDate() + daysUntilMonday);
-      setState({
-        startDate: nextMonday.toISOString().split("T")[0],
-        logs: [],
-      });
     }
     setIsLoading(false);
   }, []);
@@ -235,16 +269,14 @@ export default function MarathonTracker() {
   // Save to localStorage
   useEffect(() => {
     if (!isLoading) {
-      localStorage.setItem("marathon-training", JSON.stringify(state));
+      localStorage.setItem("marathon-training-v2", JSON.stringify(state));
     }
   }, [state, isLoading]);
 
   const getDateForWorkout = (week: number, day: number) => {
-    if (!state.startDate) return "";
-    const start = new Date(state.startDate);
     const daysToAdd = (week - 1) * 7 + (day - 1);
-    const date = new Date(start);
-    date.setDate(start.getDate() + daysToAdd);
+    const date = new Date(BASE_START);
+    date.setDate(BASE_START.getDate() + daysToAdd);
     return date.toISOString().split("T")[0];
   };
 
@@ -287,6 +319,20 @@ export default function MarathonTracker() {
     setLogForm({ actualMiles: "", duration: "", feeling: "good", notes: "" });
   };
 
+  // Get phase info
+  const getPhaseInfo = (week: number) => {
+    if (week <= BASE_WEEKS) {
+      return { phase: "Base Building", description: "Building your aerobic foundation (15 mi/week)" };
+    }
+    const marathonWeek = week - BASE_WEEKS;
+    if (marathonWeek <= 4) return { phase: "Marathon Week " + marathonWeek, description: "Building mileage" };
+    if (marathonWeek <= 8) return { phase: "Marathon Week " + marathonWeek, description: "Building intensity" };
+    if (marathonWeek <= 12) return { phase: "Marathon Week " + marathonWeek, description: "Peak training" };
+    if (marathonWeek <= 14) return { phase: "Marathon Week " + marathonWeek, description: "Final push" };
+    if (marathonWeek <= 17) return { phase: "Marathon Week " + marathonWeek, description: "Taper" };
+    return { phase: "Race Week!", description: "You're ready! 🎉" };
+  };
+
   // Calculate stats
   const totalPlannedMiles = trainingPlan.reduce((sum, w) => sum + w.miles, 0);
   const totalLoggedMiles = state.logs.reduce((sum, l) => sum + l.actualMiles, 0);
@@ -294,9 +340,15 @@ export default function MarathonTracker() {
   const totalWorkouts = trainingPlan.filter((w) => w.type !== "rest").length;
   const completionRate = totalWorkouts > 0 ? (completedWorkouts / totalWorkouts) * 100 : 0;
 
-  const weeklyMiles = Array.from({ length: 18 }, (_, i) => {
+  const weeklyMiles = Array.from({ length: TOTAL_WEEKS }, (_, i) => {
     const weekLogs = state.logs.filter((l) => l.week === i + 1);
     return weekLogs.reduce((sum, l) => sum + l.actualMiles, 0);
+  });
+
+  const weeklyPlannedMiles = Array.from({ length: TOTAL_WEEKS }, (_, i) => {
+    return trainingPlan
+      .filter((w) => w.week === i + 1)
+      .reduce((sum, w) => sum + w.miles, 0);
   });
 
   const currentWeekWorkouts = trainingPlan.filter((w) => w.week === selectedWeek);
@@ -307,6 +359,10 @@ export default function MarathonTracker() {
     return acc;
   }, {} as Record<string, number>);
 
+  // Days until race
+  const today = new Date();
+  const daysUntilRace = Math.ceil((RACE_DATE.getTime() - today.getTime()) / (24 * 60 * 60 * 1000));
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
@@ -314,6 +370,8 @@ export default function MarathonTracker() {
       </div>
     );
   }
+
+  const phaseInfo = getPhaseInfo(selectedWeek);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
@@ -325,16 +383,13 @@ export default function MarathonTracker() {
               ← Back to Sandbox
             </Link>
             <h1 className="text-4xl font-bold text-white">🏃 NYC Marathon Training</h1>
-            <p className="text-slate-400 mt-2">18-week program to race day</p>
+            <p className="text-slate-400 mt-2">
+              {BASE_WEEKS} weeks base building → 18 weeks marathon plan → Race Day: Nov 1, 2026
+            </p>
           </div>
           <div className="text-right">
-            <Label className="text-slate-400 text-sm">Training Start Date</Label>
-            <Input
-              type="date"
-              value={state.startDate}
-              onChange={(e) => setState((prev) => ({ ...prev, startDate: e.target.value }))}
-              className="bg-slate-800 border-slate-700 text-white w-40"
-            />
+            <div className="text-4xl font-bold text-purple-400">{daysUntilRace}</div>
+            <div className="text-slate-400 text-sm">days until race</div>
           </div>
         </div>
 
@@ -345,7 +400,7 @@ export default function MarathonTracker() {
               <CardDescription className="text-slate-400">Total Miles</CardDescription>
               <CardTitle className="text-3xl text-white">
                 {totalLoggedMiles.toFixed(1)}
-                <span className="text-lg text-slate-500">/{totalPlannedMiles}</span>
+                <span className="text-lg text-slate-500">/{totalPlannedMiles.toFixed(0)}</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -371,11 +426,11 @@ export default function MarathonTracker() {
               <CardDescription className="text-slate-400">This Week</CardDescription>
               <CardTitle className="text-3xl text-white">
                 {weeklyMiles[selectedWeek - 1]?.toFixed(1) || 0}
-                <span className="text-lg text-slate-500"> mi</span>
+                <span className="text-lg text-slate-500">/{weeklyPlannedMiles[selectedWeek - 1]} mi</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-slate-400">Week {selectedWeek} of 18</p>
+              <p className="text-sm text-slate-400">Week {selectedWeek} of {TOTAL_WEEKS}</p>
             </CardContent>
           </Card>
 
@@ -407,28 +462,53 @@ export default function MarathonTracker() {
 
           {/* Schedule Tab */}
           <TabsContent value="schedule" className="space-y-4">
+            {/* Phase indicator */}
+            <div className="flex items-center gap-4 mb-4">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge variant="outline" className={selectedWeek <= BASE_WEEKS ? "border-green-500 text-green-400" : "border-purple-500 text-purple-400"}>
+                    {selectedWeek <= BASE_WEEKS ? "Base Building" : "Marathon Training"}
+                  </Badge>
+                  <span className="text-slate-400 text-sm">{phaseInfo.description}</span>
+                </div>
+                <Progress 
+                  value={(selectedWeek / TOTAL_WEEKS) * 100} 
+                  className="h-2"
+                />
+                <div className="flex justify-between text-xs text-slate-500 mt-1">
+                  <span>Feb 3</span>
+                  <span>Jul 6 (Marathon plan starts)</span>
+                  <span>Nov 1 🏁</span>
+                </div>
+              </div>
+            </div>
+
             {/* Week Selector */}
-            <div className="flex gap-2 overflow-x-auto pb-2">
-              {Array.from({ length: 18 }, (_, i) => i + 1).map((week) => {
+            <div className="flex gap-1 overflow-x-auto pb-2">
+              {Array.from({ length: TOTAL_WEEKS }, (_, i) => i + 1).map((week) => {
                 const weekLogs = state.logs.filter((l) => l.week === week);
                 const weekWorkouts = trainingPlan.filter((w) => w.week === week && w.type !== "rest");
                 const isComplete = weekLogs.length >= weekWorkouts.length;
+                const isBase = week <= BASE_WEEKS;
+                const isCurrentWeek = selectedWeek === week;
                 return (
                   <Button
                     key={week}
-                    variant={selectedWeek === week ? "default" : "outline"}
+                    variant={isCurrentWeek ? "default" : "outline"}
                     size="sm"
                     onClick={() => setSelectedWeek(week)}
-                    className={`min-w-[60px] ${
-                      selectedWeek === week
-                        ? "bg-purple-600"
+                    className={`min-w-[40px] px-2 text-xs ${
+                      isCurrentWeek
+                        ? isBase ? "bg-green-600" : "bg-purple-600"
                         : isComplete
                         ? "border-green-500 text-green-400"
-                        : "border-slate-600 text-slate-400"
+                        : isBase
+                        ? "border-green-700/50 text-green-600"
+                        : "border-purple-700/50 text-purple-600"
                     }`}
                   >
-                    W{week}
-                    {isComplete && " ✓"}
+                    {week}
+                    {isComplete && "✓"}
                   </Button>
                 );
               })}
@@ -437,19 +517,11 @@ export default function MarathonTracker() {
             {/* Week Schedule */}
             <Card className="bg-slate-800/50 border-slate-700">
               <CardHeader>
-                <CardTitle className="text-white">Week {selectedWeek}</CardTitle>
+                <CardTitle className="text-white">
+                  Week {selectedWeek} {selectedWeek <= BASE_WEEKS ? "(Base)" : `(Marathon Wk ${selectedWeek - BASE_WEEKS})`}
+                </CardTitle>
                 <CardDescription className="text-slate-400">
-                  {selectedWeek <= 4
-                    ? "Base Building"
-                    : selectedWeek <= 8
-                    ? "Building Mileage"
-                    : selectedWeek <= 12
-                    ? "Peak Training"
-                    : selectedWeek <= 14
-                    ? "Final Push"
-                    : selectedWeek <= 17
-                    ? "Taper"
-                    : "Race Week! 🎉"}
+                  {phaseInfo.description}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -458,19 +530,25 @@ export default function MarathonTracker() {
                     const log = getLogForWorkout(workout.week, workout.day);
                     const date = getDateForWorkout(workout.week, workout.day);
                     const isToday = date === new Date().toISOString().split("T")[0];
+                    const isPast = new Date(date) < new Date(new Date().toISOString().split("T")[0]);
                     return (
                       <div
                         key={`${workout.week}-${workout.day}`}
                         className={`flex items-center justify-between p-4 rounded-lg border ${
-                          isToday ? "border-purple-500 bg-purple-500/10" : "border-slate-700 bg-slate-800/50"
+                          isToday 
+                            ? "border-purple-500 bg-purple-500/10" 
+                            : isPast && !log && workout.type !== "rest"
+                            ? "border-red-500/30 bg-red-500/5"
+                            : "border-slate-700 bg-slate-800/50"
                         }`}
                       >
                         <div className="flex items-center gap-4">
                           <div className="text-center min-w-[60px]">
                             <p className="text-xs text-slate-500">{dayNames[workout.day - 1]}</p>
                             <p className="text-sm text-white">
-                              {date ? new Date(date + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—"}
+                              {new Date(date + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                             </p>
+                            {isToday && <Badge className="mt-1 text-xs bg-purple-600">Today</Badge>}
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
@@ -601,42 +679,45 @@ export default function MarathonTracker() {
             <Card className="bg-slate-800/50 border-slate-700">
               <CardHeader>
                 <CardTitle className="text-white">Weekly Mileage</CardTitle>
-                <CardDescription className="text-slate-400">Your actual miles per week</CardDescription>
+                <CardDescription className="text-slate-400">Your actual miles per week (green = base, purple = marathon)</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex items-end gap-1 h-48">
+                <div className="flex items-end gap-[2px] h-48 overflow-x-auto">
                   {weeklyMiles.map((miles, i) => {
-                    const plannedMiles = trainingPlan
-                      .filter((w) => w.week === i + 1)
-                      .reduce((sum, w) => sum + w.miles, 0);
-                    const maxMiles = 60; // Scale
+                    const plannedMiles = weeklyPlannedMiles[i];
+                    const maxMiles = 60;
                     const height = (miles / maxMiles) * 100;
                     const plannedHeight = (plannedMiles / maxMiles) * 100;
+                    const isBase = i < BASE_WEEKS;
                     return (
-                      <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                      <div key={i} className="flex flex-col items-center gap-1 min-w-[16px]">
                         <div className="relative w-full h-40 flex items-end justify-center">
-                          {/* Planned (ghost) */}
                           <div
                             className="absolute bottom-0 w-full bg-slate-700/50 rounded-t"
                             style={{ height: `${plannedHeight}%` }}
                           />
-                          {/* Actual */}
                           <div
                             className={`relative w-full rounded-t ${
-                              miles >= plannedMiles ? "bg-green-500" : "bg-purple-500"
+                              miles >= plannedMiles 
+                                ? isBase ? "bg-green-500" : "bg-purple-500"
+                                : isBase ? "bg-green-700" : "bg-purple-700"
                             }`}
                             style={{ height: `${height}%` }}
                           />
                         </div>
-                        <span className="text-xs text-slate-500">{i + 1}</span>
+                        {(i + 1) % 4 === 0 && <span className="text-xs text-slate-500">{i + 1}</span>}
                       </div>
                     );
                   })}
                 </div>
                 <div className="flex justify-center gap-4 mt-4 text-sm">
                   <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-green-500 rounded" />
+                    <span className="text-slate-400">Base</span>
+                  </div>
+                  <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-purple-500 rounded" />
-                    <span className="text-slate-400">Actual</span>
+                    <span className="text-slate-400">Marathon</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-slate-700 rounded" />
@@ -736,6 +817,9 @@ export default function MarathonTracker() {
                               <span className="text-white font-medium">
                                 Week {log.week}, Day {log.day}
                               </span>
+                              <Badge variant="outline" className={log.week <= BASE_WEEKS ? "border-green-600 text-green-500" : "border-purple-600 text-purple-500"}>
+                                {log.week <= BASE_WEEKS ? "Base" : "Marathon"}
+                              </Badge>
                               <span className="text-xl">{feelingEmojis[log.feeling]}</span>
                             </div>
                             <p className="text-sm text-slate-400">{log.date}</p>
