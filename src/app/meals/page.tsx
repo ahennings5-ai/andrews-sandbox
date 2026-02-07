@@ -75,6 +75,7 @@ interface DayPlan {
 interface WeekPlan {
   days: DayPlan[];
   generatedAt: string;
+  checkedItems: Record<string, boolean>;
 }
 
 const dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -109,7 +110,7 @@ function generateWeekPlan(existingPlan?: WeekPlan): WeekPlan {
     });
   }
 
-  return { days, generatedAt: new Date().toISOString() };
+  return { days, generatedAt: new Date().toISOString(), checkedItems: existingPlan?.checkedItems || {} };
 }
 
 function calculateWeeklyStats(plan: WeekPlan) {
@@ -195,6 +196,24 @@ export default function MealPlanner() {
     };
     setPlan(newPlan);
   };
+
+  const toggleCheckedItem = (itemName: string) => {
+    if (!plan) return;
+    setPlan({
+      ...plan,
+      checkedItems: {
+        ...plan.checkedItems,
+        [itemName]: !plan.checkedItems[itemName],
+      },
+    });
+  };
+
+  const clearCheckedItems = () => {
+    if (!plan) return;
+    setPlan({ ...plan, checkedItems: {} });
+  };
+
+  const checkedCount = plan ? Object.values(plan.checkedItems).filter(Boolean).length : 0;
 
   if (isLoading || !plan) {
     return (
@@ -398,20 +417,129 @@ export default function MealPlanner() {
           <TabsContent value="grocery">
             <Card>
               <CardHeader>
-                <CardTitle>Grocery List</CardTitle>
-                <CardDescription>Everything you need for the week (for 2 people)</CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      🛒 Shopping List
+                      {checkedCount > 0 && (
+                        <Badge variant="secondary">
+                          {checkedCount}/{stats.groceryList.length} done
+                        </Badge>
+                      )}
+                    </CardTitle>
+                    <CardDescription>Tap items as you shop — progress saves automatically</CardDescription>
+                  </div>
+                  {checkedCount > 0 && (
+                    <Button variant="outline" size="sm" onClick={clearCheckedItems}>
+                      Clear All
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-2">
-                  {stats.groceryList.map((item) => (
-                    <label key={item.name} className="flex items-center gap-3 py-2 cursor-pointer group">
-                      <input type="checkbox" className="w-4 h-4 rounded border-border" />
-                      <span className="capitalize group-hover:text-primary">{item.name}</span>
-                      {item.count > 1 && (
-                        <span className="text-xs text-muted-foreground">×{item.count}</span>
-                      )}
-                    </label>
-                  ))}
+                {/* Progress bar */}
+                {stats.groceryList.length > 0 && (
+                  <div className="mb-6">
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-primary transition-all duration-300"
+                        style={{ width: `${(checkedCount / stats.groceryList.length) * 100}%` }}
+                      />
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      {checkedCount === stats.groceryList.length
+                        ? "✅ All done! Ready to prep."
+                        : `${stats.groceryList.length - checkedCount} items remaining`}
+                    </p>
+                  </div>
+                )}
+
+                {/* Categorized grocery list */}
+                <div className="space-y-6">
+                  {/* Proteins */}
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground mb-3 uppercase tracking-wide">🍗 Proteins</h3>
+                    <div className="space-y-1">
+                      {stats.groceryList
+                        .filter((i) => ["chicken thighs", "ground turkey", "salmon", "shrimp", "eggs", "flank steak", "white fish", "smoked salmon"].includes(i.name))
+                        .map((item) => (
+                          <GroceryItem
+                            key={item.name}
+                            item={item}
+                            checked={plan?.checkedItems[item.name] || false}
+                            onToggle={() => toggleCheckedItem(item.name)}
+                          />
+                        ))}
+                    </div>
+                  </div>
+
+                  {/* Produce */}
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground mb-3 uppercase tracking-wide">🥦 Produce</h3>
+                    <div className="space-y-1">
+                      {stats.groceryList
+                        .filter((i) => ["broccoli", "asparagus", "bell pepper", "sweet potato", "spinach", "kale", "lettuce", "cabbage", "cucumber", "tomato", "onions", "garlic", "avocado", "banana", "berries", "frozen berries", "apple", "lemon", "lime", "green beans", "potatoes", "corn", "edamame", "salad greens", "stir fry veggies", "roasted veggies"].includes(i.name))
+                        .map((item) => (
+                          <GroceryItem
+                            key={item.name}
+                            item={item}
+                            checked={plan?.checkedItems[item.name] || false}
+                            onToggle={() => toggleCheckedItem(item.name)}
+                          />
+                        ))}
+                    </div>
+                  </div>
+
+                  {/* Grains & Carbs */}
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground mb-3 uppercase tracking-wide">🍚 Grains & Carbs</h3>
+                    <div className="space-y-1">
+                      {stats.groceryList
+                        .filter((i) => ["rice", "quinoa", "farro", "pasta", "rice noodles", "bread", "bagel", "tortillas", "naan bread", "oats", "granola"].includes(i.name))
+                        .map((item) => (
+                          <GroceryItem
+                            key={item.name}
+                            item={item}
+                            checked={plan?.checkedItems[item.name] || false}
+                            onToggle={() => toggleCheckedItem(item.name)}
+                          />
+                        ))}
+                    </div>
+                  </div>
+
+                  {/* Dairy */}
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground mb-3 uppercase tracking-wide">🧀 Dairy</h3>
+                    <div className="space-y-1">
+                      {stats.groceryList
+                        .filter((i) => ["cheese", "feta", "mozzarella", "parmesan", "cream cheese", "greek yogurt", "oat milk", "butter"].includes(i.name))
+                        .map((item) => (
+                          <GroceryItem
+                            key={item.name}
+                            item={item}
+                            checked={plan?.checkedItems[item.name] || false}
+                            onToggle={() => toggleCheckedItem(item.name)}
+                          />
+                        ))}
+                    </div>
+                  </div>
+
+                  {/* Pantry & Sauces */}
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground mb-3 uppercase tracking-wide">🫙 Pantry & Sauces</h3>
+                    <div className="space-y-1">
+                      {stats.groceryList
+                        .filter((i) => !["chicken thighs", "ground turkey", "salmon", "shrimp", "eggs", "flank steak", "white fish", "smoked salmon", "broccoli", "asparagus", "bell pepper", "sweet potato", "spinach", "kale", "lettuce", "cabbage", "cucumber", "tomato", "onions", "garlic", "avocado", "banana", "berries", "frozen berries", "apple", "lemon", "lime", "green beans", "potatoes", "corn", "edamame", "salad greens", "stir fry veggies", "roasted veggies", "rice", "quinoa", "farro", "pasta", "rice noodles", "bread", "bagel", "tortillas", "naan bread", "oats", "granola", "cheese", "feta", "mozzarella", "parmesan", "cream cheese", "greek yogurt", "oat milk", "butter"].includes(i.name))
+                        .map((item) => (
+                          <GroceryItem
+                            key={item.name}
+                            item={item}
+                            checked={plan?.checkedItems[item.name] || false}
+                            onToggle={() => toggleCheckedItem(item.name)}
+                          />
+                        ))}
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -419,6 +547,45 @@ export default function MealPlanner() {
         </Tabs>
       </div>
     </div>
+  );
+}
+
+function GroceryItem({
+  item,
+  checked,
+  onToggle,
+}: {
+  item: { name: string; count: number };
+  checked: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      onClick={onToggle}
+      className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-all text-left ${
+        checked
+          ? "bg-primary/10 border-primary/30 opacity-60"
+          : "bg-card border-border hover:border-primary/50"
+      }`}
+    >
+      <div
+        className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+          checked ? "bg-primary border-primary" : "border-muted-foreground"
+        }`}
+      >
+        {checked && (
+          <svg className="w-3 h-3 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        )}
+      </div>
+      <span className={`flex-1 capitalize ${checked ? "line-through" : ""}`}>{item.name}</span>
+      {item.count > 1 && (
+        <Badge variant="secondary" className="text-xs">
+          ×{item.count}
+        </Badge>
+      )}
+    </button>
   );
 }
 
