@@ -269,59 +269,107 @@ export default function MarathonTracker() {
     feeling: "good" as RunLog["feeling"],
     notes: "",
   });
-
-  // Running routes from 5241 Center Blvd, LIC
-  const HOME_ADDRESS = "5241+Center+Blvd,+Long+Island+City,+NY";
   
-  const routes: Record<number, { name: string; description: string; miles: number; mapUrl: string }[]> = {
+  // Custom starting location for routes
+  const HOME_ADDRESS = "5241+Center+Blvd,+Long+Island+City,+NY";
+  const [customLocation, setCustomLocation] = useState<string | null>(null);
+  const [locationInput, setLocationInput] = useState("");
+  const [gettingLocation, setGettingLocation] = useState(false);
+  
+  const startingPoint = customLocation || HOME_ADDRESS;
+  const startingPointDisplay = customLocation 
+    ? decodeURIComponent(customLocation.replace(/\+/g, " ")) 
+    : "5241 Center Blvd";
+
+  // Get user's current location via GPS
+  const useCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      alert("Geolocation not supported by your browser");
+      return;
+    }
+    setGettingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setCustomLocation(`${latitude},${longitude}`);
+        setGettingLocation(false);
+      },
+      (error) => {
+        alert("Could not get location: " + error.message);
+        setGettingLocation(false);
+      },
+      { enableHighAccuracy: true }
+    );
+  };
+
+  // Set custom address
+  const setCustomAddress = () => {
+    if (locationInput.trim()) {
+      setCustomLocation(encodeURIComponent(locationInput.trim()).replace(/%20/g, "+"));
+      setLocationInput("");
+    }
+  };
+
+  // Reset to home
+  const resetToHome = () => {
+    setCustomLocation(null);
+  };
+  
+  // Route destinations (without starting point - we'll add that dynamically)
+  const routeDestinations: Record<number, { name: string; description: string; miles: number; waypoints: string[] }[]> = {
     3: [
-      { name: "Hunters Point South Loop", miles: 3, description: "Waterfront loop around the park", mapUrl: `https://www.google.com/maps/dir/${HOME_ADDRESS}/Hunters+Point+South+Park/Gantry+Plaza+State+Park/${HOME_ADDRESS}` },
-      { name: "Gantry to Vernon", miles: 3, description: "North along waterfront and back", mapUrl: `https://www.google.com/maps/dir/${HOME_ADDRESS}/Vernon+Blvd,+Long+Island+City/${HOME_ADDRESS}` },
+      { name: "Hunters Point South Loop", miles: 3, description: "Waterfront loop around the park", waypoints: ["Hunters+Point+South+Park", "Gantry+Plaza+State+Park"] },
+      { name: "Gantry to Vernon", miles: 3, description: "North along waterfront and back", waypoints: ["Vernon+Blvd,+Long+Island+City"] },
     ],
     4: [
-      { name: "Roosevelt Island Loop", miles: 4, description: "Cross the bridge, loop the island", mapUrl: `https://www.google.com/maps/dir/${HOME_ADDRESS}/Roosevelt+Island+Bridge/Roosevelt+Island/${HOME_ADDRESS}` },
-      { name: "Waterfront to Rainey Park", miles: 4, description: "North along East River to Rainey Park", mapUrl: `https://www.google.com/maps/dir/${HOME_ADDRESS}/Rainey+Park,+Queens/${HOME_ADDRESS}` },
+      { name: "Roosevelt Island Loop", miles: 4, description: "Cross the bridge, loop the island", waypoints: ["Roosevelt+Island+Bridge", "Roosevelt+Island"] },
+      { name: "Waterfront to Rainey Park", miles: 4, description: "North along East River to Rainey Park", waypoints: ["Rainey+Park,+Queens"] },
     ],
     5: [
-      { name: "Queensboro Bridge Out & Back", miles: 5, description: "Waterfront to the bridge and back", mapUrl: `https://www.google.com/maps/dir/${HOME_ADDRESS}/Queensboro+Bridge/${HOME_ADDRESS}` },
-      { name: "Socrates Sculpture Park", miles: 5, description: "North to Socrates and Astoria", mapUrl: `https://www.google.com/maps/dir/${HOME_ADDRESS}/Socrates+Sculpture+Park/${HOME_ADDRESS}` },
+      { name: "Queensboro Bridge Out & Back", miles: 5, description: "Waterfront to the bridge and back", waypoints: ["Queensboro+Bridge"] },
+      { name: "Socrates Sculpture Park", miles: 5, description: "North to Socrates and Astoria", waypoints: ["Socrates+Sculpture+Park"] },
     ],
     6: [
-      { name: "Queensboro + Roosevelt Island", miles: 6, description: "Over the bridge, loop Roosevelt Island", mapUrl: `https://www.google.com/maps/dir/${HOME_ADDRESS}/Queensboro+Bridge/Roosevelt+Island/${HOME_ADDRESS}` },
-      { name: "Astoria Park Loop", miles: 6, description: "Waterfront up to Astoria Park", mapUrl: `https://www.google.com/maps/dir/${HOME_ADDRESS}/Astoria+Park/${HOME_ADDRESS}` },
+      { name: "Queensboro + Roosevelt Island", miles: 6, description: "Over the bridge, loop Roosevelt Island", waypoints: ["Queensboro+Bridge", "Roosevelt+Island"] },
+      { name: "Astoria Park Loop", miles: 6, description: "Waterfront up to Astoria Park", waypoints: ["Astoria+Park"] },
     ],
     8: [
-      { name: "Queensboro + East Side", miles: 8, description: "Over bridge, south on East Side path, back", mapUrl: `https://www.google.com/maps/dir/${HOME_ADDRESS}/Queensboro+Bridge/East+63rd+Street,+Manhattan/Queensboro+Bridge/${HOME_ADDRESS}` },
-      { name: "Full Roosevelt + Astoria", miles: 8, description: "Roosevelt Island + waterfront to Astoria", mapUrl: `https://www.google.com/maps/dir/${HOME_ADDRESS}/Roosevelt+Island/Astoria+Park/${HOME_ADDRESS}` },
+      { name: "Queensboro + East Side", miles: 8, description: "Over bridge, south on East Side path, back", waypoints: ["Queensboro+Bridge", "East+63rd+Street,+Manhattan", "Queensboro+Bridge"] },
+      { name: "Full Roosevelt + Astoria", miles: 8, description: "Roosevelt Island + waterfront to Astoria", waypoints: ["Roosevelt+Island", "Astoria+Park"] },
     ],
     10: [
-      { name: "Central Park South Loop", miles: 10, description: "Queensboro → Central Park south end → back", mapUrl: `https://www.google.com/maps/dir/${HOME_ADDRESS}/Queensboro+Bridge/Central+Park+South,+Manhattan/Queensboro+Bridge/${HOME_ADDRESS}` },
+      { name: "Central Park South Loop", miles: 10, description: "Queensboro → Central Park south end → back", waypoints: ["Queensboro+Bridge", "Central+Park+South,+Manhattan", "Queensboro+Bridge"] },
     ],
     12: [
-      { name: "Central Park Half Loop", miles: 12, description: "Queensboro → half Central Park loop → back", mapUrl: `https://www.google.com/maps/dir/${HOME_ADDRESS}/Queensboro+Bridge/Central+Park,+Manhattan/Queensboro+Bridge/${HOME_ADDRESS}` },
+      { name: "Central Park Half Loop", miles: 12, description: "Queensboro → half Central Park loop → back", waypoints: ["Queensboro+Bridge", "Central+Park,+Manhattan", "Queensboro+Bridge"] },
     ],
     14: [
-      { name: "Central Park Full Loop", miles: 14, description: "Queensboro → full Central Park loop (6 mi) → back", mapUrl: `https://www.google.com/maps/dir/${HOME_ADDRESS}/Queensboro+Bridge/Central+Park+North,+Manhattan/Central+Park+South,+Manhattan/Queensboro+Bridge/${HOME_ADDRESS}` },
+      { name: "Central Park Full Loop", miles: 14, description: "Queensboro → full Central Park loop (6 mi) → back", waypoints: ["Queensboro+Bridge", "Central+Park+North,+Manhattan", "Central+Park+South,+Manhattan", "Queensboro+Bridge"] },
     ],
     16: [
-      { name: "Central Park + Harlem Hill", miles: 16, description: "Full park loop with Harlem Hill repeats", mapUrl: `https://www.google.com/maps/dir/${HOME_ADDRESS}/Queensboro+Bridge/Central+Park,+Manhattan/Harlem+Hill,+Central+Park/Queensboro+Bridge/${HOME_ADDRESS}` },
+      { name: "Central Park + Harlem Hill", miles: 16, description: "Full park loop with Harlem Hill repeats", waypoints: ["Queensboro+Bridge", "Central+Park,+Manhattan", "Harlem+Hill,+Central+Park", "Queensboro+Bridge"] },
     ],
     18: [
-      { name: "Central Park Double", miles: 18, description: "Queensboro → 1.5 Central Park loops → back", mapUrl: `https://www.google.com/maps/dir/${HOME_ADDRESS}/Queensboro+Bridge/Central+Park,+Manhattan/Queensboro+Bridge/${HOME_ADDRESS}` },
+      { name: "Central Park Double", miles: 18, description: "Queensboro → 1.5 Central Park loops → back", waypoints: ["Queensboro+Bridge", "Central+Park,+Manhattan", "Queensboro+Bridge"] },
     ],
     20: [
-      { name: "Marathon Simulation", miles: 20, description: "Queensboro → 2 full Central Park loops → back", mapUrl: `https://www.google.com/maps/dir/${HOME_ADDRESS}/Queensboro+Bridge/Central+Park,+Manhattan/Queensboro+Bridge/${HOME_ADDRESS}` },
+      { name: "Marathon Simulation", miles: 20, description: "Queensboro → 2 full Central Park loops → back", waypoints: ["Queensboro+Bridge", "Central+Park,+Manhattan", "Queensboro+Bridge"] },
     ],
   };
 
-  // Get route suggestions for a given distance
-  const getRouteSuggestions = (miles: number) => {
-    // Find routes that are close to the target distance (within 1 mile)
-    const distances = Object.keys(routes).map(Number).sort((a, b) => a - b);
+  // Build a Google Maps URL from starting point and waypoints
+  const buildMapUrl = (waypoints: string[]) => {
+    const allPoints = [startingPoint, ...waypoints, startingPoint];
+    return `https://www.google.com/maps/dir/${allPoints.join("/")}`;
+  };
+
+  // Get route suggestions for a given distance (with dynamic starting point)
+  const getRouteSuggestions = (miles: number): { name: string; description: string; miles: number; mapUrl: string }[] => {
+    const distances = Object.keys(routeDestinations).map(Number).sort((a, b) => a - b);
     
     // Get exact match or closest
     const exactMatch = distances.find(d => d === miles);
-    if (exactMatch) return routes[exactMatch];
+    const matchedRoutes = exactMatch ? routeDestinations[exactMatch] : null;
     
     // Find closest distance
     const closest = distances.reduce((prev, curr) => 
@@ -330,13 +378,19 @@ export default function MarathonTracker() {
     
     // Also include one distance up if it's close
     const nextUp = distances.find(d => d > miles);
-    const suggestions = [...(routes[closest] || [])];
+    const suggestions = [...(matchedRoutes || routeDestinations[closest] || [])];
     
-    if (nextUp && nextUp - miles <= 2 && routes[nextUp]) {
-      suggestions.push(...routes[nextUp].slice(0, 1)); // Add one longer option
+    if (nextUp && nextUp - miles <= 2 && routeDestinations[nextUp]) {
+      suggestions.push(...routeDestinations[nextUp].slice(0, 1));
     }
     
-    return suggestions.length > 0 ? suggestions : routes[4];
+    // Build mapUrl for each route using current starting point
+    return suggestions.map(route => ({
+      name: route.name,
+      description: route.description,
+      miles: route.miles,
+      mapUrl: buildMapUrl(route.waypoints),
+    }));
   };
 
   // Generate mile splits for a run
@@ -1117,8 +1171,19 @@ export default function MarathonTracker() {
 
                   {/* Suggested Routes */}
                   <div>
-                    <h3 className="font-semibold mb-2">🗺️ Routes from Home</h3>
-                    <p className="text-xs text-muted-foreground mb-3">Starting from 5241 Center Blvd</p>
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="font-semibold">🗺️ Routes</h3>
+                      {customLocation && (
+                        <Button variant="ghost" size="sm" onClick={resetToHome} className="text-xs h-7">
+                          ← Back to home
+                        </Button>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Starting from {startingPointDisplay}
+                    </p>
+                    
+                    {/* Route list */}
                     <div className="space-y-2">
                       {getRouteSuggestions(selectedWorkout.miles).map((route, i) => (
                         <a
@@ -1141,8 +1206,43 @@ export default function MarathonTracker() {
                         </a>
                       ))}
                     </div>
+
+                    {/* Running away from home? */}
+                    <div className="mt-4 p-3 rounded-lg border border-dashed border-border">
+                      <p className="text-sm font-medium mb-2">🏃 Running away from home?</p>
+                      <div className="flex gap-2 mb-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={useCurrentLocation}
+                          disabled={gettingLocation}
+                          className="text-xs"
+                        >
+                          {gettingLocation ? "Getting location..." : "📍 Use my location"}
+                        </Button>
+                      </div>
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Or enter an address..."
+                          value={locationInput}
+                          onChange={(e) => setLocationInput(e.target.value)}
+                          onKeyDown={(e) => e.key === "Enter" && setCustomAddress()}
+                          className="text-sm h-8"
+                        />
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={setCustomAddress}
+                          disabled={!locationInput.trim()}
+                          className="text-xs"
+                        >
+                          Set
+                        </Button>
+                      </div>
+                    </div>
+                    
                     <p className="text-xs text-muted-foreground mt-3">
-                      💡 Adjust pace/distance as needed. For exact mileage, add loops or out-and-backs.
+                      💡 Routes are approximate. Adjust as needed for exact mileage.
                     </p>
                   </div>
 
