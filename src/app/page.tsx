@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
 
 export default function Home() {
   return (
@@ -25,17 +26,19 @@ export default function Home() {
 
         {/* Cards Section */}
         <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-          <Card className="bg-slate-800/50 border-slate-700 backdrop-blur">
-            <CardHeader>
-              <CardTitle className="text-white">🚀 Projects</CardTitle>
-              <CardDescription className="text-slate-400">
-                Things I&apos;m building and experimenting with
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="text-slate-300">
-              <p>Coming soon...</p>
-            </CardContent>
-          </Card>
+          <Link href="/marathon" className="group">
+            <Card className="bg-slate-800/50 border-slate-700 backdrop-blur h-full transition-all group-hover:border-purple-500 group-hover:bg-slate-800/70">
+              <CardHeader>
+                <CardTitle className="text-white">🏃 NYC Marathon Training</CardTitle>
+                <CardDescription className="text-slate-400">
+                  18-week program with run logging & progress tracking
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="text-slate-300">
+                <p className="text-purple-400 group-hover:text-purple-300">Start training →</p>
+              </CardContent>
+            </Card>
+          </Link>
 
           <Card className="bg-slate-800/50 border-slate-700 backdrop-blur">
             <CardHeader>
