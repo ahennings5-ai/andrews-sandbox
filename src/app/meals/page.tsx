@@ -7,58 +7,48 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Link from "next/link";
 
-// Meal database with NYC pricing
+// Simplified meal database - focused on fewer core ingredients
+// Core proteins: chicken thighs, ground turkey, eggs
+// Core carbs: rice, pasta, tortillas, oats
+// Core veggies: broccoli, spinach, bell peppers, onions, tomatoes
+// Staples: cheese, beans, salsa, soy sauce, eggs
+
 const breakfasts = [
-  { id: "b1", name: "Overnight Oats", ingredients: ["oats", "oat milk", "banana", "honey"], cost: 2.5, prepTime: 5, prepAhead: true, protein: 8, carbs: 45, calories: 320 },
-  { id: "b2", name: "Eggs & Avocado Toast", ingredients: ["eggs", "bread", "avocado"], cost: 4, prepTime: 10, prepAhead: false, protein: 14, carbs: 25, calories: 380 },
-  { id: "b3", name: "Greek Yogurt Parfait", ingredients: ["greek yogurt", "granola", "berries"], cost: 4.5, prepTime: 5, prepAhead: true, protein: 18, carbs: 35, calories: 340 },
-  { id: "b4", name: "Veggie Egg Muffins", ingredients: ["eggs", "spinach", "cheese", "bell pepper"], cost: 3, prepTime: 25, prepAhead: true, protein: 16, carbs: 4, calories: 220 },
-  { id: "b5", name: "Smoothie Bowl", ingredients: ["frozen berries", "banana", "oat milk", "granola"], cost: 4, prepTime: 5, prepAhead: false, protein: 6, carbs: 55, calories: 350 },
-  { id: "b6", name: "Bagel & Cream Cheese", ingredients: ["bagel", "cream cheese", "smoked salmon"], cost: 5, prepTime: 5, prepAhead: false, protein: 15, carbs: 45, calories: 420 },
-  { id: "b7", name: "Banana Pancakes", ingredients: ["banana", "eggs", "oats"], cost: 2.5, prepTime: 15, prepAhead: false, protein: 12, carbs: 40, calories: 310 },
-  { id: "b8", name: "Chia Pudding", ingredients: ["chia seeds", "oat milk", "maple syrup", "berries"], cost: 3.5, prepTime: 5, prepAhead: true, protein: 6, carbs: 30, calories: 280 },
+  { id: "b1", name: "Overnight Oats", ingredients: ["oats", "milk", "banana"], cost: 2, prepTime: 5, prepAhead: true, protein: 8, carbs: 45, calories: 320 },
+  { id: "b2", name: "Eggs & Toast", ingredients: ["eggs", "bread", "butter"], cost: 3, prepTime: 10, prepAhead: false, protein: 14, carbs: 25, calories: 350 },
+  { id: "b3", name: "Veggie Egg Scramble", ingredients: ["eggs", "spinach", "cheese", "bell peppers"], cost: 3.5, prepTime: 10, prepAhead: false, protein: 18, carbs: 6, calories: 280 },
+  { id: "b4", name: "Breakfast Burrito", ingredients: ["eggs", "tortillas", "cheese", "salsa"], cost: 3, prepTime: 10, prepAhead: true, protein: 16, carbs: 28, calories: 380 },
+  { id: "b5", name: "Oatmeal + Eggs", ingredients: ["oats", "eggs", "banana"], cost: 2.5, prepTime: 10, prepAhead: false, protein: 14, carbs: 42, calories: 360 },
+  { id: "b6", name: "Egg Muffins", ingredients: ["eggs", "spinach", "cheese", "onions"], cost: 3, prepTime: 25, prepAhead: true, protein: 16, carbs: 4, calories: 220 },
 ];
 
 const lunches = [
-  { id: "l1", name: "Chicken Rice Bowl", ingredients: ["chicken thighs", "rice", "roasted veggies", "tahini"], cost: 6, prepTime: 5, prepAhead: true, protein: 35, carbs: 45, calories: 520 },
-  { id: "l2", name: "Turkey Taco Bowl", ingredients: ["ground turkey", "rice", "salsa", "cheese", "greens"], cost: 5.5, prepTime: 5, prepAhead: true, protein: 32, carbs: 40, calories: 480 },
-  { id: "l3", name: "Big Chicken Salad", ingredients: ["chicken thighs", "salad greens", "egg", "veggies", "dressing"], cost: 6, prepTime: 5, prepAhead: true, protein: 38, carbs: 12, calories: 420 },
-  { id: "l4", name: "Quinoa Power Bowl", ingredients: ["quinoa", "chicken thighs", "sweet potato", "kale"], cost: 6.5, prepTime: 5, prepAhead: true, protein: 34, carbs: 48, calories: 540 },
-  { id: "l5", name: "Turkey Lettuce Wraps", ingredients: ["ground turkey", "lettuce", "rice", "hoisin"], cost: 5, prepTime: 5, prepAhead: true, protein: 28, carbs: 30, calories: 380 },
-  { id: "l6", name: "Mediterranean Bowl", ingredients: ["chicken thighs", "quinoa", "cucumber", "tomato", "feta", "hummus"], cost: 7, prepTime: 5, prepAhead: true, protein: 36, carbs: 42, calories: 520 },
-  { id: "l7", name: "Asian Noodle Salad", ingredients: ["rice noodles", "chicken thighs", "edamame", "cabbage", "peanut sauce"], cost: 6, prepTime: 10, prepAhead: true, protein: 30, carbs: 50, calories: 510 },
-  { id: "l8", name: "Burrito Bowl", ingredients: ["rice", "black beans", "chicken thighs", "corn", "salsa", "cheese"], cost: 5.5, prepTime: 5, prepAhead: true, protein: 38, carbs: 52, calories: 560 },
-  { id: "l9", name: "Greek Salad + Chicken", ingredients: ["chicken thighs", "cucumber", "tomato", "olives", "feta", "greens"], cost: 7, prepTime: 5, prepAhead: true, protein: 35, carbs: 15, calories: 450 },
-  { id: "l10", name: "Grain Bowl", ingredients: ["farro", "roasted veggies", "chicken thighs", "lemon dressing"], cost: 6.5, prepTime: 5, prepAhead: true, protein: 32, carbs: 48, calories: 500 },
+  { id: "l1", name: "Chicken Rice Bowl", ingredients: ["chicken thighs", "rice", "broccoli", "soy sauce"], cost: 5, prepTime: 5, prepAhead: true, protein: 35, carbs: 45, calories: 480 },
+  { id: "l2", name: "Turkey Taco Bowl", ingredients: ["ground turkey", "rice", "salsa", "cheese", "beans"], cost: 5, prepTime: 5, prepAhead: true, protein: 32, carbs: 42, calories: 460 },
+  { id: "l3", name: "Chicken & Veggie Wrap", ingredients: ["chicken thighs", "tortillas", "spinach", "cheese"], cost: 4.5, prepTime: 5, prepAhead: true, protein: 30, carbs: 28, calories: 420 },
+  { id: "l4", name: "Turkey Rice Bowl", ingredients: ["ground turkey", "rice", "broccoli", "soy sauce"], cost: 5, prepTime: 5, prepAhead: true, protein: 30, carbs: 45, calories: 470 },
+  { id: "l5", name: "Bean & Cheese Burrito", ingredients: ["beans", "tortillas", "cheese", "salsa", "rice"], cost: 4, prepTime: 5, prepAhead: true, protein: 18, carbs: 52, calories: 440 },
+  { id: "l6", name: "Chicken Quesadilla", ingredients: ["chicken thighs", "tortillas", "cheese", "salsa"], cost: 5, prepTime: 10, prepAhead: true, protein: 32, carbs: 30, calories: 450 },
 ];
 
 const dinners = [
-  { id: "d1", name: "Sheet Pan Salmon + Asparagus", ingredients: ["salmon", "asparagus", "rice", "lemon"], cost: 16, prepTime: 25, prepAhead: false, protein: 42, carbs: 35, calories: 580 },
-  { id: "d2", name: "Chicken Stir Fry", ingredients: ["chicken thighs", "stir fry veggies", "soy sauce", "rice"], cost: 8, prepTime: 20, prepAhead: false, protein: 35, carbs: 48, calories: 520 },
-  { id: "d3", name: "Turkey Marinara Pasta", ingredients: ["ground turkey", "pasta", "marinara", "parmesan"], cost: 9, prepTime: 25, prepAhead: false, protein: 32, carbs: 65, calories: 620 },
-  { id: "d4", name: "Chicken Quesadillas", ingredients: ["chicken thighs", "tortillas", "cheese", "salsa", "guacamole"], cost: 8, prepTime: 15, prepAhead: false, protein: 38, carbs: 42, calories: 580 },
-  { id: "d5", name: "Naan Pizza Night", ingredients: ["naan bread", "mozzarella", "tomato sauce", "toppings"], cost: 10, prepTime: 20, prepAhead: false, protein: 22, carbs: 55, calories: 540 },
-  { id: "d6", name: "Shrimp Tacos", ingredients: ["shrimp", "tortillas", "cabbage slaw", "lime crema"], cost: 14, prepTime: 20, prepAhead: false, protein: 28, carbs: 38, calories: 480 },
-  { id: "d7", name: "Slow Cooker Chili", ingredients: ["ground turkey", "beans", "tomatoes", "spices", "cheese"], cost: 10, prepTime: 15, prepAhead: true, protein: 35, carbs: 42, calories: 520 },
-  { id: "d8", name: "Lemon Herb Chicken + Veggies", ingredients: ["chicken thighs", "potatoes", "green beans", "lemon"], cost: 9, prepTime: 35, prepAhead: false, protein: 38, carbs: 40, calories: 540 },
-  { id: "d9", name: "Beef & Broccoli", ingredients: ["flank steak", "broccoli", "rice", "soy sauce"], cost: 14, prepTime: 20, prepAhead: false, protein: 38, carbs: 45, calories: 560 },
-  { id: "d10", name: "Fish Tacos", ingredients: ["white fish", "tortillas", "cabbage", "chipotle mayo"], cost: 12, prepTime: 20, prepAhead: false, protein: 30, carbs: 35, calories: 460 },
-  { id: "d11", name: "Chicken Fajitas", ingredients: ["chicken thighs", "bell peppers", "onions", "tortillas"], cost: 10, prepTime: 25, prepAhead: false, protein: 36, carbs: 42, calories: 520 },
-  { id: "d12", name: "Garlic Butter Shrimp Pasta", ingredients: ["shrimp", "pasta", "garlic", "butter", "parsley"], cost: 14, prepTime: 20, prepAhead: false, protein: 32, carbs: 58, calories: 580 },
-  { id: "d13", name: "Turkey Meatballs + Rice", ingredients: ["ground turkey", "rice", "marinara", "parmesan"], cost: 9, prepTime: 30, prepAhead: true, protein: 34, carbs: 50, calories: 540 },
-  { id: "d14", name: "Honey Garlic Salmon", ingredients: ["salmon", "honey", "garlic", "broccoli", "rice"], cost: 15, prepTime: 25, prepAhead: false, protein: 40, carbs: 48, calories: 560 },
-  { id: "d15", name: "Black Bean Tacos", ingredients: ["black beans", "tortillas", "cheese", "salsa", "avocado"], cost: 7, prepTime: 15, prepAhead: false, protein: 18, carbs: 52, calories: 480 },
+  { id: "d1", name: "Chicken Stir Fry", ingredients: ["chicken thighs", "broccoli", "bell peppers", "rice", "soy sauce"], cost: 7, prepTime: 20, prepAhead: false, protein: 35, carbs: 48, calories: 520 },
+  { id: "d2", name: "Turkey Pasta", ingredients: ["ground turkey", "pasta", "tomatoes", "onions", "cheese"], cost: 7, prepTime: 25, prepAhead: false, protein: 32, carbs: 58, calories: 560 },
+  { id: "d3", name: "Chicken Fajitas", ingredients: ["chicken thighs", "bell peppers", "onions", "tortillas", "cheese"], cost: 8, prepTime: 25, prepAhead: false, protein: 36, carbs: 35, calories: 520 },
+  { id: "d4", name: "Turkey Tacos", ingredients: ["ground turkey", "tortillas", "cheese", "salsa", "beans"], cost: 7, prepTime: 20, prepAhead: false, protein: 30, carbs: 38, calories: 480 },
+  { id: "d5", name: "Chicken & Rice Bake", ingredients: ["chicken thighs", "rice", "broccoli", "cheese"], cost: 7, prepTime: 35, prepAhead: true, protein: 38, carbs: 45, calories: 540 },
+  { id: "d6", name: "Pasta Primavera", ingredients: ["pasta", "broccoli", "bell peppers", "tomatoes", "cheese"], cost: 6, prepTime: 20, prepAhead: false, protein: 16, carbs: 62, calories: 480 },
+  { id: "d7", name: "Turkey Chili", ingredients: ["ground turkey", "beans", "tomatoes", "onions", "cheese"], cost: 8, prepTime: 30, prepAhead: true, protein: 35, carbs: 42, calories: 520 },
+  { id: "d8", name: "Chicken Burrito Bowls", ingredients: ["chicken thighs", "rice", "beans", "salsa", "cheese"], cost: 7, prepTime: 15, prepAhead: false, protein: 38, carbs: 52, calories: 560 },
+  { id: "d9", name: "Egg Fried Rice", ingredients: ["eggs", "rice", "broccoli", "soy sauce", "onions"], cost: 5, prepTime: 15, prepAhead: false, protein: 16, carbs: 52, calories: 420 },
+  { id: "d10", name: "Turkey Stuffed Peppers", ingredients: ["ground turkey", "bell peppers", "rice", "tomatoes", "cheese"], cost: 8, prepTime: 40, prepAhead: true, protein: 32, carbs: 38, calories: 480 },
 ];
 
 const snacks = [
-  { id: "s1", name: "Greek Yogurt + Honey", cost: 2, calories: 150 },
-  { id: "s2", name: "Hummus + Veggies", cost: 2.5, calories: 180 },
-  { id: "s3", name: "Apple + Almond Butter", cost: 2, calories: 220 },
-  { id: "s4", name: "Cheese + Crackers", cost: 2.5, calories: 200 },
-  { id: "s5", name: "Trail Mix", cost: 2, calories: 210 },
-  { id: "s6", name: "Banana + Peanut Butter", cost: 1.5, calories: 250 },
-  { id: "s7", name: "Hard Boiled Eggs", cost: 1, calories: 140 },
-  { id: "s8", name: "Protein Bar", cost: 3, calories: 220 },
+  { id: "s1", name: "Hard Boiled Eggs", cost: 1, calories: 140 },
+  { id: "s2", name: "Cheese & Crackers", cost: 2, calories: 200 },
+  { id: "s3", name: "Banana", cost: 0.5, calories: 105 },
+  { id: "s4", name: "Tortilla + Cheese", cost: 1.5, calories: 180 },
 ];
 
 type Meal = typeof breakfasts[0] | typeof lunches[0] | typeof dinners[0];
