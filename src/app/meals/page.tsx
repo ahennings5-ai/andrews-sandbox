@@ -45,23 +45,12 @@ const dinners = [
   { id: "d12", name: "Lemon Herb Salmon + Rice", ingredients: ["salmon", "rice", "asparagus", "lemon"], cost: 11, prepTime: 20, prepAhead: false, protein: 36, carbs: 42, calories: 500 },
 ];
 
-const snacks = [
-  { id: "s1", name: "Hard Boiled Eggs", cost: 1, calories: 140 },
-  { id: "s2", name: "Cheese Quesadilla", cost: 1.5, calories: 200 },
-  { id: "s3", name: "Apple + Peanut Butter", cost: 1.5, calories: 220 },
-  { id: "s4", name: "Greek Yogurt", cost: 2, calories: 150 },
-  { id: "s5", name: "Trail Mix", cost: 2, calories: 200 },
-];
-
 type Meal = typeof breakfasts[0] | typeof lunches[0] | typeof dinners[0];
-type Snack = typeof snacks[0];
 
 interface DayPlan {
   breakfast: typeof breakfasts[0];
   lunch: typeof lunches[0];
   dinner: typeof dinners[0];
-  snack: Snack;
-  locked: { breakfast: boolean; lunch: boolean; dinner: boolean; snack: boolean };
 }
 
 // Who's eating at home each day
@@ -95,7 +84,6 @@ function generateWeekPlan(existingPlan?: WeekPlan): WeekPlan {
   // Shuffle all options
   const shuffledBreakfasts = shuffleArray(breakfasts);
   const shuffledDinners = shuffleArray(dinners);
-  const shuffledSnacks = shuffleArray(snacks);
   const shuffledLunches = shuffleArray(lunches);
   
   // Pick 2 breakfasts (alternating pattern: A, B, A, B, A, B, A)
@@ -116,18 +104,13 @@ function generateWeekPlan(existingPlan?: WeekPlan): WeekPlan {
   const days: DayPlan[] = [];
 
   for (let i = 0; i < 7; i++) {
-    const existing = existingPlan?.days[i];
-    const locked = existing?.locked || { breakfast: false, lunch: false, dinner: false, snack: false };
-
     days.push({
       // Breakfasts: 2 types alternating (A, B, A, B, A, B, A)
-      breakfast: locked.breakfast && existing ? existing.breakfast : (i % 2 === 0 ? breakfastA : breakfastB),
+      breakfast: i % 2 === 0 ? breakfastA : breakfastB,
       // Lunches: 2 types batched (2 days + 3 days for weekdays)
-      lunch: locked.lunch && existing ? existing.lunch : lunchPattern[i],
+      lunch: lunchPattern[i],
       // Dinners: different every night
-      dinner: locked.dinner && existing ? existing.dinner : weekDinners[i],
-      snack: locked.snack && existing ? existing.snack : shuffledSnacks[i % shuffledSnacks.length],
-      locked,
+      dinner: weekDinners[i],
     });
   }
 
@@ -138,6 +121,21 @@ function generateWeekPlan(existingPlan?: WeekPlan): WeekPlan {
     checkedItems: existingPlan?.checkedItems || {},
     attendance: existingPlan?.attendance || defaultAttendance,
   };
+}
+
+// Revise a single meal - pick a different option
+function reviseMeal(plan: WeekPlan, dayIndex: number, mealType: "breakfast" | "lunch" | "dinner"): WeekPlan {
+  const currentMeal = plan.days[dayIndex][mealType];
+  const mealList = mealType === "breakfast" ? breakfasts : mealType === "lunch" ? lunches : dinners;
+  
+  // Get a different meal than the current one
+  const otherMeals = mealList.filter(m => m.id !== currentMeal.id);
+  const newMeal = otherMeals[Math.floor(Math.random() * otherMeals.length)];
+  
+  const newDays = [...plan.days];
+  newDays[dayIndex] = { ...newDays[dayIndex], [mealType]: newMeal };
+  
+  return { ...plan, days: newDays };
 }
 
 function calculateWeeklyStats(plan: WeekPlan) {
@@ -160,10 +158,10 @@ function calculateWeeklyStats(plan: WeekPlan) {
     totalPeopleDays += peopleCount;
 
     // Cost based on how many people are eating
-    totalCost += (day.breakfast.cost + day.lunch.cost + day.dinner.cost + day.snack.cost) * peopleCount;
+    totalCost += (day.breakfast.cost + day.lunch.cost + day.dinner.cost) * peopleCount;
 
     // Macros (per person, averaged later)
-    totalCalories += (day.breakfast.calories + day.lunch.calories + day.dinner.calories + day.snack.calories) * peopleCount;
+    totalCalories += (day.breakfast.calories + day.lunch.calories + day.dinner.calories) * peopleCount;
     totalProtein += (day.breakfast.protein + day.lunch.protein + day.dinner.protein) * peopleCount;
     totalCarbs += (day.breakfast.carbs + day.lunch.carbs + day.dinner.carbs) * peopleCount;
 
@@ -305,16 +303,10 @@ export default function MealPlanner() {
     loadData();
   }, [savePlanToDb]);
 
-  const toggleLock = (dayIndex: number, mealType: "breakfast" | "lunch" | "dinner" | "snack") => {
+  // Revise a single meal - swap it for a different option
+  const handleRevise = (dayIndex: number, mealType: "breakfast" | "lunch" | "dinner") => {
     if (!plan) return;
-    const newPlan = { ...plan, days: [...plan.days] };
-    newPlan.days[dayIndex] = {
-      ...newPlan.days[dayIndex],
-      locked: {
-        ...newPlan.days[dayIndex].locked,
-        [mealType]: !newPlan.days[dayIndex].locked[mealType],
-      },
-    };
+    const newPlan = reviseMeal(plan, dayIndex, mealType);
     setPlan(newPlan);
     savePlanToDb(newPlan);
   };
@@ -516,7 +508,7 @@ export default function MealPlanner() {
           {/* Meal Plan Tab */}
           <TabsContent value="plan" className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              🔒 Lock meals you like, then shuffle to regenerate the rest
+              🔄 Click revise to swap a meal for something different • 👍👎 Rate meals to improve future suggestions
             </p>
 
             {plan.days.map((day, dayIndex) => {
@@ -536,13 +528,12 @@ export default function MealPlanner() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {/* Breakfast */}
                     <MealCard
                       label="Breakfast"
                       meal={day.breakfast}
-                      locked={day.locked.breakfast}
-                      onToggleLock={() => toggleLock(dayIndex, "breakfast")}
+                      onRevise={() => handleRevise(dayIndex, "breakfast")}
                       rating={preferences[day.breakfast.id]?.household}
                       onRate={(r) => rateMeal(day.breakfast.id, "breakfast", day.breakfast.name, r)}
                     />
@@ -550,8 +541,7 @@ export default function MealPlanner() {
                     <MealCard
                       label="Lunch"
                       meal={day.lunch}
-                      locked={day.locked.lunch}
-                      onToggleLock={() => toggleLock(dayIndex, "lunch")}
+                      onRevise={() => handleRevise(dayIndex, "lunch")}
                       rating={preferences[day.lunch.id]?.household}
                       onRate={(r) => rateMeal(day.lunch.id, "lunch", day.lunch.name, r)}
                     />
@@ -559,25 +549,10 @@ export default function MealPlanner() {
                     <MealCard
                       label="Dinner"
                       meal={day.dinner}
-                      locked={day.locked.dinner}
-                      onToggleLock={() => toggleLock(dayIndex, "dinner")}
+                      onRevise={() => handleRevise(dayIndex, "dinner")}
                       rating={preferences[day.dinner.id]?.household}
                       onRate={(r) => rateMeal(day.dinner.id, "dinner", day.dinner.name, r)}
                     />
-                    {/* Snack */}
-                    <div className="p-3 rounded-lg border border-border bg-card">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs text-muted-foreground uppercase tracking-wide">Snack</span>
-                        <button
-                          onClick={() => toggleLock(dayIndex, "snack")}
-                          className="text-sm hover:opacity-70"
-                        >
-                          {day.locked.snack ? "🔒" : "🔓"}
-                        </button>
-                      </div>
-                      <p className="font-medium text-sm">{day.snack.name}</p>
-                      <p className="text-xs text-muted-foreground mt-1">{day.snack.calories} cal</p>
-                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -820,20 +795,18 @@ function GroceryItem({
 function MealCard({
   label,
   meal,
-  locked,
-  onToggleLock,
+  onRevise,
   rating,
   onRate,
 }: {
   label: string;
   meal: Meal;
-  locked: boolean;
-  onToggleLock: () => void;
+  onRevise: () => void;
   rating?: number; // 1 = dislike, 2 = like
   onRate?: (rating: number) => void;
 }) {
   return (
-    <div className={`p-3 rounded-lg border ${locked ? "border-primary bg-primary/5" : "border-border"} bg-card`}>
+    <div className="p-3 rounded-lg border border-border bg-card">
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs text-muted-foreground uppercase tracking-wide">{label}</span>
         <div className="flex items-center gap-1">
@@ -855,8 +828,12 @@ function MealCard({
               </button>
             </>
           )}
-          <button onClick={onToggleLock} className="text-sm p-1 hover:opacity-70">
-            {locked ? "🔒" : "🔓"}
+          <button 
+            onClick={onRevise} 
+            className="text-sm p-1 rounded hover:bg-muted transition-colors opacity-60 hover:opacity-100"
+            title="Revise - pick a different meal"
+          >
+            🔄
           </button>
         </div>
       </div>
