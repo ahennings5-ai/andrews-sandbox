@@ -7,48 +7,30 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Link from "next/link";
 
-// Simplified meal database - focused on fewer core ingredients
-// Core proteins: chicken thighs, ground turkey, eggs
-// Core carbs: rice, pasta, tortillas, oats
-// Core veggies: broccoli, spinach, bell peppers, onions, tomatoes
-// Staples: cheese, beans, salsa, soy sauce, eggs
+// ULTRA SIMPLE meal plan - same meals repeat, minimal groceries
+// Weekly grocery list: chicken, ground turkey, eggs, rice, tortillas, beans, cheese, salsa, frozen veggies
 
 const breakfasts = [
-  { id: "b1", name: "Overnight Oats", ingredients: ["oats", "milk", "banana"], cost: 2, prepTime: 5, prepAhead: true, protein: 8, carbs: 45, calories: 320 },
-  { id: "b2", name: "Eggs & Toast", ingredients: ["eggs", "bread", "butter"], cost: 3, prepTime: 10, prepAhead: false, protein: 14, carbs: 25, calories: 350 },
-  { id: "b3", name: "Veggie Egg Scramble", ingredients: ["eggs", "spinach", "cheese", "bell peppers"], cost: 3.5, prepTime: 10, prepAhead: false, protein: 18, carbs: 6, calories: 280 },
-  { id: "b4", name: "Breakfast Burrito", ingredients: ["eggs", "tortillas", "cheese", "salsa"], cost: 3, prepTime: 10, prepAhead: true, protein: 16, carbs: 28, calories: 380 },
-  { id: "b5", name: "Oatmeal + Eggs", ingredients: ["oats", "eggs", "banana"], cost: 2.5, prepTime: 10, prepAhead: false, protein: 14, carbs: 42, calories: 360 },
-  { id: "b6", name: "Egg Muffins", ingredients: ["eggs", "spinach", "cheese", "onions"], cost: 3, prepTime: 25, prepAhead: true, protein: 16, carbs: 4, calories: 220 },
+  { id: "b1", name: "Eggs & Toast", ingredients: ["eggs", "bread"], cost: 2.5, prepTime: 10, prepAhead: false, protein: 14, carbs: 25, calories: 320 },
+  { id: "b2", name: "Breakfast Burrito", ingredients: ["eggs", "tortillas", "cheese"], cost: 3, prepTime: 10, prepAhead: true, protein: 16, carbs: 28, calories: 380 },
 ];
 
 const lunches = [
-  { id: "l1", name: "Chicken Rice Bowl", ingredients: ["chicken thighs", "rice", "broccoli", "soy sauce"], cost: 5, prepTime: 5, prepAhead: true, protein: 35, carbs: 45, calories: 480 },
-  { id: "l2", name: "Turkey Taco Bowl", ingredients: ["ground turkey", "rice", "salsa", "cheese", "beans"], cost: 5, prepTime: 5, prepAhead: true, protein: 32, carbs: 42, calories: 460 },
-  { id: "l3", name: "Chicken & Veggie Wrap", ingredients: ["chicken thighs", "tortillas", "spinach", "cheese"], cost: 4.5, prepTime: 5, prepAhead: true, protein: 30, carbs: 28, calories: 420 },
-  { id: "l4", name: "Turkey Rice Bowl", ingredients: ["ground turkey", "rice", "broccoli", "soy sauce"], cost: 5, prepTime: 5, prepAhead: true, protein: 30, carbs: 45, calories: 470 },
-  { id: "l5", name: "Bean & Cheese Burrito", ingredients: ["beans", "tortillas", "cheese", "salsa", "rice"], cost: 4, prepTime: 5, prepAhead: true, protein: 18, carbs: 52, calories: 440 },
-  { id: "l6", name: "Chicken Quesadilla", ingredients: ["chicken thighs", "tortillas", "cheese", "salsa"], cost: 5, prepTime: 10, prepAhead: true, protein: 32, carbs: 30, calories: 450 },
+  { id: "l1", name: "Chicken Rice Bowl", ingredients: ["chicken", "rice", "frozen veggies"], cost: 5, prepTime: 5, prepAhead: true, protein: 35, carbs: 45, calories: 480 },
+  { id: "l2", name: "Turkey Tacos", ingredients: ["ground turkey", "tortillas", "cheese", "salsa"], cost: 5, prepTime: 5, prepAhead: true, protein: 30, carbs: 35, calories: 450 },
+  { id: "l3", name: "Bean & Cheese Burrito", ingredients: ["beans", "tortillas", "cheese", "salsa"], cost: 4, prepTime: 5, prepAhead: true, protein: 18, carbs: 48, calories: 420 },
 ];
 
 const dinners = [
-  { id: "d1", name: "Chicken Stir Fry", ingredients: ["chicken thighs", "broccoli", "bell peppers", "rice", "soy sauce"], cost: 7, prepTime: 20, prepAhead: false, protein: 35, carbs: 48, calories: 520 },
-  { id: "d2", name: "Turkey Pasta", ingredients: ["ground turkey", "pasta", "tomatoes", "onions", "cheese"], cost: 7, prepTime: 25, prepAhead: false, protein: 32, carbs: 58, calories: 560 },
-  { id: "d3", name: "Chicken Fajitas", ingredients: ["chicken thighs", "bell peppers", "onions", "tortillas", "cheese"], cost: 8, prepTime: 25, prepAhead: false, protein: 36, carbs: 35, calories: 520 },
-  { id: "d4", name: "Turkey Tacos", ingredients: ["ground turkey", "tortillas", "cheese", "salsa", "beans"], cost: 7, prepTime: 20, prepAhead: false, protein: 30, carbs: 38, calories: 480 },
-  { id: "d5", name: "Chicken & Rice Bake", ingredients: ["chicken thighs", "rice", "broccoli", "cheese"], cost: 7, prepTime: 35, prepAhead: true, protein: 38, carbs: 45, calories: 540 },
-  { id: "d6", name: "Pasta Primavera", ingredients: ["pasta", "broccoli", "bell peppers", "tomatoes", "cheese"], cost: 6, prepTime: 20, prepAhead: false, protein: 16, carbs: 62, calories: 480 },
-  { id: "d7", name: "Turkey Chili", ingredients: ["ground turkey", "beans", "tomatoes", "onions", "cheese"], cost: 8, prepTime: 30, prepAhead: true, protein: 35, carbs: 42, calories: 520 },
-  { id: "d8", name: "Chicken Burrito Bowls", ingredients: ["chicken thighs", "rice", "beans", "salsa", "cheese"], cost: 7, prepTime: 15, prepAhead: false, protein: 38, carbs: 52, calories: 560 },
-  { id: "d9", name: "Egg Fried Rice", ingredients: ["eggs", "rice", "broccoli", "soy sauce", "onions"], cost: 5, prepTime: 15, prepAhead: false, protein: 16, carbs: 52, calories: 420 },
-  { id: "d10", name: "Turkey Stuffed Peppers", ingredients: ["ground turkey", "bell peppers", "rice", "tomatoes", "cheese"], cost: 8, prepTime: 40, prepAhead: true, protein: 32, carbs: 38, calories: 480 },
+  { id: "d1", name: "Chicken Stir Fry + Rice", ingredients: ["chicken", "frozen veggies", "rice"], cost: 7, prepTime: 20, prepAhead: false, protein: 35, carbs: 48, calories: 520 },
+  { id: "d2", name: "Turkey Tacos", ingredients: ["ground turkey", "tortillas", "cheese", "salsa", "beans"], cost: 7, prepTime: 20, prepAhead: false, protein: 30, carbs: 40, calories: 480 },
+  { id: "d3", name: "Chicken Burrito Bowls", ingredients: ["chicken", "rice", "beans", "cheese", "salsa"], cost: 7, prepTime: 15, prepAhead: false, protein: 38, carbs: 52, calories: 560 },
+  { id: "d4", name: "Egg Fried Rice", ingredients: ["eggs", "rice", "frozen veggies"], cost: 5, prepTime: 15, prepAhead: false, protein: 16, carbs: 52, calories: 420 },
 ];
 
 const snacks = [
   { id: "s1", name: "Hard Boiled Eggs", cost: 1, calories: 140 },
-  { id: "s2", name: "Cheese & Crackers", cost: 2, calories: 200 },
-  { id: "s3", name: "Banana", cost: 0.5, calories: 105 },
-  { id: "s4", name: "Tortilla + Cheese", cost: 1.5, calories: 180 },
+  { id: "s2", name: "Cheese Quesadilla", cost: 1.5, calories: 200 },
 ];
 
 type Meal = typeof breakfasts[0] | typeof lunches[0] | typeof dinners[0];
@@ -579,132 +561,51 @@ export default function MealPlanner() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="flex items-center gap-2">
-                      🛒 Shopping List
-                      {checkedCount > 0 && (
-                        <Badge variant="secondary">
-                          {checkedCount}/{stats.groceryList.length} done
-                        </Badge>
-                      )}
-                    </CardTitle>
-                    <CardDescription>Tap items as you shop — progress saves automatically</CardDescription>
+                    <CardTitle>🛒 Weekly Grocery Run</CardTitle>
+                    <CardDescription>Simple list — buy the same stuff every week</CardDescription>
                   </div>
                   {checkedCount > 0 && (
                     <Button variant="outline" size="sm" onClick={clearCheckedItems}>
-                      Clear All
+                      Reset
                     </Button>
                   )}
                 </div>
               </CardHeader>
               <CardContent>
-                {/* Progress bar */}
-                {stats.groceryList.length > 0 && (
-                  <div className="mb-6">
-                    <div className="h-2 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-primary transition-all duration-300"
-                        style={{ width: `${(checkedCount / stats.groceryList.length) * 100}%` }}
-                      />
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-2">
-                      {checkedCount === stats.groceryList.length
-                        ? "✅ All done! Ready to prep."
-                        : `${stats.groceryList.length - checkedCount} items remaining`}
-                    </p>
-                  </div>
-                )}
+                {/* Simple static grocery list */}
+                <div className="space-y-2">
+                  {[
+                    { name: "Chicken thighs (3 lbs)", category: "protein" },
+                    { name: "Ground turkey (2 lbs)", category: "protein" },
+                    { name: "Eggs (dozen)", category: "protein" },
+                    { name: "Rice (bag)", category: "carbs" },
+                    { name: "Tortillas (pack)", category: "carbs" },
+                    { name: "Bread (loaf)", category: "carbs" },
+                    { name: "Frozen stir fry veggies (2 bags)", category: "veggies" },
+                    { name: "Beans - black or pinto (2 cans)", category: "pantry" },
+                    { name: "Salsa (jar)", category: "pantry" },
+                    { name: "Shredded cheese (bag)", category: "dairy" },
+                  ].map((item) => (
+                    <GroceryItem
+                      key={item.name}
+                      item={{ name: item.name, count: 1 }}
+                      checked={plan?.checkedItems[item.name] || false}
+                      onToggle={() => toggleCheckedItem(item.name)}
+                    />
+                  ))}
+                </div>
 
-                {/* Categorized grocery list */}
-                <div className="space-y-6">
-                  {/* Proteins */}
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground mb-3 uppercase tracking-wide">🍗 Proteins</h3>
-                    <div className="space-y-1">
-                      {stats.groceryList
-                        .filter((i) => ["chicken thighs", "ground turkey", "salmon", "shrimp", "eggs", "flank steak", "white fish", "smoked salmon"].includes(i.name))
-                        .map((item) => (
-                          <GroceryItem
-                            key={item.name}
-                            item={item}
-                            checked={plan?.checkedItems[item.name] || false}
-                            onToggle={() => toggleCheckedItem(item.name)}
-                          />
-                        ))}
-                    </div>
-                  </div>
-
-                  {/* Produce */}
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground mb-3 uppercase tracking-wide">🥦 Produce</h3>
-                    <div className="space-y-1">
-                      {stats.groceryList
-                        .filter((i) => ["broccoli", "asparagus", "bell pepper", "sweet potato", "spinach", "kale", "lettuce", "cabbage", "cucumber", "tomato", "onions", "garlic", "avocado", "banana", "berries", "frozen berries", "apple", "lemon", "lime", "green beans", "potatoes", "corn", "edamame", "salad greens", "stir fry veggies", "roasted veggies"].includes(i.name))
-                        .map((item) => (
-                          <GroceryItem
-                            key={item.name}
-                            item={item}
-                            checked={plan?.checkedItems[item.name] || false}
-                            onToggle={() => toggleCheckedItem(item.name)}
-                          />
-                        ))}
-                    </div>
-                  </div>
-
-                  {/* Grains & Carbs */}
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground mb-3 uppercase tracking-wide">🍚 Grains & Carbs</h3>
-                    <div className="space-y-1">
-                      {stats.groceryList
-                        .filter((i) => ["rice", "quinoa", "farro", "pasta", "rice noodles", "bread", "bagel", "tortillas", "naan bread", "oats", "granola"].includes(i.name))
-                        .map((item) => (
-                          <GroceryItem
-                            key={item.name}
-                            item={item}
-                            checked={plan?.checkedItems[item.name] || false}
-                            onToggle={() => toggleCheckedItem(item.name)}
-                          />
-                        ))}
-                    </div>
-                  </div>
-
-                  {/* Dairy */}
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground mb-3 uppercase tracking-wide">🧀 Dairy</h3>
-                    <div className="space-y-1">
-                      {stats.groceryList
-                        .filter((i) => ["cheese", "feta", "mozzarella", "parmesan", "cream cheese", "greek yogurt", "oat milk", "butter"].includes(i.name))
-                        .map((item) => (
-                          <GroceryItem
-                            key={item.name}
-                            item={item}
-                            checked={plan?.checkedItems[item.name] || false}
-                            onToggle={() => toggleCheckedItem(item.name)}
-                          />
-                        ))}
-                    </div>
-                  </div>
-
-                  {/* Pantry & Sauces */}
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground mb-3 uppercase tracking-wide">🫙 Pantry & Sauces</h3>
-                    <div className="space-y-1">
-                      {stats.groceryList
-                        .filter((i) => !["chicken thighs", "ground turkey", "salmon", "shrimp", "eggs", "flank steak", "white fish", "smoked salmon", "broccoli", "asparagus", "bell pepper", "sweet potato", "spinach", "kale", "lettuce", "cabbage", "cucumber", "tomato", "onions", "garlic", "avocado", "banana", "berries", "frozen berries", "apple", "lemon", "lime", "green beans", "potatoes", "corn", "edamame", "salad greens", "stir fry veggies", "roasted veggies", "rice", "quinoa", "farro", "pasta", "rice noodles", "bread", "bagel", "tortillas", "naan bread", "oats", "granola", "cheese", "feta", "mozzarella", "parmesan", "cream cheese", "greek yogurt", "oat milk", "butter"].includes(i.name))
-                        .map((item) => (
-                          <GroceryItem
-                            key={item.name}
-                            item={item}
-                            checked={plan?.checkedItems[item.name] || false}
-                            onToggle={() => toggleCheckedItem(item.name)}
-                          />
-                        ))}
-                    </div>
-                  </div>
+                <div className="mt-6 p-4 bg-muted/30 rounded-lg border border-border">
+                  <p className="text-sm text-muted-foreground">
+                    <strong>That&apos;s it!</strong> These 10 items make every meal for the week. 
+                    Estimated cost: <strong>$80-100</strong> at NYC grocery stores.
+                  </p>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
-        </Tabs>
+
+                  </Tabs>
       </div>
     </div>
   );
