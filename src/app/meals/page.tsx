@@ -269,6 +269,47 @@ function reviseMeal(plan: WeekPlan, dayIndex: number, mealType: "breakfast" | "l
   return { ...plan, days: newDays };
 }
 
+// Helper to parse and aggregate amounts
+function aggregateAmounts(amounts: string[]): string {
+  // Try to aggregate numeric amounts with same units
+  const unitGroups: Record<string, number> = {};
+  const nonNumeric: string[] = [];
+  
+  amounts.forEach(amt => {
+    // Match patterns like "2 cups", "6 oz", "1 lb", "3", "1/2 cup"
+    const match = amt.match(/^([\d./]+)\s*(.*)$/);
+    if (match) {
+      const numStr = match[1];
+      const unit = match[2].toLowerCase().trim();
+      // Handle fractions
+      let num = 0;
+      if (numStr.includes("/")) {
+        const [n, d] = numStr.split("/").map(Number);
+        num = n / d;
+      } else {
+        num = parseFloat(numStr);
+      }
+      if (!isNaN(num)) {
+        unitGroups[unit] = (unitGroups[unit] || 0) + num;
+      } else {
+        nonNumeric.push(amt);
+      }
+    } else {
+      nonNumeric.push(amt);
+    }
+  });
+  
+  // Format aggregated amounts
+  const formatted = Object.entries(unitGroups).map(([unit, total]) => {
+    // Round to reasonable precision
+    const rounded = Math.round(total * 10) / 10;
+    const display = rounded % 1 === 0 ? rounded.toString() : rounded.toFixed(1);
+    return unit ? `${display} ${unit}` : display;
+  });
+  
+  return [...formatted, ...nonNumeric].join(" + ") || "as needed";
+}
+
 function calculateWeeklyStats(plan: WeekPlan) {
   let totalCost = 0;
   let totalCalories = 0;
@@ -276,8 +317,8 @@ function calculateWeeklyStats(plan: WeekPlan) {
   let totalCarbs = 0;
   let totalPeopleDays = 0;
 
-  const allIngredients: string[] = [];
-  const ingredientMultipliers: Record<string, number> = {};
+  // Track ingredient amounts: { "chicken": ["8 oz", "6 oz", "8 oz"] }
+  const ingredientAmounts: Record<string, string[]> = {};
   const prepAheadMeals: { day: string; meal: string; name: string }[] = [];
 
   plan.days.forEach((day, i) => {
@@ -296,10 +337,13 @@ function calculateWeeklyStats(plan: WeekPlan) {
     totalProtein += (day.breakfast.protein + day.lunch.protein + day.dinner.protein) * peopleCount;
     totalCarbs += (day.breakfast.carbs + day.lunch.carbs + day.dinner.carbs) * peopleCount;
 
-    // Ingredients with multiplier based on people count
+    // Track ingredients with their amounts
     [...day.breakfast.ingredients, ...day.lunch.ingredients, ...day.dinner.ingredients].forEach(ing => {
-      allIngredients.push(ing.item);
-      ingredientMultipliers[ing.item] = (ingredientMultipliers[ing.item] || 0) + peopleCount;
+      if (!ingredientAmounts[ing.item]) ingredientAmounts[ing.item] = [];
+      // Add amount for each person eating
+      for (let p = 0; p < peopleCount; p++) {
+        ingredientAmounts[ing.item].push(ing.amount);
+      }
     });
 
     // Prep ahead (only if someone is eating)
@@ -308,10 +352,14 @@ function calculateWeeklyStats(plan: WeekPlan) {
     if (day.dinner.prepAhead) prepAheadMeals.push({ day: dayNames[i], meal: "Dinner", name: day.dinner.name });
   });
 
-  // Use multipliers for grocery quantities
-  const groceryList = Object.entries(ingredientMultipliers)
-    .sort((a, b) => b[1] - a[1])
-    .map(([name, count]) => ({ name, count: Math.ceil(count) }));
+  // Build grocery list with aggregated amounts
+  const groceryList = Object.entries(ingredientAmounts)
+    .sort((a, b) => b[1].length - a[1].length) // Sort by frequency
+    .map(([name, amounts]) => ({ 
+      name, 
+      count: amounts.length,
+      amount: aggregateAmounts(amounts)
+    }));
 
   const avgDays = totalPeopleDays > 0 ? totalPeopleDays : 1;
 
@@ -965,7 +1013,7 @@ function GroceryItem({
   checked,
   onToggle,
 }: {
-  item: { name: string; count: number };
+  item: { name: string; count: number; amount: string };
   checked: boolean;
   onToggle: () => void;
 }) {
@@ -990,11 +1038,9 @@ function GroceryItem({
         )}
       </div>
       <span className={`flex-1 capitalize ${checked ? "line-through" : ""}`}>{item.name}</span>
-      {item.count > 1 && (
-        <Badge variant="secondary" className="text-xs">
-          ×{item.count}
-        </Badge>
-      )}
+      <Badge variant="secondary" className="text-xs">
+        {item.amount}
+      </Badge>
     </button>
   );
 }
