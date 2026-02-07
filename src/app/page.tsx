@@ -22,11 +22,20 @@ const coachQuotes = [
 
 export default function Home() {
   const [quote, setQuote] = useState(coachQuotes[0]);
-
+  
+  // Pick a new random quote every time the page is visited/focused
   useEffect(() => {
-    // Pick a random quote on load
-    const randomQuote = coachQuotes[Math.floor(Math.random() * coachQuotes.length)];
-    setQuote(randomQuote);
+    const pickRandomQuote = () => {
+      const randomQuote = coachQuotes[Math.floor(Math.random() * coachQuotes.length)];
+      setQuote(randomQuote);
+    };
+    
+    // Pick on initial load
+    pickRandomQuote();
+    
+    // Also pick when window regains focus (coming back to the tab)
+    window.addEventListener("focus", pickRandomQuote);
+    return () => window.removeEventListener("focus", pickRandomQuote);
   }, []);
 
   return (
