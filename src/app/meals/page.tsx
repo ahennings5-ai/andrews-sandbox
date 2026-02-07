@@ -77,6 +77,9 @@ interface WeekPlan {
   attendance: DayAttendance[]; // 7 days
 }
 
+// Meal preferences: 1 = dislike, 2 = like
+type Preferences = Record<string, Record<string, number>>; // mealId -> { person: rating }
+
 const dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 function shuffleArray<T>(array: T[]): T[] {
@@ -197,6 +200,7 @@ function calculateWeeklyStats(plan: WeekPlan) {
 export default function MealPlanner() {
   const [plan, setPlan] = useState<WeekPlan | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [preferences, setPreferences] = useState<Preferences>({});
 
   const savePlanToDb = useCallback(async (planToSave: WeekPlan) => {
     try {
@@ -222,13 +226,55 @@ export default function MealPlanner() {
     });
   }, [savePlanToDb]);
 
+  // Rate a meal (like/dislike)
+  const rateMeal = async (mealId: string, mealType: string, mealName: string, rating: number) => {
+    try {
+      // Toggle: if same rating, remove it; otherwise set new rating
+      const currentRating = preferences[mealId]?.household;
+      if (currentRating === rating) {
+        // Remove the rating
+        await fetch(`/api/meals/preferences?mealId=${mealId}`, { method: "DELETE" });
+        setPreferences((prev) => {
+          const updated = { ...prev };
+          delete updated[mealId];
+          return updated;
+        });
+      } else {
+        // Set new rating
+        await fetch("/api/meals/preferences", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mealId, mealType, mealName, rating }),
+        });
+        setPreferences((prev) => ({
+          ...prev,
+          [mealId]: { ...prev[mealId], household: rating },
+        }));
+      }
+    } catch (error) {
+      console.error("Failed to save preference:", error);
+    }
+  };
+
   // Load from database
   useEffect(() => {
-    async function loadPlan() {
+    async function loadData() {
       try {
-        const response = await fetch("/api/meals");
-        if (response.ok) {
-          const data = await response.json();
+        // Load meal plan and preferences in parallel
+        const [planResponse, prefsResponse] = await Promise.all([
+          fetch("/api/meals"),
+          fetch("/api/meals/preferences"),
+        ]);
+        
+        // Load preferences
+        if (prefsResponse.ok) {
+          const prefsData = await prefsResponse.json();
+          setPreferences(prefsData.preferences || {});
+        }
+        
+        // Load plan
+        if (planResponse.ok) {
+          const data = await planResponse.json();
           if (data && data.planData) {
             const defaultAttendance = Array(7).fill(null).map(() => ({ andrew: true, olivia: true }));
             setPlan({
@@ -256,7 +302,7 @@ export default function MealPlanner() {
         setIsLoading(false);
       }
     }
-    loadPlan();
+    loadData();
   }, [savePlanToDb]);
 
   const toggleLock = (dayIndex: number, mealType: "breakfast" | "lunch" | "dinner" | "snack") => {
@@ -497,6 +543,8 @@ export default function MealPlanner() {
                       meal={day.breakfast}
                       locked={day.locked.breakfast}
                       onToggleLock={() => toggleLock(dayIndex, "breakfast")}
+                      rating={preferences[day.breakfast.id]?.household}
+                      onRate={(r) => rateMeal(day.breakfast.id, "breakfast", day.breakfast.name, r)}
                     />
                     {/* Lunch */}
                     <MealCard
@@ -504,6 +552,8 @@ export default function MealPlanner() {
                       meal={day.lunch}
                       locked={day.locked.lunch}
                       onToggleLock={() => toggleLock(dayIndex, "lunch")}
+                      rating={preferences[day.lunch.id]?.household}
+                      onRate={(r) => rateMeal(day.lunch.id, "lunch", day.lunch.name, r)}
                     />
                     {/* Dinner */}
                     <MealCard
@@ -511,6 +561,8 @@ export default function MealPlanner() {
                       meal={day.dinner}
                       locked={day.locked.dinner}
                       onToggleLock={() => toggleLock(dayIndex, "dinner")}
+                      rating={preferences[day.dinner.id]?.household}
+                      onRate={(r) => rateMeal(day.dinner.id, "dinner", day.dinner.name, r)}
                     />
                     {/* Snack */}
                     <div className="p-3 rounded-lg border border-border bg-card">
@@ -770,19 +822,43 @@ function MealCard({
   meal,
   locked,
   onToggleLock,
+  rating,
+  onRate,
 }: {
   label: string;
   meal: Meal;
   locked: boolean;
   onToggleLock: () => void;
+  rating?: number; // 1 = dislike, 2 = like
+  onRate?: (rating: number) => void;
 }) {
   return (
     <div className={`p-3 rounded-lg border ${locked ? "border-primary bg-primary/5" : "border-border"} bg-card`}>
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs text-muted-foreground uppercase tracking-wide">{label}</span>
-        <button onClick={onToggleLock} className="text-sm hover:opacity-70">
-          {locked ? "🔒" : "🔓"}
-        </button>
+        <div className="flex items-center gap-1">
+          {onRate && (
+            <>
+              <button
+                onClick={() => onRate(1)}
+                className={`text-sm p-1 rounded hover:bg-muted transition-colors ${rating === 1 ? "bg-red-500/20 text-red-500" : "opacity-40 hover:opacity-100"}`}
+                title="Dislike"
+              >
+                👎
+              </button>
+              <button
+                onClick={() => onRate(2)}
+                className={`text-sm p-1 rounded hover:bg-muted transition-colors ${rating === 2 ? "bg-green-500/20 text-green-500" : "opacity-40 hover:opacity-100"}`}
+                title="Like"
+              >
+                👍
+              </button>
+            </>
+          )}
+          <button onClick={onToggleLock} className="text-sm p-1 hover:opacity-70">
+            {locked ? "🔒" : "🔓"}
+          </button>
+        </div>
       </div>
       <p className="font-medium text-sm">{meal.name}</p>
       <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
