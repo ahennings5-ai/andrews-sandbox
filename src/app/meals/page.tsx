@@ -171,7 +171,12 @@ export default function MealPlanner() {
   useEffect(() => {
     const saved = localStorage.getItem("meal-plan-v1");
     if (saved) {
-      setPlan(JSON.parse(saved));
+      const parsed = JSON.parse(saved);
+      // Ensure checkedItems exists for backwards compatibility
+      if (!parsed.checkedItems) {
+        parsed.checkedItems = {};
+      }
+      setPlan(parsed);
     } else {
       setPlan(generateWeekPlan());
     }
