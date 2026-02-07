@@ -47,3 +47,37 @@ model MealPreference {
 
   @@unique([mealId, person])
 }
+
+// Business idea pipeline
+model BusinessIdea {
+  id          String   @id @default(cuid())
+  
+  // Layer 1 - Quick pitch
+  name        String
+  oneLiner    String
+  category    String   // service, product, local, arbitrage, b2b
+  source      String   // Where I found this signal
+  whyNow      String   // Why this opportunity exists now
+  
+  // Scores (1-5 scale)
+  scores      Json     // { startupCost, timeToRevenue, scalability, moat, timing, effort }
+  
+  // Personal fit scores
+  personalFit Json     // { hoursPerWeek, skillsMatch, networkLeverage }
+  
+  // Status: new -> researched -> ready -> archived
+  status      String   @default("new")
+  layer       Int      @default(1) // 1, 2, or 3
+  
+  // Layer 2 - Business Case (populated after first upvote)
+  businessCase Json?   // { marketSize, targetCustomer, businessModel, startupCosts, unitEconomics, projections, competitors, risks }
+  
+  // Layer 3 - Execution Plan (populated after second upvote)
+  executionPlan Json?  // { weekByWeek, hurdles, hireOrOutsource, mvpVsFull, cashRunway, killCriteria }
+  
+  // User notes
+  notes       String   @default("")
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

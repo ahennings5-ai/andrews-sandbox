@@ -98,20 +98,24 @@ export default function Home() {
             </Card>
           </Link>
 
-          <Card className="h-full opacity-60">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <span>📝</span>
-                <span>Notes</span>
-              </CardTitle>
-              <CardDescription>
-                Learnings and documentation
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <span className="text-muted-foreground text-sm">Coming soon...</span>
-            </CardContent>
-          </Card>
+          <Link href="/ideas" className="group">
+            <Card className="h-full transition-all hover:border-primary hover:shadow-lg hover:shadow-primary/5">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <span>💡</span>
+                  <span>Business Ideas</span>
+                </CardTitle>
+                <CardDescription>
+                  Fresh opportunities daily. Upvote to dig deeper, build your pipeline.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <span className="text-primary text-sm font-medium group-hover:underline">
+                  Explore ideas →
+                </span>
+              </CardContent>
+            </Card>
+          </Link>
         </section>
 
         {/* Footer */}
