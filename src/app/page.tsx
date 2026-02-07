@@ -45,20 +45,24 @@ export default function Home() {
             </Card>
           </Link>
 
-          <Card className="h-full opacity-60">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <span>💡</span>
-                <span>Ideas</span>
-              </CardTitle>
-              <CardDescription>
-                Thoughts and concepts worth exploring
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <span className="text-muted-foreground text-sm">Coming soon...</span>
-            </CardContent>
-          </Card>
+          <Link href="/meals" className="group">
+            <Card className="h-full transition-all hover:border-primary hover:shadow-lg hover:shadow-primary/5">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <span>🍽️</span>
+                  <span>Meal Planner</span>
+                </CardTitle>
+                <CardDescription>
+                  Weekly meals for two, Sunday prep, $150 NYC budget
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <span className="text-primary text-sm font-medium group-hover:underline">
+                  Plan meals →
+                </span>
+              </CardContent>
+            </Card>
+          </Link>
 
           <Card className="h-full opacity-60">
             <CardHeader>
