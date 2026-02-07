@@ -335,6 +335,14 @@ export default function MarathonTracker() {
     setLogForm({ actualMiles: "", duration: "", feeling: "good", notes: "" });
   };
 
+  const handleDeleteLog = (logId: string) => {
+    setState((prev) => ({
+      ...prev,
+      logs: prev.logs.filter((l) => l.id !== logId),
+    }));
+    setLogDialogOpen(false);
+  };
+
   const getPhaseLabel = (week: number) => {
     if (week <= BASE_WEEKS) return "Base";
     return `Wk ${week - BASE_WEEKS}`;
@@ -702,9 +710,19 @@ export default function MarathonTracker() {
                                   onChange={(e) => setLogForm((f) => ({ ...f, notes: e.target.value }))}
                                 />
                               </div>
-                              <Button onClick={handleLogRun} className="w-full">
-                                Save Run
-                              </Button>
+                              <div className="flex gap-2">
+                                <Button onClick={handleLogRun} className="flex-1">
+                                  Save Run
+                                </Button>
+                                {log && (
+                                  <Button
+                                    variant="destructive"
+                                    onClick={() => handleDeleteLog(log.id)}
+                                  >
+                                    Delete
+                                  </Button>
+                                )}
+                              </div>
                             </div>
                           </DialogContent>
                         </Dialog>
@@ -850,9 +868,9 @@ export default function MarathonTracker() {
                       .map((log) => (
                         <div
                           key={log.id}
-                          className="flex items-center justify-between p-4 rounded-lg border border-border"
+                          className="flex items-center gap-4 p-4 rounded-lg border border-border"
                         >
-                          <div className="space-y-1">
+                          <div className="flex-1 space-y-1">
                             <div className="flex items-center gap-2">
                               <span className="font-medium">Week {log.week}, Day {log.day}</span>
                               <Badge variant="outline" className={log.week <= BASE_WEEKS ? "border-emerald-500/30 text-emerald-500" : ""}>
@@ -867,6 +885,14 @@ export default function MarathonTracker() {
                             <div className="font-medium">{log.actualMiles} mi</div>
                             <div className="text-sm text-muted-foreground">{log.duration} • {log.pace}/mi</div>
                           </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteLog(log.id)}
+                            className="text-muted-foreground hover:text-destructive"
+                          >
+                            ✕
+                          </Button>
                         </div>
                       ))}
                   </div>
