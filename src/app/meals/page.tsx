@@ -379,6 +379,20 @@ export default function MealPlanner() {
   const [isLoading, setIsLoading] = useState(true);
   const [preferences, setPreferences] = useState<Preferences>({});
   const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null);
+  const [selectedIngredient, setSelectedIngredient] = useState<string | null>(null);
+
+  // Find all meals that use a specific ingredient
+  const getMealsUsingIngredient = (ingredientName: string): Meal[] => {
+    if (!plan) return [];
+    const allMeals = plan.days.flatMap(day => [day.breakfast, day.lunch, day.dinner]);
+    const uniqueMeals = new Map<string, Meal>();
+    allMeals.forEach(meal => {
+      if (meal.ingredients.some(ing => ing.item.toLowerCase() === ingredientName.toLowerCase())) {
+        uniqueMeals.set(meal.id, meal);
+      }
+    });
+    return Array.from(uniqueMeals.values());
+  };
 
   const savePlanToDb = useCallback(async (planToSave: WeekPlan) => {
     try {
@@ -923,6 +937,7 @@ export default function MealPlanner() {
                                 item={item}
                                 checked={plan?.checkedItems[item.name] || false}
                                 onToggle={() => toggleCheckedItem(item.name)}
+                                onShowDetails={() => setSelectedIngredient(item.name)}
                               />
                             ))}
                           </div>
@@ -1003,6 +1018,59 @@ export default function MealPlanner() {
             )}
           </DialogContent>
         </Dialog>
+
+        {/* Ingredient Details Modal */}
+        <Dialog open={!!selectedIngredient} onOpenChange={(open) => !open && setSelectedIngredient(null)}>
+          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+            {selectedIngredient && (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="capitalize text-xl">{selectedIngredient}</DialogTitle>
+                </DialogHeader>
+                
+                <div className="space-y-4 mt-4">
+                  <p className="text-sm text-muted-foreground">
+                    Used in {getMealsUsingIngredient(selectedIngredient).length} meal(s) this week
+                  </p>
+
+                  {getMealsUsingIngredient(selectedIngredient).map((meal) => {
+                    const ingredientInfo = meal.ingredients.find(
+                      ing => ing.item.toLowerCase() === selectedIngredient.toLowerCase()
+                    );
+                    
+                    return (
+                      <div key={meal.id} className="p-4 rounded-lg border border-border bg-muted/30">
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className="font-semibold">{meal.name}</h3>
+                          <Badge variant="secondary" className="text-xs">
+                            {ingredientInfo?.amount || ""}
+                          </Badge>
+                        </div>
+                        
+                        <div className="text-sm text-muted-foreground mb-3">
+                          ⏱️ {meal.prepTime + meal.cookTime} min total
+                        </div>
+
+                        {/* Show relevant steps that mention this ingredient */}
+                        <div className="space-y-2">
+                          <p className="text-xs font-medium text-muted-foreground uppercase">Prep Steps:</p>
+                          <ol className="space-y-1">
+                            {meal.instructions.map((step, i) => (
+                              <li key={i} className="flex gap-2 text-sm">
+                                <span className="text-primary font-medium shrink-0">{i + 1}.</span>
+                                <span>{step}</span>
+                              </li>
+                            ))}
+                          </ol>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
@@ -1012,23 +1080,26 @@ function GroceryItem({
   item,
   checked,
   onToggle,
+  onShowDetails,
 }: {
   item: { name: string; count: number; amount: string };
   checked: boolean;
   onToggle: () => void;
+  onShowDetails: () => void;
 }) {
   return (
-    <button
-      onClick={onToggle}
-      className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-all text-left ${
+    <div
+      className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-all ${
         checked
           ? "bg-primary/10 border-primary/30 opacity-60"
           : "bg-card border-border hover:border-primary/50"
       }`}
     >
-      <div
-        className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
-          checked ? "bg-primary border-primary" : "border-muted-foreground"
+      {/* Checkbox */}
+      <button
+        onClick={onToggle}
+        className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors shrink-0 ${
+          checked ? "bg-primary border-primary" : "border-muted-foreground hover:border-primary"
         }`}
       >
         {checked && (
@@ -1036,12 +1107,21 @@ function GroceryItem({
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
         )}
-      </div>
-      <span className={`flex-1 capitalize ${checked ? "line-through" : ""}`}>{item.name}</span>
+      </button>
+      
+      {/* Item name - clickable for details */}
+      <button 
+        onClick={onShowDetails}
+        className={`flex-1 text-left capitalize hover:text-primary transition-colors ${checked ? "line-through" : ""}`}
+      >
+        {item.name}
+        <span className="text-xs text-primary/60 ml-2">ⓘ</span>
+      </button>
+      
       <Badge variant="secondary" className="text-xs">
         {item.amount}
       </Badge>
-    </button>
+    </div>
   );
 }
 
