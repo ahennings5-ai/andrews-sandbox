@@ -224,7 +224,7 @@ export default function MealPlanner() {
   }
 
   const stats = calculateWeeklyStats(plan);
-  const isOverBudget = stats.totalCost > 150;
+  const isOverBudget = stats.totalCost > 200;
 
   return (
     <div className="min-h-screen bg-background">
@@ -252,7 +252,7 @@ export default function MealPlanner() {
               <CardDescription>Weekly Cost</CardDescription>
               <CardTitle className={`text-2xl ${isOverBudget ? "text-destructive" : ""}`}>
                 ${stats.totalCost}
-                <span className="text-base font-normal text-muted-foreground"> / $150</span>
+                <span className="text-base font-normal text-muted-foreground"> / $200</span>
               </CardTitle>
             </CardHeader>
             <CardContent>

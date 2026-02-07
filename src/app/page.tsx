@@ -53,7 +53,7 @@ export default function Home() {
                   <span>Meal Planner</span>
                 </CardTitle>
                 <CardDescription>
-                  Weekly meals for two, Sunday prep, $150 NYC budget
+                  Weekly meals for two, Sunday prep, $200 NYC budget
                 </CardDescription>
               </CardHeader>
               <CardContent>
