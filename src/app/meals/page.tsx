@@ -66,6 +66,54 @@ const breakfasts: MealData[] = [
     cost: 4.5, prepTime: 5, cookTime: 0, prepAhead: false, protein: 15, carbs: 42, calories: 360,
     instructions: ["Add yogurt, frozen banana, berries, and milk to blender", "Blend until thick and smooth (add more milk if needed)", "Pour into a bowl", "Top with granola", "Add any extra toppings (chia seeds, coconut, more fruit)", "Eat immediately with a spoon"]
   },
+  { 
+    id: "b8", name: "Bagel with Cream Cheese & Lox", 
+    ingredients: [{ item: "bagel", amount: "1" }, { item: "cream cheese", amount: "2 tbsp" }, { item: "smoked salmon", amount: "2 oz" }, { item: "capers", amount: "1 tsp" }, { item: "red onion", amount: "2 slices" }],
+    cost: 6, prepTime: 5, cookTime: 2, prepAhead: false, protein: 18, carbs: 48, calories: 420,
+    instructions: ["Slice and toast bagel", "Spread cream cheese on both halves", "Layer smoked salmon on top", "Add capers and thin red onion slices", "Season with pepper", "Optional: add fresh dill or lemon squeeze"]
+  },
+  { 
+    id: "b9", name: "Protein Pancakes", 
+    ingredients: [{ item: "pancake mix", amount: "1 cup" }, { item: "protein powder", amount: "1 scoop" }, { item: "egg", amount: "1" }, { item: "milk", amount: "¾ cup" }, { item: "maple syrup", amount: "2 tbsp" }],
+    cost: 3.5, prepTime: 5, cookTime: 10, prepAhead: true, protein: 28, carbs: 55, calories: 450,
+    instructions: ["Mix pancake mix and protein powder", "Add egg and milk, whisk until smooth", "Heat greased pan over medium heat", "Pour ¼ cup batter per pancake", "Cook until bubbles form, flip, cook 1-2 min more", "Stack and top with maple syrup"]
+  },
+  { 
+    id: "b10", name: "Peanut Butter Banana Toast", 
+    ingredients: [{ item: "bread", amount: "2 slices" }, { item: "peanut butter", amount: "2 tbsp" }, { item: "banana", amount: "1" }, { item: "honey", amount: "1 tsp" }, { item: "chia seeds", amount: "1 tsp" }],
+    cost: 2.5, prepTime: 3, cookTime: 2, prepAhead: false, protein: 12, carbs: 48, calories: 380,
+    instructions: ["Toast bread until golden", "Spread peanut butter on toast", "Slice banana and arrange on top", "Drizzle with honey", "Sprinkle chia seeds", "Serve immediately"]
+  },
+  { 
+    id: "b11", name: "Egg & Cheese Sandwich", 
+    ingredients: [{ item: "english muffin", amount: "1" }, { item: "eggs", amount: "2" }, { item: "cheese", amount: "1 slice" }, { item: "butter", amount: "1 tbsp" }],
+    cost: 3, prepTime: 2, cookTime: 8, prepAhead: false, protein: 18, carbs: 28, calories: 380,
+    instructions: ["Toast english muffin", "Melt butter in pan over medium heat", "Fry eggs to your preference", "Place cheese on eggs to melt slightly", "Assemble sandwich with eggs between muffin halves", "Season with salt & pepper"]
+  },
+  { 
+    id: "b12", name: "Cottage Cheese & Fruit", 
+    ingredients: [{ item: "cottage cheese", amount: "1 cup" }, { item: "berries", amount: "½ cup" }, { item: "honey", amount: "1 tbsp" }, { item: "almonds", amount: "2 tbsp sliced" }],
+    cost: 4, prepTime: 3, cookTime: 0, prepAhead: false, protein: 28, carbs: 25, calories: 320,
+    instructions: ["Add cottage cheese to bowl", "Top with fresh berries", "Drizzle honey over top", "Sprinkle sliced almonds", "Mix gently or eat layered", "Great cold protein boost"]
+  },
+  { 
+    id: "b13", name: "French Toast", 
+    ingredients: [{ item: "bread", amount: "3 slices thick" }, { item: "eggs", amount: "2" }, { item: "milk", amount: "¼ cup" }, { item: "cinnamon", amount: "½ tsp" }, { item: "butter", amount: "1 tbsp" }, { item: "maple syrup", amount: "2 tbsp" }],
+    cost: 3, prepTime: 5, cookTime: 10, prepAhead: false, protein: 16, carbs: 52, calories: 420,
+    instructions: ["Whisk eggs, milk, and cinnamon in shallow dish", "Heat butter in pan over medium heat", "Dip bread slices in egg mixture, coating both sides", "Cook 2-3 min per side until golden", "Serve with maple syrup", "Optional: add powdered sugar or berries"]
+  },
+  { 
+    id: "b14", name: "Overnight Oats", 
+    ingredients: [{ item: "oats", amount: "½ cup" }, { item: "milk", amount: "½ cup" }, { item: "greek yogurt", amount: "¼ cup" }, { item: "honey", amount: "1 tbsp" }, { item: "berries", amount: "¼ cup" }, { item: "chia seeds", amount: "1 tbsp" }],
+    cost: 3, prepTime: 5, cookTime: 0, prepAhead: true, protein: 15, carbs: 48, calories: 350,
+    instructions: ["Combine oats, milk, yogurt, honey, and chia in jar", "Stir well to combine", "Refrigerate overnight (or at least 4 hours)", "In morning, stir and top with berries", "Eat cold or microwave 1 min if preferred warm", "Keeps 3 days in fridge"]
+  },
+  { 
+    id: "b15", name: "Ham & Cheese Croissant", 
+    ingredients: [{ item: "croissant", amount: "1" }, { item: "deli ham", amount: "2 oz" }, { item: "swiss cheese", amount: "1 slice" }, { item: "dijon mustard", amount: "1 tsp" }],
+    cost: 4, prepTime: 2, cookTime: 5, prepAhead: false, protein: 16, carbs: 28, calories: 380,
+    instructions: ["Slice croissant in half horizontally", "Spread dijon on bottom half", "Layer ham and swiss cheese", "Top with other croissant half", "Optional: warm in oven 3 min at 350°F", "Serve warm"]
+  },
 ];
 
 const lunches: MealData[] = [
@@ -98,6 +146,54 @@ const lunches: MealData[] = [
     ingredients: [{ item: "cooked chicken", amount: "5 oz" }, { item: "rice noodles", amount: "4 oz cooked" }, { item: "frozen stir fry veggies", amount: "1 cup" }, { item: "soy sauce", amount: "2 tbsp" }, { item: "sesame oil", amount: "1 tsp" }],
     cost: 5, prepTime: 2, cookTime: 3, prepAhead: true, protein: 30, carbs: 50, calories: 470,
     instructions: ["Heat noodles and chicken in microwave", "Steam or microwave veggies", "Combine in bowl", "Mix soy sauce and sesame oil", "Pour sauce over bowl and toss", "Optional: top with green onions, sesame seeds"]
+  },
+  { 
+    id: "l6", name: "Tuna Salad Sandwich", 
+    ingredients: [{ item: "canned tuna", amount: "5 oz drained" }, { item: "bread", amount: "2 slices" }, { item: "mayo", amount: "2 tbsp" }, { item: "celery", amount: "2 tbsp diced" }, { item: "lettuce", amount: "2 leaves" }],
+    cost: 4.5, prepTime: 5, cookTime: 0, prepAhead: true, protein: 30, carbs: 28, calories: 380,
+    instructions: ["Drain tuna and add to bowl", "Mix with mayo and diced celery", "Season with salt, pepper, lemon juice if desired", "Toast bread if preferred", "Layer tuna salad and lettuce between bread", "Cut in half and serve"]
+  },
+  { 
+    id: "l7", name: "Caprese Pasta Salad", 
+    ingredients: [{ item: "pasta", amount: "4 oz cooked" }, { item: "cherry tomatoes", amount: "1 cup halved" }, { item: "mozzarella", amount: "4 oz cubed" }, { item: "basil", amount: "¼ cup fresh" }, { item: "olive oil", amount: "2 tbsp" }, { item: "balsamic", amount: "1 tbsp" }],
+    cost: 6, prepTime: 10, cookTime: 0, prepAhead: true, protein: 20, carbs: 45, calories: 450,
+    instructions: ["Cook pasta, drain and cool", "Halve tomatoes, cube mozzarella", "Combine pasta, tomatoes, and mozzarella", "Chiffonade basil and add", "Drizzle with olive oil and balsamic", "Season with salt and pepper, toss gently"]
+  },
+  { 
+    id: "l8", name: "Buffalo Chicken Wrap", 
+    ingredients: [{ item: "cooked chicken", amount: "5 oz shredded" }, { item: "large tortilla", amount: "1" }, { item: "buffalo sauce", amount: "2 tbsp" }, { item: "ranch dressing", amount: "1 tbsp" }, { item: "lettuce", amount: "1 cup shredded" }, { item: "blue cheese", amount: "2 tbsp crumbled" }],
+    cost: 5.5, prepTime: 5, cookTime: 2, prepAhead: true, protein: 32, carbs: 30, calories: 440,
+    instructions: ["Toss shredded chicken with buffalo sauce", "Warm tortilla in microwave 15 seconds", "Spread ranch down center of tortilla", "Add buffalo chicken", "Top with lettuce and blue cheese", "Roll tightly, cut in half"]
+  },
+  { 
+    id: "l9", name: "Greek Salad with Chicken", 
+    ingredients: [{ item: "cooked chicken", amount: "5 oz" }, { item: "romaine", amount: "3 cups chopped" }, { item: "cucumber", amount: "½ cup" }, { item: "tomatoes", amount: "½ cup" }, { item: "feta", amount: "¼ cup" }, { item: "olives", amount: "¼ cup" }, { item: "olive oil", amount: "2 tbsp" }, { item: "red wine vinegar", amount: "1 tbsp" }],
+    cost: 7, prepTime: 10, cookTime: 0, prepAhead: true, protein: 35, carbs: 15, calories: 420,
+    instructions: ["Chop romaine and place in large bowl", "Dice cucumber and tomatoes", "Add veggies, feta, and olives to lettuce", "Slice or cube chicken and add on top", "Whisk olive oil and vinegar, drizzle over salad", "Season with oregano, salt, pepper, toss"]
+  },
+  { 
+    id: "l10", name: "BBQ Chicken Quesadilla", 
+    ingredients: [{ item: "cooked chicken", amount: "4 oz shredded" }, { item: "large tortilla", amount: "1" }, { item: "bbq sauce", amount: "2 tbsp" }, { item: "cheese", amount: "½ cup shredded" }, { item: "red onion", amount: "2 tbsp diced" }],
+    cost: 4.5, prepTime: 3, cookTime: 6, prepAhead: true, protein: 30, carbs: 35, calories: 450,
+    instructions: ["Mix shredded chicken with BBQ sauce", "Place tortilla in dry skillet over medium heat", "Add cheese to half the tortilla", "Top with BBQ chicken and onion", "Fold tortilla in half", "Cook 3 min per side until golden and cheese melts", "Cut into wedges"]
+  },
+  { 
+    id: "l11", name: "Hummus & Veggie Wrap", 
+    ingredients: [{ item: "large tortilla", amount: "1" }, { item: "hummus", amount: "¼ cup" }, { item: "cucumber", amount: "½ cup sliced" }, { item: "tomato", amount: "½ sliced" }, { item: "spinach", amount: "1 cup" }, { item: "feta", amount: "2 tbsp" }],
+    cost: 4, prepTime: 5, cookTime: 0, prepAhead: true, protein: 12, carbs: 38, calories: 320,
+    instructions: ["Spread hummus evenly over tortilla", "Layer spinach leaves", "Add cucumber and tomato slices", "Crumble feta on top", "Roll tightly", "Cut in half diagonally"]
+  },
+  { 
+    id: "l12", name: "Leftover Dinner Bowl", 
+    ingredients: [{ item: "leftover protein", amount: "5 oz" }, { item: "cooked rice or grain", amount: "1 cup" }, { item: "leftover veggies", amount: "1 cup" }, { item: "sauce of choice", amount: "2 tbsp" }],
+    cost: 3, prepTime: 2, cookTime: 3, prepAhead: true, protein: 28, carbs: 40, calories: 400,
+    instructions: ["Microwave leftovers until heated through", "Combine in bowl", "Add your sauce (soy, teriyaki, hot sauce, etc.)", "Mix and enjoy", "Great for reducing food waste!"]
+  },
+  { 
+    id: "l13", name: "Chicken Salad Lettuce Wraps", 
+    ingredients: [{ item: "cooked chicken", amount: "6 oz diced" }, { item: "mayo", amount: "2 tbsp" }, { item: "grapes", amount: "¼ cup halved" }, { item: "celery", amount: "2 tbsp diced" }, { item: "butter lettuce", amount: "4 leaves" }, { item: "almonds", amount: "2 tbsp sliced" }],
+    cost: 6, prepTime: 10, cookTime: 0, prepAhead: true, protein: 35, carbs: 12, calories: 380,
+    instructions: ["Dice chicken into small pieces", "Mix with mayo, grapes, celery, and almonds", "Season with salt and pepper", "Wash and dry lettuce cups", "Spoon chicken salad into lettuce cups", "Serve immediately"]
   },
 ];
 
@@ -173,6 +269,78 @@ const dinners: MealData[] = [
     ingredients: [{ item: "salmon fillet", amount: "6 oz" }, { item: "rice", amount: "1 cup cooked" }, { item: "asparagus", amount: "1 bunch trimmed" }, { item: "lemon", amount: "1" }, { item: "olive oil", amount: "2 tbsp" }, { item: "dill or parsley", amount: "2 tbsp fresh" }],
     cost: 11, prepTime: 5, cookTime: 15, prepAhead: false, protein: 36, carbs: 42, calories: 500,
     instructions: ["Heat oil in oven-safe skillet over medium-high", "Season salmon with salt, pepper, half the lemon zest", "Sear salmon skin-side up 3 min", "Flip salmon, add asparagus around it", "Squeeze lemon juice over everything", "Bake at 400°F for 8-10 min", "Garnish with fresh herbs, serve with rice"]
+  },
+  { 
+    id: "d13", name: "Teriyaki Chicken Bowl", 
+    ingredients: [{ item: "chicken thighs", amount: "8 oz boneless" }, { item: "rice", amount: "1 cup cooked" }, { item: "broccoli", amount: "2 cups" }, { item: "teriyaki sauce", amount: "¼ cup" }, { item: "sesame seeds", amount: "1 tsp" }, { item: "green onions", amount: "2 sliced" }],
+    cost: 7, prepTime: 5, cookTime: 15, prepAhead: false, protein: 35, carbs: 50, calories: 520,
+    instructions: ["Cut chicken into bite-size pieces", "Cook chicken in oiled pan 6-7 min until done", "Steam broccoli until tender-crisp", "Add teriyaki sauce to chicken, coat well", "Serve chicken and broccoli over rice", "Garnish with sesame seeds and green onions"]
+  },
+  { 
+    id: "d14", name: "Spaghetti & Meatballs", 
+    ingredients: [{ item: "ground beef", amount: "8 oz" }, { item: "spaghetti", amount: "8 oz" }, { item: "marinara sauce", amount: "2 cups" }, { item: "breadcrumbs", amount: "¼ cup" }, { item: "egg", amount: "1" }, { item: "parmesan", amount: "¼ cup" }, { item: "Italian seasoning", amount: "1 tsp" }],
+    cost: 8, prepTime: 15, cookTime: 20, prepAhead: false, protein: 35, carbs: 65, calories: 600,
+    instructions: ["Mix beef, breadcrumbs, egg, half the parmesan, and seasoning", "Form into 8-10 meatballs", "Brown meatballs in oiled pan on all sides", "Add marinara, cover and simmer 15 min", "Cook spaghetti according to package", "Serve meatballs and sauce over spaghetti", "Top with remaining parmesan"]
+  },
+  { 
+    id: "d15", name: "Honey Garlic Shrimp + Veggies", 
+    ingredients: [{ item: "shrimp", amount: "8 oz peeled" }, { item: "rice", amount: "1 cup cooked" }, { item: "green beans", amount: "2 cups" }, { item: "honey", amount: "2 tbsp" }, { item: "soy sauce", amount: "2 tbsp" }, { item: "garlic", amount: "4 cloves minced" }],
+    cost: 10, prepTime: 5, cookTime: 12, prepAhead: false, protein: 28, carbs: 55, calories: 480,
+    instructions: ["Mix honey, soy sauce, and garlic for sauce", "Steam or sauté green beans until tender", "Cook shrimp in oiled pan 2 min per side", "Pour sauce over shrimp, cook 1 min until glazed", "Serve shrimp and green beans over rice", "Drizzle extra sauce on top"]
+  },
+  { 
+    id: "d16", name: "Stuffed Bell Peppers", 
+    ingredients: [{ item: "bell peppers", amount: "2 large" }, { item: "ground turkey", amount: "8 oz" }, { item: "rice", amount: "½ cup cooked" }, { item: "tomato sauce", amount: "1 cup" }, { item: "cheese", amount: "½ cup shredded" }, { item: "onion", amount: "¼ diced" }, { item: "Italian seasoning", amount: "1 tsp" }],
+    cost: 7, prepTime: 15, cookTime: 30, prepAhead: true, protein: 32, carbs: 35, calories: 450,
+    instructions: ["Preheat oven to 375°F", "Cut tops off peppers, remove seeds", "Brown turkey with onion", "Mix turkey with rice, half the tomato sauce, and seasoning", "Stuff peppers with mixture", "Place in baking dish, top with remaining sauce", "Bake 25-30 min, add cheese last 5 min"]
+  },
+  { 
+    id: "d17", name: "Pork Chops with Apple", 
+    ingredients: [{ item: "pork chops", amount: "2 bone-in" }, { item: "apple", amount: "1 sliced" }, { item: "sweet potato", amount: "1 large cubed" }, { item: "olive oil", amount: "2 tbsp" }, { item: "rosemary", amount: "1 tsp" }, { item: "brown sugar", amount: "1 tbsp" }],
+    cost: 9, prepTime: 10, cookTime: 25, prepAhead: false, protein: 35, carbs: 45, calories: 520,
+    instructions: ["Preheat oven to 400°F", "Toss sweet potato with 1 tbsp oil, salt, pepper", "Roast 15 min", "Season pork chops with salt, pepper, rosemary", "Sear in hot pan 3 min per side", "Add apples and brown sugar to sweet potatoes", "Add pork to sheet, roast 10 min more"]
+  },
+  { 
+    id: "d18", name: "Thai Basil Chicken", 
+    ingredients: [{ item: "ground chicken", amount: "8 oz" }, { item: "rice", amount: "1 cup cooked" }, { item: "fresh basil", amount: "1 cup" }, { item: "garlic", amount: "4 cloves" }, { item: "fish sauce", amount: "2 tbsp" }, { item: "soy sauce", amount: "1 tbsp" }, { item: "chili flakes", amount: "1 tsp" }],
+    cost: 7, prepTime: 5, cookTime: 10, prepAhead: false, protein: 32, carbs: 45, calories: 480,
+    instructions: ["Heat oil in wok over high heat", "Add garlic and chili, cook 30 seconds", "Add ground chicken, break up and cook 5 min", "Add fish sauce and soy sauce", "Stir in basil leaves until wilted", "Serve over rice", "Optional: top with fried egg"]
+  },
+  { 
+    id: "d19", name: "Chicken Parmesan", 
+    ingredients: [{ item: "chicken breast", amount: "8 oz" }, { item: "breadcrumbs", amount: "½ cup" }, { item: "marinara sauce", amount: "1 cup" }, { item: "mozzarella", amount: "½ cup shredded" }, { item: "parmesan", amount: "¼ cup" }, { item: "egg", amount: "1" }, { item: "pasta", amount: "6 oz" }],
+    cost: 9, prepTime: 10, cookTime: 20, prepAhead: false, protein: 42, carbs: 55, calories: 580,
+    instructions: ["Pound chicken to even thickness", "Dip in beaten egg, then breadcrumbs mixed with parmesan", "Pan-fry in oil 4 min per side until golden", "Place in baking dish, top with marinara and mozzarella", "Bake at 400°F 10 min until cheese melts", "Cook pasta, serve chicken over pasta"]
+  },
+  { 
+    id: "d20", name: "One-Pot Chili", 
+    ingredients: [{ item: "ground beef", amount: "8 oz" }, { item: "kidney beans", amount: "1 can drained" }, { item: "diced tomatoes", amount: "1 can" }, { item: "onion", amount: "½ diced" }, { item: "chili powder", amount: "2 tbsp" }, { item: "cumin", amount: "1 tsp" }, { item: "cheese", amount: "½ cup" }],
+    cost: 7, prepTime: 10, cookTime: 25, prepAhead: true, protein: 35, carbs: 40, calories: 520,
+    instructions: ["Brown beef in large pot, drain fat", "Add onion, cook 3 min", "Add chili powder and cumin, stir", "Add tomatoes and beans", "Simmer 20 min, stirring occasionally", "Season with salt and pepper", "Serve topped with cheese and sour cream"]
+  },
+  { 
+    id: "d21", name: "Coconut Curry Chicken", 
+    ingredients: [{ item: "chicken thighs", amount: "8 oz" }, { item: "coconut milk", amount: "1 can" }, { item: "curry paste", amount: "2 tbsp" }, { item: "rice", amount: "1 cup cooked" }, { item: "spinach", amount: "2 cups" }, { item: "lime", amount: "1" }],
+    cost: 8, prepTime: 5, cookTime: 20, prepAhead: false, protein: 35, carbs: 48, calories: 550,
+    instructions: ["Cut chicken into pieces", "Brown chicken in pot 5 min", "Add curry paste, stir 1 min", "Pour in coconut milk, simmer 12 min", "Add spinach, stir until wilted", "Squeeze lime juice over", "Serve over rice"]
+  },
+  { 
+    id: "d22", name: "Greek Turkey Burgers", 
+    ingredients: [{ item: "ground turkey", amount: "8 oz" }, { item: "feta", amount: "¼ cup crumbled" }, { item: "spinach", amount: "1 cup chopped" }, { item: "burger buns", amount: "2" }, { item: "tzatziki", amount: "4 tbsp" }, { item: "tomato", amount: "1 sliced" }, { item: "red onion", amount: "4 slices" }],
+    cost: 8, prepTime: 10, cookTime: 12, prepAhead: false, protein: 36, carbs: 32, calories: 480,
+    instructions: ["Mix turkey with feta and chopped spinach", "Form into 2 patties", "Grill or pan-fry 5-6 min per side", "Toast buns lightly", "Spread tzatziki on buns", "Add burger, tomato, and onion", "Serve with side salad or fries"]
+  },
+  { 
+    id: "d23", name: "Sheet Pan Sausage & Veggies", 
+    ingredients: [{ item: "italian sausages", amount: "4 links" }, { item: "bell peppers", amount: "2 sliced" }, { item: "zucchini", amount: "1 sliced" }, { item: "red onion", amount: "1 sliced" }, { item: "olive oil", amount: "2 tbsp" }, { item: "Italian seasoning", amount: "1 tsp" }],
+    cost: 9, prepTime: 10, cookTime: 25, prepAhead: false, protein: 28, carbs: 20, calories: 450,
+    instructions: ["Preheat oven to 400°F", "Slice sausages into rounds", "Toss all veggies with oil and seasoning", "Spread sausage and veggies on sheet pan", "Bake 25 min, stirring halfway", "Season with salt and pepper", "Serve as is or over rice"]
+  },
+  { 
+    id: "d24", name: "Lemon Garlic Pasta with Chicken", 
+    ingredients: [{ item: "chicken breast", amount: "6 oz" }, { item: "pasta", amount: "8 oz" }, { item: "garlic", amount: "4 cloves" }, { item: "lemon", amount: "1" }, { item: "parmesan", amount: "½ cup" }, { item: "olive oil", amount: "3 tbsp" }, { item: "parsley", amount: "2 tbsp fresh" }],
+    cost: 8, prepTime: 5, cookTime: 18, prepAhead: false, protein: 35, carbs: 60, calories: 550,
+    instructions: ["Cook pasta, reserve 1 cup pasta water", "Season and cook chicken 5-6 min per side, slice", "Sauté garlic in olive oil 1 min", "Add pasta, lemon zest, lemon juice", "Toss with parmesan and pasta water until creamy", "Top with sliced chicken and parsley"]
   },
 ];
 
