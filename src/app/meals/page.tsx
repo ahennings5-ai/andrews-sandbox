@@ -63,13 +63,13 @@ const breakfasts: MealData[] = [
   { 
     id: "b7", name: "Smoothie Bowl", 
     ingredients: [{ item: "greek yogurt", amount: "½ cup" }, { item: "frozen banana", amount: "1" }, { item: "frozen berries", amount: "½ cup" }, { item: "granola", amount: "¼ cup" }, { item: "milk", amount: "¼ cup" }],
-    cost: 4.5, prepTime: 5, cookTime: 0, prepAhead: false, protein: 15, carbs: 42, calories: 360,
+    cost: 3.5, prepTime: 5, cookTime: 0, prepAhead: false, protein: 15, carbs: 42, calories: 360,
     instructions: ["Add yogurt, frozen banana, berries, and milk to blender", "Blend until thick and smooth (add more milk if needed)", "Pour into a bowl", "Top with granola", "Add any extra toppings (chia seeds, coconut, more fruit)", "Eat immediately with a spoon"]
   },
   { 
     id: "b8", name: "Bagel with Cream Cheese & Lox", 
     ingredients: [{ item: "bagel", amount: "1" }, { item: "cream cheese", amount: "2 tbsp" }, { item: "smoked salmon", amount: "2 oz" }, { item: "capers", amount: "1 tsp" }, { item: "red onion", amount: "2 slices" }],
-    cost: 6, prepTime: 5, cookTime: 2, prepAhead: false, protein: 18, carbs: 48, calories: 420,
+    cost: 8, prepTime: 5, cookTime: 2, prepAhead: false, protein: 18, carbs: 48, calories: 420,
     instructions: ["Slice and toast bagel", "Spread cream cheese on both halves", "Layer smoked salmon on top", "Add capers and thin red onion slices", "Season with pepper", "Optional: add fresh dill or lemon squeeze"]
   },
   { 
@@ -219,7 +219,7 @@ const dinners: MealData[] = [
   { 
     id: "d4", name: "Salmon with Roasted Veggies", 
     ingredients: [{ item: "salmon fillet", amount: "6 oz" }, { item: "broccoli", amount: "2 cups florets" }, { item: "potatoes", amount: "1 cup cubed" }, { item: "olive oil", amount: "2 tbsp" }, { item: "garlic powder", amount: "1 tsp" }, { item: "lemon", amount: "½" }],
-    cost: 10, prepTime: 10, cookTime: 20, prepAhead: false, protein: 35, carbs: 30, calories: 480,
+    cost: 16, prepTime: 10, cookTime: 20, prepAhead: false, protein: 35, carbs: 30, calories: 480,
     instructions: ["Preheat oven to 425°F", "Toss potatoes with 1 tbsp oil, salt, pepper", "Spread on baking sheet, roast 10 min", "Toss broccoli with remaining oil and garlic powder", "Add broccoli to sheet, place salmon on top", "Season salmon with salt, pepper, lemon juice", "Roast 12-15 min until salmon flakes easily"]
   },
   { 
@@ -231,7 +231,7 @@ const dinners: MealData[] = [
   { 
     id: "d6", name: "Shrimp Fried Rice", 
     ingredients: [{ item: "shrimp", amount: "8 oz peeled" }, { item: "cooked rice", amount: "2 cups (day-old best)" }, { item: "eggs", amount: "2" }, { item: "frozen peas & carrots", amount: "1 cup" }, { item: "soy sauce", amount: "3 tbsp" }, { item: "sesame oil", amount: "1 tsp" }],
-    cost: 9, prepTime: 5, cookTime: 15, prepAhead: false, protein: 28, carbs: 52, calories: 500,
+    cost: 14, prepTime: 5, cookTime: 15, prepAhead: false, protein: 28, carbs: 52, calories: 500,
     instructions: ["Heat oil in large pan or wok over high heat", "Cook shrimp 2 min per side, set aside", "Scramble eggs in same pan, set aside", "Add more oil, stir fry veggies 2 min", "Add rice, break up clumps, cook 3 min", "Add soy sauce and sesame oil, toss", "Return shrimp and eggs, mix everything", "Serve hot, garnish with green onions"]
   },
   { 
@@ -267,7 +267,7 @@ const dinners: MealData[] = [
   { 
     id: "d12", name: "Lemon Herb Salmon + Rice", 
     ingredients: [{ item: "salmon fillet", amount: "6 oz" }, { item: "rice", amount: "1 cup cooked" }, { item: "asparagus", amount: "1 bunch trimmed" }, { item: "lemon", amount: "1" }, { item: "olive oil", amount: "2 tbsp" }, { item: "dill or parsley", amount: "2 tbsp fresh" }],
-    cost: 11, prepTime: 5, cookTime: 15, prepAhead: false, protein: 36, carbs: 42, calories: 500,
+    cost: 17, prepTime: 5, cookTime: 15, prepAhead: false, protein: 36, carbs: 42, calories: 500,
     instructions: ["Heat oil in oven-safe skillet over medium-high", "Season salmon with salt, pepper, half the lemon zest", "Sear salmon skin-side up 3 min", "Flip salmon, add asparagus around it", "Squeeze lemon juice over everything", "Bake at 400°F for 8-10 min", "Garnish with fresh herbs, serve with rice"]
   },
   { 
@@ -285,7 +285,7 @@ const dinners: MealData[] = [
   { 
     id: "d15", name: "Honey Garlic Shrimp + Veggies", 
     ingredients: [{ item: "shrimp", amount: "8 oz peeled" }, { item: "rice", amount: "1 cup cooked" }, { item: "green beans", amount: "2 cups" }, { item: "honey", amount: "2 tbsp" }, { item: "soy sauce", amount: "2 tbsp" }, { item: "garlic", amount: "4 cloves minced" }],
-    cost: 10, prepTime: 5, cookTime: 12, prepAhead: false, protein: 28, carbs: 55, calories: 480,
+    cost: 15, prepTime: 5, cookTime: 12, prepAhead: false, protein: 28, carbs: 55, calories: 480,
     instructions: ["Mix honey, soy sauce, and garlic for sauce", "Steam or sauté green beans until tender", "Cook shrimp in oiled pan 2 min per side", "Pour sauce over shrimp, cook 1 min until glazed", "Serve shrimp and green beans over rice", "Drizzle extra sauce on top"]
   },
   { 
@@ -297,7 +297,7 @@ const dinners: MealData[] = [
   { 
     id: "d17", name: "Pork Chops with Apple", 
     ingredients: [{ item: "pork chops", amount: "2 bone-in" }, { item: "apple", amount: "1 sliced" }, { item: "sweet potato", amount: "1 large cubed" }, { item: "olive oil", amount: "2 tbsp" }, { item: "rosemary", amount: "1 tsp" }, { item: "brown sugar", amount: "1 tbsp" }],
-    cost: 9, prepTime: 10, cookTime: 25, prepAhead: false, protein: 35, carbs: 45, calories: 520,
+    cost: 13, prepTime: 10, cookTime: 25, prepAhead: false, protein: 35, carbs: 45, calories: 520,
     instructions: ["Preheat oven to 400°F", "Toss sweet potato with 1 tbsp oil, salt, pepper", "Roast 15 min", "Season pork chops with salt, pepper, rosemary", "Sear in hot pan 3 min per side", "Add apples and brown sugar to sweet potatoes", "Add pork to sheet, roast 10 min more"]
   },
   { 
@@ -333,7 +333,7 @@ const dinners: MealData[] = [
   { 
     id: "d23", name: "Sheet Pan Sausage & Veggies", 
     ingredients: [{ item: "italian sausages", amount: "4 links" }, { item: "bell peppers", amount: "2 sliced" }, { item: "zucchini", amount: "1 sliced" }, { item: "red onion", amount: "1 sliced" }, { item: "olive oil", amount: "2 tbsp" }, { item: "Italian seasoning", amount: "1 tsp" }],
-    cost: 9, prepTime: 10, cookTime: 25, prepAhead: false, protein: 28, carbs: 20, calories: 450,
+    cost: 13, prepTime: 10, cookTime: 25, prepAhead: false, protein: 28, carbs: 20, calories: 450,
     instructions: ["Preheat oven to 400°F", "Slice sausages into rounds", "Toss all veggies with oil and seasoning", "Spread sausage and veggies on sheet pan", "Bake 25 min, stirring halfway", "Season with salt and pepper", "Serve as is or over rice"]
   },
   { 
