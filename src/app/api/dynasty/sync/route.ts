@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { NextResponse } from "next/server";
-import { getPlayerValue, getPickValue, recommendPhase, PROSPECTS_2026, PROSPECTS_2027 } from "@/lib/dynasty-values";
+import { getPlayerValue, getPickValue, recommendPhase, PROSPECTS_2026, PROSPECTS_2027, PLAYER_VALUES_BY_NAME } from "@/lib/dynasty-values";
 
 // Sleeper API constants
 const SLEEPER_USER_ID = "1131697729031434240";
@@ -79,7 +79,21 @@ export async function POST() {
         const player = allPlayers[playerId];
         if (!player) continue;
         
-        const { value, tier } = getPlayerValue(playerId);
+        const playerName = player.full_name || `${player.first_name} ${player.last_name}`;
+        
+        // Look up value by player name (from DynastyProcess data)
+        const dpData = PLAYER_VALUES_BY_NAME[playerName];
+        let value = 100; // default for unknown players
+        let tier = "Bench";
+        
+        if (dpData) {
+          value = dpData.value;
+          tier = value >= 6000 ? "Elite" : 
+                 value >= 4000 ? "Star" : 
+                 value >= 2000 ? "Starter" : 
+                 value >= 500 ? "Flex" : "Bench";
+        }
+        
         totalValue += value;
         
         if (player.position && posStrengths[player.position] !== undefined) {
@@ -92,7 +106,7 @@ export async function POST() {
 
         rosterPlayers.push({
           sleeperId: playerId,
-          name: player.full_name || player.first_name + " " + player.last_name,
+          name: playerName,
           position: player.position || "UNKNOWN",
           team: player.team,
           age: player.age,
