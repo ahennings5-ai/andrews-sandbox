@@ -14,41 +14,40 @@ model BusinessIdea {
   source        String
   whyNow        String
   scores        Json
-  personalFit   Json
   status        String   @default("new")
   layer         Int      @default(1)
   businessCase  Json?
   executionPlan Json?
   notes         String   @default("")
   createdAt     DateTime @default(now())
-  updatedAt     DateTime
+  updatedAt     DateTime @updatedAt
 }
 
 model MealPlan {
-  id           String   @id
+  id           String   @id @default(cuid())
   weekOf       String   @unique
   planData     Json
   checkedItems Json     @default("{}")
   createdAt    DateTime @default(now())
-  updatedAt    DateTime
+  updatedAt    DateTime @updatedAt
   attendance   Json?
 }
 
 model MealPreference {
-  id        String   @id
+  id        String   @id @default(cuid())
   mealId    String
   mealType  String
   mealName  String
   rating    Int
   person    String?
   createdAt DateTime @default(now())
-  updatedAt DateTime
+  updatedAt DateTime @updatedAt
 
   @@unique([mealId, person])
 }
 
 model RunLog {
-  id          String   @id
+  id          String   @id @default(cuid())
   week        Int
   day         Int
   date        String
@@ -58,7 +57,7 @@ model RunLog {
   feeling     String
   notes       String   @default("")
   createdAt   DateTime @default(now())
-  updatedAt   DateTime
+  updatedAt   DateTime @updatedAt
 
   @@unique([week, day])
 }

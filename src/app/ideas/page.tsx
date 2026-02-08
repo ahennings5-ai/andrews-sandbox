@@ -16,18 +16,17 @@ import Link from "next/link";
 
 // Types
 interface Scores {
-  startupCost: number;
-  timeToRevenue: number;
-  scalability: number;
-  moat: number;
-  timing: number;
-  effort: number;
-}
-
-interface PersonalFit {
-  hoursPerWeek: string;
-  skillsMatch: number;
-  networkLeverage: number;
+  demandEvidence: number;    // 1-5: How validated is demand?
+  marginCeiling: number;     // 1-5: Gross margin potential
+  capitalEfficiency: number; // 1-5: Low capital to start
+  timeToRevenue: number;     // 1-5: Speed to first dollar
+  competition: number;       // 1-5: Market density (5=underserved)
+  barrierToEntry: number;    // 1-5: Easy to start (5=anyone can start)
+  defensibility: number;     // 1-5: Moat once established
+  scalability: number;       // 1-5: Growth beyond yourself
+  ownerFreedom: number;      // 1-5: Can run without you
+  exitMultiple: number;      // 1-5: Would PE buy this?
+  personalFit: number;       // 1-5: Your skills/network leverage
 }
 
 interface BusinessCase {
@@ -58,7 +57,6 @@ interface BusinessIdea {
   source: string;
   whyNow: string;
   scores: Scores;
-  personalFit: PersonalFit;
   status: string;
   layer: number;
   businessCase: BusinessCase | null;
@@ -76,33 +74,45 @@ const categoryColors: Record<string, string> = {
   b2b: "bg-orange-500/20 text-orange-400 border-orange-500/30",
 };
 
-// Score labels
-const scoreLabels: Record<keyof Scores, { label: string; icon: string }> = {
-  startupCost: { label: "Startup Cost", icon: "💵" },
-  timeToRevenue: { label: "Time to Revenue", icon: "⏱️" },
-  scalability: { label: "Scalability", icon: "📈" },
-  moat: { label: "Moat", icon: "🏰" },
-  timing: { label: "Timing", icon: "🌊" },
-  effort: { label: "Effort", icon: "⚡" },
+// Score labels with weights
+const scoreLabels: Record<keyof Scores, { label: string; icon: string; weight: number }> = {
+  demandEvidence: { label: "Demand Evidence", icon: "📊", weight: 2 },
+  marginCeiling: { label: "Margin Potential", icon: "💰", weight: 1.5 },
+  capitalEfficiency: { label: "Capital Efficiency", icon: "💵", weight: 1.5 },
+  timeToRevenue: { label: "Time to Revenue", icon: "⏱️", weight: 1 },
+  competition: { label: "Competition", icon: "🎯", weight: 1 },
+  barrierToEntry: { label: "Barrier to Entry", icon: "🚪", weight: 1 },
+  defensibility: { label: "Defensibility", icon: "🏰", weight: 1 },
+  scalability: { label: "Scalability", icon: "📈", weight: 1 },
+  ownerFreedom: { label: "Owner Freedom", icon: "🏖️", weight: 1 },
+  exitMultiple: { label: "Exit Potential", icon: "🎰", weight: 1 },
+  personalFit: { label: "Personal Fit", icon: "🎯", weight: 1.5 },
 };
 
-// Calculate overall score
-function calculateOverall(scores: Scores): number {
-  const weights = {
-    startupCost: 1,
-    timeToRevenue: 1,
-    scalability: 1.2,
-    moat: 1.3,
-    timing: 1,
-    effort: 0.8,
-  };
+// Calculate weighted score (0-100) and letter grade
+function calculateOverall(scores: Scores): { score: number; grade: string } {
   let total = 0;
   let weightSum = 0;
-  for (const key of Object.keys(scores) as (keyof Scores)[]) {
-    total += scores[key] * weights[key];
-    weightSum += weights[key];
+  for (const key of Object.keys(scoreLabels) as (keyof Scores)[]) {
+    const value = scores[key] ?? 3; // default to 3 if missing
+    const weight = scoreLabels[key].weight;
+    total += value * weight;
+    weightSum += weight;
   }
-  return Math.round((total / weightSum) * 10) / 10;
+  // Normalize to 0-100
+  const rawScore = (total / weightSum); // 1-5 scale
+  const normalized = Math.round(((rawScore - 1) / 4) * 100); // convert to 0-100
+  
+  // Letter grade
+  let grade = "F";
+  if (normalized >= 90) grade = "A";
+  else if (normalized >= 80) grade = "B+";
+  else if (normalized >= 70) grade = "B";
+  else if (normalized >= 60) grade = "C+";
+  else if (normalized >= 50) grade = "C";
+  else if (normalized >= 40) grade = "D";
+  
+  return { score: normalized, grade };
 }
 
 // Score bar component
@@ -296,17 +306,22 @@ export default function IdeasPage() {
                     >
                       {idea.category}
                     </Badge>
-                    <span className="text-xs text-muted-foreground">
-                      Score: {calculateOverall(idea.scores)}/5
-                    </span>
+                    {(() => {
+                      const { score, grade } = calculateOverall(idea.scores);
+                      return (
+                        <span className={`text-xs font-medium ${grade.startsWith('A') ? 'text-green-400' : grade.startsWith('B') ? 'text-blue-400' : grade.startsWith('C') ? 'text-yellow-400' : 'text-red-400'}`}>
+                          {grade} ({score})
+                        </span>
+                      );
+                    })()}
                   </div>
                   <div className="grid grid-cols-3 gap-2 text-xs">
-                    {(["startupCost", "scalability", "moat"] as const).map((key) => (
+                    {(["demandEvidence", "capitalEfficiency", "personalFit"] as const).map((key) => (
                       <div key={key}>
                         <span className="text-muted-foreground">
-                          {scoreLabels[key].icon}
+                          {scoreLabels[key]?.icon}
                         </span>
-                        <ScoreBar score={idea.scores[key]} />
+                        <ScoreBar score={idea.scores[key] ?? 3} />
                       </div>
                     ))}
                   </div>
@@ -404,9 +419,14 @@ export default function IdeasPage() {
                     <CardHeader className="pb-2">
                       <CardTitle className="text-sm flex items-center justify-between">
                         <span>Opportunity Scores</span>
-                        <span className="text-primary">
-                          Overall: {calculateOverall(selectedIdea.scores)}/5
-                        </span>
+                        {(() => {
+                          const { score, grade } = calculateOverall(selectedIdea.scores);
+                          return (
+                            <span className={`font-bold ${grade.startsWith('A') ? 'text-green-400' : grade.startsWith('B') ? 'text-blue-400' : grade.startsWith('C') ? 'text-yellow-400' : 'text-red-400'}`}>
+                              Grade: {grade} ({score}/100)
+                            </span>
+                          );
+                        })()}
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -416,44 +436,25 @@ export default function IdeasPage() {
                             <div className="flex items-center justify-between text-sm">
                               <span>
                                 {scoreLabels[key].icon} {scoreLabels[key].label}
+                                {scoreLabels[key].weight > 1 && <span className="text-xs text-primary ml-1">({scoreLabels[key].weight}x)</span>}
                               </span>
                               <span className="text-muted-foreground">
-                                {selectedIdea.scores[key]}/5
+                                {selectedIdea.scores[key] ?? "?"}/5
                               </span>
                             </div>
-                            <ScoreBar score={selectedIdea.scores[key]} />
+                            <ScoreBar score={selectedIdea.scores[key] ?? 0} />
                           </div>
                         ))}
                       </div>
                     </CardContent>
                   </Card>
 
-                  {/* Personal Fit */}
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm">Personal Fit</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid md:grid-cols-3 gap-4 text-sm">
-                        <div>
-                          <span className="text-muted-foreground">Hours/Week:</span>
-                          <p className="font-medium">{selectedIdea.personalFit.hoursPerWeek}</p>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Skills Match:</span>
-                          <div className="mt-1">
-                            <ScoreBar score={selectedIdea.personalFit.skillsMatch} />
-                          </div>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Network Leverage:</span>
-                          <div className="mt-1">
-                            <ScoreBar score={selectedIdea.personalFit.networkLeverage} />
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  {/* Score Legend */}
+                  <div className="p-3 bg-muted/30 rounded-lg text-xs text-muted-foreground">
+                    <p className="font-medium mb-1">Weighted Scoring:</p>
+                    <p>📊 Demand Evidence, 💰 Margin, 💵 Capital Efficiency, 🎯 Personal Fit = <span className="text-primary">1.5-2x weight</span></p>
+                    <p>Other factors = 1x weight. Grade based on weighted average (A=90+, B=70+, C=50+).</p>
+                  </div>
 
                   {/* Notes */}
                   <Card>

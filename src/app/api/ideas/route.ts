@@ -37,7 +37,6 @@ export async function POST(request: NextRequest) {
         source: body.source,
         whyNow: body.whyNow,
         scores: body.scores,
-        personalFit: body.personalFit,
         status: "new",
         layer: 1,
       },
