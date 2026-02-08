@@ -230,6 +230,11 @@ const generateMarathonPlan = () => {
 
 const trainingPlan = [...generateBasePhase(), ...generateMarathonPlan()];
 
+interface MileSplit {
+  mile: number;
+  pace: string;
+}
+
 interface RunLog {
   id: string;
   week: number;
@@ -240,6 +245,8 @@ interface RunLog {
   pace: string;
   feeling: "great" | "good" | "okay" | "tough" | "struggled";
   notes: string;
+  splits?: MileSplit[];
+  coachingFeedback?: string;
 }
 
 interface TrainingState {
@@ -269,6 +276,7 @@ export default function MarathonTracker() {
     duration: "",
     feeling: "good" as RunLog["feeling"],
     notes: "",
+    splitsText: "", // Format: "8:30, 8:45, 9:00" or one per line
   });
 
   // Warm-up exercises based on run type
@@ -537,9 +545,21 @@ export default function MarathonTracker() {
     return `${paceMins}:${paceSecs.toString().padStart(2, "0")}`;
   };
 
+  // Parse splits from text input (e.g., "8:30, 8:45, 9:00" or newline-separated)
+  const parseSplits = (text: string): MileSplit[] => {
+    if (!text.trim()) return [];
+    const parts = text.split(/[,\n]+/).map(s => s.trim()).filter(Boolean);
+    return parts.map((pace, i) => ({
+      mile: i + 1,
+      pace: pace.includes(":") ? pace : `${pace}:00`,
+    }));
+  };
+
   const handleLogRun = async () => {
     if (!selectedWorkout) return;
     const pace = calculatePace(logForm.actualMiles, logForm.duration);
+    const splits = parseSplits(logForm.splitsText);
+    
     const logData = {
       week: selectedWorkout.week,
       day: selectedWorkout.day,
@@ -549,6 +569,7 @@ export default function MarathonTracker() {
       pace,
       feeling: logForm.feeling,
       notes: logForm.notes,
+      splits: splits.length > 0 ? splits : undefined,
     };
 
     try {
@@ -570,7 +591,7 @@ export default function MarathonTracker() {
     }
 
     setLogDialogOpen(false);
-    setLogForm({ actualMiles: "", duration: "", feeling: "good", notes: "" });
+    setLogForm({ actualMiles: "", duration: "", feeling: "good", notes: "", splitsText: "" });
   };
 
   const handleDeleteLog = async (logId: string) => {
@@ -747,6 +768,7 @@ export default function MarathonTracker() {
             <TabsTrigger value="schedule">Schedule</TabsTrigger>
             <TabsTrigger value="progress">Progress</TabsTrigger>
             <TabsTrigger value="log">Run Log</TabsTrigger>
+            <TabsTrigger value="coach">🎯 Coach</TabsTrigger>
           </TabsList>
 
           {/* Schedule Tab */}
@@ -917,6 +939,7 @@ export default function MarathonTracker() {
                                     duration: log.duration,
                                     feeling: log.feeling,
                                     notes: log.notes,
+                                    splitsText: log.splits?.map(s => s.pace).join(", ") || "",
                                   });
                                 } else {
                                   setLogForm({
@@ -924,6 +947,7 @@ export default function MarathonTracker() {
                                     duration: "",
                                     feeling: "good",
                                     notes: "",
+                                    splitsText: "",
                                   });
                                 }
                               }}
@@ -978,6 +1002,17 @@ export default function MarathonTracker() {
                                     ))}
                                   </SelectContent>
                                 </Select>
+                              </div>
+                              <div className="space-y-2">
+                                <Label>Mile Splits (optional)</Label>
+                                <Input
+                                  placeholder="e.g., 8:30, 8:45, 9:00"
+                                  value={logForm.splitsText}
+                                  onChange={(e) => setLogForm((f) => ({ ...f, splitsText: e.target.value }))}
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                  Enter pace for each mile, separated by commas
+                                </p>
                               </div>
                               <div className="space-y-2">
                                 <Label>Notes</Label>
@@ -1145,35 +1180,317 @@ export default function MarathonTracker() {
                       .map((log) => (
                         <div
                           key={log.id}
-                          className="flex items-center gap-4 p-4 rounded-lg border border-border"
+                          className="p-4 rounded-lg border border-border space-y-3"
                         >
-                          <div className="flex-1 space-y-1">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium">Week {log.week}, Day {log.day}</span>
-                              <Badge variant="outline" className={log.week <= BASE_WEEKS ? "border-emerald-500/30 text-emerald-500" : ""}>
-                                {log.week <= BASE_WEEKS ? "Base" : "Marathon"}
-                              </Badge>
-                              <span className="text-lg">{feelingConfig[log.feeling].emoji}</span>
+                          <div className="flex items-center gap-4">
+                            <div className="flex-1 space-y-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">Week {log.week}, Day {log.day}</span>
+                                <Badge variant="outline" className={log.week <= BASE_WEEKS ? "border-emerald-500/30 text-emerald-500" : ""}>
+                                  {log.week <= BASE_WEEKS ? "Base" : "Marathon"}
+                                </Badge>
+                                <span className="text-lg">{feelingConfig[log.feeling].emoji}</span>
+                              </div>
+                              <p className="text-sm text-muted-foreground">{log.date}</p>
+                              {log.notes && <p className="text-sm text-muted-foreground">{log.notes}</p>}
                             </div>
-                            <p className="text-sm text-muted-foreground">{log.date}</p>
-                            {log.notes && <p className="text-sm text-muted-foreground">{log.notes}</p>}
+                            <div className="text-right">
+                              <div className="font-medium">{log.actualMiles} mi</div>
+                              <div className="text-sm text-muted-foreground">{log.duration} • {log.pace}/mi</div>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteLog(log.id)}
+                              className="text-muted-foreground hover:text-destructive"
+                            >
+                              ✕
+                            </Button>
                           </div>
-                          <div className="text-right">
-                            <div className="font-medium">{log.actualMiles} mi</div>
-                            <div className="text-sm text-muted-foreground">{log.duration} • {log.pace}/mi</div>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteLog(log.id)}
-                            className="text-muted-foreground hover:text-destructive"
-                          >
-                            ✕
-                          </Button>
+                          
+                          {/* Mile Splits */}
+                          {log.splits && log.splits.length > 0 && (
+                            <div className="pt-2 border-t border-border">
+                              <p className="text-xs text-muted-foreground mb-2">Mile Splits</p>
+                              <div className="flex flex-wrap gap-2">
+                                {(log.splits as MileSplit[]).map((split, i) => (
+                                  <Badge key={i} variant="secondary" className="font-mono text-xs">
+                                    M{split.mile}: {split.pace}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Coaching Feedback */}
+                          {log.coachingFeedback && (
+                            <div className="pt-2 border-t border-border">
+                              <div className="flex items-start gap-2 p-3 rounded-lg bg-primary/5 border border-primary/20">
+                                <span className="text-lg">🎯</span>
+                                <div>
+                                  <p className="text-xs font-medium text-primary mb-1">Coach&apos;s Notes</p>
+                                  <p className="text-sm">{log.coachingFeedback}</p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       ))}
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Coach Tab */}
+          <TabsContent value="coach" className="space-y-6">
+            {/* Current Phase Guidance */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  🎯 Your Training Focus
+                </CardTitle>
+                <CardDescription>
+                  {selectedWeek <= BASE_WEEKS
+                    ? "Base Building Phase"
+                    : selectedWeek - BASE_WEEKS <= 4
+                      ? "Building Mileage Phase"
+                      : selectedWeek - BASE_WEEKS <= 8
+                        ? "Building Intensity Phase"
+                        : selectedWeek - BASE_WEEKS <= 12
+                          ? "Peak Training Phase"
+                          : selectedWeek - BASE_WEEKS <= 14
+                            ? "Final Push Phase"
+                            : selectedWeek - BASE_WEEKS <= 17
+                              ? "Taper Phase"
+                              : "Race Week"}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {/* Phase-specific tips */}
+                  {(() => {
+                    const weekNum = selectedWeek - BASE_WEEKS;
+                    const isBase = selectedWeek <= BASE_WEEKS;
+                    
+                    const phaseTips = isBase ? {
+                      title: "Base Building",
+                      focus: "Build aerobic foundation without injury",
+                      tips: [
+                        "Keep all runs at conversational pace - you should be able to talk comfortably",
+                        "Focus on consistency over speed - showing up matters most right now",
+                        "Build the habit: same days, same times each week",
+                        "Listen to your body - slight fatigue is normal, pain is not",
+                        "Hydrate well and prioritize 7-8 hours of sleep",
+                      ],
+                      keyWorkout: "Weekend long run - build endurance gradually",
+                    } : weekNum <= 4 ? {
+                      title: "Building Mileage",
+                      focus: "Gradually increase weekly volume",
+                      tips: [
+                        "Don't increase weekly mileage by more than 10%",
+                        "Most runs should still feel easy and controlled",
+                        "Long runs are your most important workout",
+                        "Take recovery seriously - easy days should be truly easy",
+                        "Start thinking about race nutrition - practice on long runs",
+                      ],
+                      keyWorkout: "Long run with negative splits (second half slightly faster)",
+                    } : weekNum <= 8 ? {
+                      title: "Building Intensity",
+                      focus: "Add speed work while maintaining mileage",
+                      tips: [
+                        "Tempo runs teach your body to sustain effort",
+                        "Intervals build speed and mental toughness",
+                        "Recovery between hard workouts is crucial",
+                        "Don't race your workouts - save it for race day",
+                        "Practice your race pace during some long run portions",
+                      ],
+                      keyWorkout: "Tempo runs at 8:00/mi - comfortably hard effort",
+                    } : weekNum <= 12 ? {
+                      title: "Peak Training",
+                      focus: "Maximum stress before taper",
+                      tips: [
+                        "Your 20-milers are the pinnacle - respect the distance",
+                        "Mental toughness is built in these weeks",
+                        "Trust your training - don't add extra work",
+                        "Dial in your race nutrition strategy",
+                        "Start visualizing race day success",
+                      ],
+                      keyWorkout: "20-mile long runs at goal marathon pace",
+                    } : weekNum <= 14 ? {
+                      title: "Final Push",
+                      focus: "Last hard efforts before taper",
+                      tips: [
+                        "One more 20-miler to cement your fitness",
+                        "Keep intensity but start reducing volume",
+                        "Any fitness gained now won't help race day",
+                        "Focus on recovery and staying healthy",
+                        "Plan your race logistics (travel, gear, nutrition)",
+                      ],
+                      keyWorkout: "Final 20-miler with race pace segments",
+                    } : weekNum <= 17 ? {
+                      title: "Taper Time",
+                      focus: "Rest and recover while maintaining sharpness",
+                      tips: [
+                        "Reduced mileage is NOT losing fitness",
+                        "Phantom pains are normal - trust your body",
+                        "Keep some intensity to stay sharp",
+                        "Focus on sleep, nutrition, and hydration",
+                        "Mental prep is as important as physical",
+                        "Review your race plan and pacing strategy",
+                      ],
+                      keyWorkout: "Short, controlled runs with a few strides",
+                    } : {
+                      title: "Race Week",
+                      focus: "Stay calm, trust your training",
+                      tips: [
+                        "No new foods, gear, or routines",
+                        "Light shakeout runs only",
+                        "Carb-load the day before (not the night before!)",
+                        "Lay out everything the night before",
+                        "Start conservative - first 10K should feel easy",
+                        "YOU'VE GOT THIS! 🏃‍♂️",
+                      ],
+                      keyWorkout: "Race day: NYC Marathon! 🗽",
+                    };
+
+                    return (
+                      <div className="space-y-4">
+                        <div className="p-4 rounded-lg bg-muted/30 border border-border">
+                          <h3 className="font-semibold mb-1">🎯 Current Focus</h3>
+                          <p className="text-sm text-muted-foreground">{phaseTips.focus}</p>
+                        </div>
+
+                        <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
+                          <h3 className="font-semibold mb-1">⭐ Key Workout</h3>
+                          <p className="text-sm">{phaseTips.keyWorkout}</p>
+                        </div>
+
+                        <div>
+                          <h3 className="font-semibold mb-2">📝 This Phase</h3>
+                          <ul className="space-y-2">
+                            {phaseTips.tips.map((tip, i) => (
+                              <li key={i} className="flex items-start gap-2 text-sm">
+                                <span className="text-primary mt-0.5">•</span>
+                                <span>{tip}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Recent Performance */}
+            <Card>
+              <CardHeader>
+                <CardTitle>📊 Recent Performance</CardTitle>
+                <CardDescription>How your recent runs stack up</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {state.logs.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-8">Log some runs to see performance insights!</p>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Recent runs with splits analysis */}
+                    {state.logs
+                      .filter(l => l.splits && (l.splits as MileSplit[]).length > 0)
+                      .slice(0, 3)
+                      .map(log => {
+                        const splits = log.splits as MileSplit[];
+                        const paces = splits.map(s => {
+                          const [m, sec] = s.pace.split(":").map(Number);
+                          return m * 60 + (sec || 0);
+                        });
+                        const avgPace = paces.reduce((a, b) => a + b, 0) / paces.length;
+                        const firstHalf = paces.slice(0, Math.floor(paces.length / 2));
+                        const secondHalf = paces.slice(Math.floor(paces.length / 2));
+                        const firstAvg = firstHalf.length > 0 ? firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length : 0;
+                        const secondAvg = secondHalf.length > 0 ? secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length : 0;
+                        const isNegativeSplit = secondAvg < firstAvg;
+                        
+                        return (
+                          <div key={log.id} className="p-4 rounded-lg border border-border">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="font-medium">Week {log.week}, Day {log.day}</span>
+                              <Badge variant={isNegativeSplit ? "default" : "secondary"}>
+                                {isNegativeSplit ? "🔥 Negative Split" : "Positive Split"}
+                              </Badge>
+                            </div>
+                            <div className="flex flex-wrap gap-1 mb-2">
+                              {splits.map((split, i) => {
+                                const [m, sec] = split.pace.split(":").map(Number);
+                                const paceInSecs = m * 60 + (sec || 0);
+                                const diff = paceInSecs - avgPace;
+                                return (
+                                  <Badge
+                                    key={i}
+                                    variant="outline"
+                                    className={`font-mono text-xs ${
+                                      diff < -5 ? "border-emerald-500 text-emerald-500" :
+                                      diff > 5 ? "border-amber-500 text-amber-500" : ""
+                                    }`}
+                                  >
+                                    {split.pace}
+                                  </Badge>
+                                );
+                              })}
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              Avg pace: {Math.floor(avgPace / 60)}:{String(Math.round(avgPace % 60)).padStart(2, "0")}/mi
+                            </p>
+                          </div>
+                        );
+                      })}
+                    
+                    {state.logs.filter(l => l.splits && (l.splits as MileSplit[]).length > 0).length === 0 && (
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        Add mile splits to your runs for detailed analysis! 📊
+                      </p>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Coaching Feedback Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle>💬 Coach&apos;s Feedback</CardTitle>
+                <CardDescription>Agent Drew&apos;s notes on your runs</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {(() => {
+                  const runsWithFeedback = state.logs.filter(l => l.coachingFeedback);
+                  
+                  if (runsWithFeedback.length === 0) {
+                    return (
+                      <div className="text-center py-8">
+                        <p className="text-muted-foreground mb-2">No coaching feedback yet</p>
+                        <p className="text-sm text-muted-foreground">
+                          Log runs with mile splits and I&apos;ll provide personalized feedback! 🎯
+                        </p>
+                      </div>
+                    );
+                  }
+                  
+                  return (
+                    <div className="space-y-3">
+                      {runsWithFeedback.slice(0, 5).map(log => (
+                        <div key={log.id} className="p-4 rounded-lg bg-primary/5 border border-primary/20">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="font-medium text-sm">Week {log.week}, Day {log.day}</span>
+                            <span className="text-xs text-muted-foreground">• {log.actualMiles} mi @ {log.pace}/mi</span>
+                          </div>
+                          <p className="text-sm">{log.coachingFeedback}</p>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
               </CardContent>
             </Card>
           </TabsContent>

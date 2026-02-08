@@ -31,6 +31,7 @@ model MealPlan {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   attendance   Json?
+  deals        Json?    // Agent Drew's grocery deal insights
 }
 
 model MealPreference {
@@ -47,17 +48,19 @@ model MealPreference {
 }
 
 model RunLog {
-  id          String   @id @default(cuid())
-  week        Int
-  day         Int
-  date        String
-  actualMiles Float
-  duration    String
-  pace        String
-  feeling     String
-  notes       String   @default("")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id               String   @id @default(cuid())
+  week             Int
+  day              Int
+  date             String
+  actualMiles      Float
+  duration         String
+  pace             String
+  feeling          String
+  notes            String   @default("")
+  splits           Json?    // Mile splits: [{mile: 1, pace: "8:45"}, ...]
+  coachingFeedback String?  // Agent Drew's coaching feedback
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   @@unique([week, day])
 }

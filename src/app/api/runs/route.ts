@@ -18,12 +18,12 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { week, day, date, actualMiles, duration, pace, feeling, notes } = body;
+    const { week, day, date, actualMiles, duration, pace, feeling, notes, splits, coachingFeedback } = body;
 
     const log = await prisma.runLog.upsert({
       where: { week_day: { week, day } },
-      update: { date, actualMiles, duration, pace, feeling, notes },
-      create: { week, day, date, actualMiles, duration, pace, feeling, notes },
+      update: { date, actualMiles, duration, pace, feeling, notes, splits, coachingFeedback },
+      create: { week, day, date, actualMiles, duration, pace, feeling, notes, splits, coachingFeedback },
     });
 
     return NextResponse.json(log);

@@ -352,6 +352,24 @@ interface DayPlan {
   dinner: typeof dinners[0];
 }
 
+// Deal insights structure
+interface DealInsight {
+  store: string;
+  item: string;
+  deal: string;
+  price?: string;
+  savings?: string;
+  expires?: string;
+  relevantIngredients?: string[]; // Which grocery list items this applies to
+}
+
+interface DealsData {
+  lastUpdated: string;
+  summary: string;
+  deals: DealInsight[];
+  tips?: string[];
+}
+
 // Who's eating each meal
 interface MealAttendance {
   andrew: boolean;
@@ -578,6 +596,26 @@ export default function MealPlanner() {
   const [preferences, setPreferences] = useState<Preferences>({});
   const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null);
   const [selectedIngredient, setSelectedIngredient] = useState<string | null>(null);
+  const [deals, setDeals] = useState<DealsData | null>(null);
+  const [dealsLoading, setDealsLoading] = useState(false);
+
+  // Fetch deals
+  const fetchDeals = useCallback(async () => {
+    setDealsLoading(true);
+    try {
+      const response = await fetch("/api/meals/deals");
+      if (response.ok) {
+        const data = await response.json();
+        if (data.deals) {
+          setDeals(data.deals);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch deals:", error);
+    } finally {
+      setDealsLoading(false);
+    }
+  }, []);
 
   // Find all meals that use a specific ingredient
   const getMealsUsingIngredient = (ingredientName: string): Meal[] => {
@@ -656,11 +694,14 @@ export default function MealPlanner() {
   useEffect(() => {
     async function loadData() {
       try {
-        // Load meal plan and preferences in parallel
+        // Load meal plan, preferences, and deals in parallel
         const [planResponse, prefsResponse] = await Promise.all([
           fetch("/api/meals"),
           fetch("/api/meals/preferences"),
         ]);
+        
+        // Also fetch deals
+        fetchDeals();
         
         // Load preferences
         if (prefsResponse.ok) {
@@ -705,7 +746,7 @@ export default function MealPlanner() {
       }
     }
     loadData();
-  }, [savePlanToDb, hydrateMeal]);
+  }, [savePlanToDb, hydrateMeal, fetchDeals]);
 
   // Revise a single meal - swap it for a different option
   const handleRevise = (dayIndex: number, mealType: "breakfast" | "lunch" | "dinner") => {
@@ -864,6 +905,7 @@ export default function MealPlanner() {
             <TabsTrigger value="plan">Meal Plan</TabsTrigger>
             <TabsTrigger value="prep">Sunday Prep</TabsTrigger>
             <TabsTrigger value="grocery">Grocery List</TabsTrigger>
+            <TabsTrigger value="deals">🏷️ Deals</TabsTrigger>
           </TabsList>
 
           {/* Schedule Tab - Who's eating each meal */}
@@ -1238,7 +1280,133 @@ export default function MealPlanner() {
             </Card>
           </TabsContent>
 
-                  </Tabs>
+          {/* Deals Tab */}
+          <TabsContent value="deals">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>🏷️ Weekend Grocery Deals</CardTitle>
+                    <CardDescription>
+                      Agent Drew&apos;s picks for this week&apos;s shopping
+                    </CardDescription>
+                  </div>
+                  {deals && (
+                    <Badge variant="outline" className="text-xs">
+                      Updated {new Date(deals.lastUpdated).toLocaleDateString()}
+                    </Badge>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent>
+                {dealsLoading ? (
+                  <p className="text-muted-foreground text-center py-8">Loading deals...</p>
+                ) : !deals ? (
+                  <div className="text-center py-12">
+                    <p className="text-muted-foreground mb-2">No deals posted yet</p>
+                    <p className="text-sm text-muted-foreground">
+                      Agent Drew will post grocery deals here before weekend shopping! 🛒
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {/* Summary */}
+                    {deals.summary && (
+                      <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
+                        <p className="text-sm">{deals.summary}</p>
+                      </div>
+                    )}
+
+                    {/* Deals by store */}
+                    {(() => {
+                      const byStore = deals.deals.reduce((acc, deal) => {
+                        if (!acc[deal.store]) acc[deal.store] = [];
+                        acc[deal.store].push(deal);
+                        return acc;
+                      }, {} as Record<string, DealInsight[]>);
+
+                      return Object.entries(byStore).map(([store, storeDeals]) => (
+                        <div key={store} className="space-y-3">
+                          <h3 className="font-semibold flex items-center gap-2">
+                            🏪 {store}
+                          </h3>
+                          <div className="space-y-2">
+                            {storeDeals.map((deal, i) => {
+                              // Check if this deal is relevant to our grocery list
+                              const isRelevant = deal.relevantIngredients?.some(ing =>
+                                stats.groceryList.some(g => 
+                                  g.name.toLowerCase().includes(ing.toLowerCase()) ||
+                                  ing.toLowerCase().includes(g.name.toLowerCase())
+                                )
+                              );
+
+                              return (
+                                <div
+                                  key={i}
+                                  className={`p-3 rounded-lg border transition-colors ${
+                                    isRelevant
+                                      ? "border-green-500/30 bg-green-500/5"
+                                      : "border-border bg-card"
+                                  }`}
+                                >
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <span className="font-medium">{deal.item}</span>
+                                        {isRelevant && (
+                                          <Badge variant="secondary" className="text-xs bg-green-500/20 text-green-600">
+                                            On your list!
+                                          </Badge>
+                                        )}
+                                      </div>
+                                      <p className="text-sm text-primary mt-1">{deal.deal}</p>
+                                      {deal.relevantIngredients && deal.relevantIngredients.length > 0 && (
+                                        <p className="text-xs text-muted-foreground mt-1">
+                                          Good for: {deal.relevantIngredients.join(", ")}
+                                        </p>
+                                      )}
+                                    </div>
+                                    <div className="text-right shrink-0">
+                                      {deal.price && (
+                                        <span className="font-bold text-lg">{deal.price}</span>
+                                      )}
+                                      {deal.savings && (
+                                        <p className="text-xs text-green-600">{deal.savings}</p>
+                                      )}
+                                      {deal.expires && (
+                                        <p className="text-xs text-muted-foreground">Exp: {deal.expires}</p>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ));
+                    })()}
+
+                    {/* Tips */}
+                    {deals.tips && deals.tips.length > 0 && (
+                      <div className="p-4 rounded-lg bg-muted/30 border border-border">
+                        <h3 className="font-medium mb-2">💡 Shopping Tips</h3>
+                        <ul className="space-y-1 text-sm text-muted-foreground">
+                          {deals.tips.map((tip, i) => (
+                            <li key={i} className="flex items-start gap-2">
+                              <span className="text-primary">•</span>
+                              <span>{tip}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+        </Tabs>
 
         {/* Recipe Modal */}
         <Dialog open={!!selectedMeal} onOpenChange={(open) => !open && setSelectedMeal(null)}>
