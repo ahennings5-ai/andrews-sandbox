@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -868,88 +868,73 @@ export default function MealPlanner() {
 
           {/* Schedule Tab - Who's eating each meal */}
           <TabsContent value="schedule" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Weekly Schedule</CardTitle>
-                <CardDescription>Toggle who&apos;s eating each meal — costs and grocery list adjust automatically</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Helper to get meal attendance with migration for old data */}
-                {(() => {
-                  const getMealAtt = (dayAtt: DayAttendance | undefined, mealType: "breakfast" | "lunch" | "dinner") => {
-                    if (!dayAtt) return { andrew: true, olivia: true };
-                    // Handle old format migration
-                    if (!dayAtt.breakfast) {
-                      const old = dayAtt as unknown as { andrew: boolean; olivia: boolean };
-                      return { andrew: old.andrew ?? true, olivia: old.olivia ?? true };
-                    }
-                    return dayAtt[mealType];
-                  };
+            {(() => {
+              const getMealAtt = (dayAtt: DayAttendance | undefined, mealType: "breakfast" | "lunch" | "dinner") => {
+                if (!dayAtt) return { andrew: true, olivia: true };
+                if (!dayAtt.breakfast) {
+                  const old = dayAtt as unknown as { andrew: boolean; olivia: boolean };
+                  return { andrew: old.andrew ?? true, olivia: old.olivia ?? true };
+                }
+                return dayAtt[mealType];
+              };
 
-                  const mealTypes = [
-                    { key: "breakfast" as const, label: "🍳 Breakfast", emoji: "🍳" },
-                    { key: "lunch" as const, label: "🥗 Lunch", emoji: "🥗" },
-                    { key: "dinner" as const, label: "🍽️ Dinner", emoji: "🍽️" },
-                  ];
+              const mealTypes = [
+                { key: "breakfast" as const, label: "Breakfast", emoji: "🍳" },
+                { key: "lunch" as const, label: "Lunch", emoji: "🥗" },
+                { key: "dinner" as const, label: "Dinner", emoji: "🍽️" },
+              ];
 
-                  return mealTypes.map(({ key: mealType, label }) => (
-                    <div key={mealType} className="space-y-2">
-                      <h4 className="font-medium text-sm">{label}</h4>
-                      <div className="grid grid-cols-8 gap-2 text-center text-sm">
-                        <div></div>
-                        {dayNames.map((day) => (
-                          <div key={day} className="font-medium text-xs text-muted-foreground">{day.slice(0, 3)}</div>
-                        ))}
-                        
-                        {/* Andrew's row for this meal */}
-                        <div className="text-left text-xs py-2">Andrew</div>
-                        {plan.attendance?.map((att, i) => {
-                          const mealAtt = getMealAtt(att, mealType);
-                          return (
-                            <button
-                              key={`${mealType}-andrew-${i}`}
-                              onClick={() => toggleAttendance(i, mealType, "andrew")}
-                              className={`p-1.5 rounded-lg border transition-all text-xs ${
-                                mealAtt.andrew
-                                  ? "bg-primary text-primary-foreground border-primary"
-                                  : "bg-muted text-muted-foreground border-border hover:border-primary/50"
-                              }`}
-                            >
-                              {mealAtt.andrew ? "✓" : "—"}
-                            </button>
-                          );
-                        })}
-                        
-                        {/* Olivia's row for this meal */}
-                        <div className="text-left text-xs py-2">Olivia</div>
-                        {plan.attendance?.map((att, i) => {
-                          const mealAtt = getMealAtt(att, mealType);
-                          return (
-                            <button
-                              key={`${mealType}-olivia-${i}`}
-                              onClick={() => toggleAttendance(i, mealType, "olivia")}
-                              className={`p-1.5 rounded-lg border transition-all text-xs ${
-                                mealAtt.olivia
-                                  ? "bg-primary text-primary-foreground border-primary"
-                                  : "bg-muted text-muted-foreground border-border hover:border-primary/50"
-                              }`}
-                            >
-                              {mealAtt.olivia ? "✓" : "—"}
-                            </button>
-                          );
-                        })}
-                      </div>
+              const people = [
+                { key: "andrew" as const, name: "Andrew", emoji: "👨" },
+                { key: "olivia" as const, name: "Olivia", emoji: "👩" },
+              ];
+
+              return people.map(({ key: person, name, emoji }) => (
+                <Card key={person}>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg">{emoji} {name}&apos;s Schedule</CardTitle>
+                    <CardDescription>Toggle meals for the week</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-8 gap-2 text-center text-sm">
+                      <div></div>
+                      {dayNames.map((day) => (
+                        <div key={day} className="font-medium text-xs text-muted-foreground">{day.slice(0, 3)}</div>
+                      ))}
+                      
+                      {mealTypes.map(({ key: mealType, label, emoji: mealEmoji }) => (
+                        <React.Fragment key={mealType}>
+                          <div className="text-left text-xs py-2">{mealEmoji} {label}</div>
+                          {plan.attendance?.map((att, i) => {
+                            const mealAtt = getMealAtt(att, mealType);
+                            const isActive = mealAtt[person];
+                            return (
+                              <button
+                                key={`${person}-${mealType}-${i}`}
+                                onClick={() => toggleAttendance(i, mealType, person)}
+                                className={`p-1.5 rounded-lg border transition-all text-xs ${
+                                  isActive
+                                    ? "bg-primary text-primary-foreground border-primary"
+                                    : "bg-muted text-muted-foreground border-border hover:border-primary/50"
+                                }`}
+                              >
+                                {isActive ? "✓" : "—"}
+                              </button>
+                            );
+                          })}
+                        </React.Fragment>
+                      ))}
                     </div>
-                  ));
-                })()}
-                
-                <div className="pt-4 border-t border-border">
-                  <p className="text-xs text-muted-foreground">
-                    💡 Tip: If Andrew&apos;s traveling or Olivia&apos;s out, toggle off their meals — grocery list and costs will adjust.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+                  </CardContent>
+                </Card>
+              ));
+            })()}
+            
+            <div className="p-4 bg-muted/30 rounded-lg border border-border">
+              <p className="text-xs text-muted-foreground">
+                💡 Tip: Toggle off meals when traveling or eating out — grocery list and costs adjust automatically.
+              </p>
+            </div>
           </TabsContent>
 
           {/* Meal Plan Tab */}
