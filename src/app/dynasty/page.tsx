@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import Link from "next/link";
 
 // Types
@@ -17,6 +18,11 @@ interface Settings {
   teamName: string;
   mode: "tank" | "retool" | "contend";
   lastSync: string | null;
+}
+
+interface ValueHistory {
+  date: string;
+  value: number;
 }
 
 interface Player {
@@ -87,6 +93,7 @@ export default function DynastyPage() {
   const [picks, setPicks] = useState<Pick[]>([]);
   const [prospects, setProspects] = useState<Prospect[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
+  const [valueHistory, setValueHistory] = useState<ValueHistory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
@@ -125,6 +132,10 @@ export default function DynastyPage() {
       if (teamsRes.ok) {
         const data = await teamsRes.json();
         setTeams(data.teams || []);
+        // Get value history for Andrew's team (rosterId 1)
+        if (data.historyByTeam && data.historyByTeam[1]) {
+          setValueHistory(data.historyByTeam[1]);
+        }
       }
     } catch (error) {
       console.error("Failed to load data:", error);
@@ -222,14 +233,16 @@ export default function DynastyPage() {
         </header>
 
         <Tabs defaultValue="strategy" className="space-y-6">
-          <TabsList className="grid grid-cols-6 w-full">
-            <TabsTrigger value="strategy">Strategy</TabsTrigger>
-            <TabsTrigger value="assets">My Assets</TabsTrigger>
-            <TabsTrigger value="scouting">Scouting</TabsTrigger>
-            <TabsTrigger value="trades">Trade Finder</TabsTrigger>
-            <TabsTrigger value="intel">League Intel</TabsTrigger>
-            <TabsTrigger value="history">Trade History</TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto -mx-4 px-4 pb-2">
+            <TabsList className="inline-flex w-max min-w-full sm:w-full sm:grid sm:grid-cols-6 gap-1 bg-muted p-1 rounded-lg">
+              <TabsTrigger value="strategy" className="whitespace-nowrap px-4 py-2 text-sm font-medium">📊 Strategy</TabsTrigger>
+              <TabsTrigger value="assets" className="whitespace-nowrap px-4 py-2 text-sm font-medium">💎 Assets</TabsTrigger>
+              <TabsTrigger value="scouting" className="whitespace-nowrap px-4 py-2 text-sm font-medium">🎓 Scouting</TabsTrigger>
+              <TabsTrigger value="trades" className="whitespace-nowrap px-4 py-2 text-sm font-medium">💱 Trades</TabsTrigger>
+              <TabsTrigger value="intel" className="whitespace-nowrap px-4 py-2 text-sm font-medium">🕵️ Intel</TabsTrigger>
+              <TabsTrigger value="history" className="whitespace-nowrap px-4 py-2 text-sm font-medium">📜 History</TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* Strategy Dashboard */}
           <TabsContent value="strategy" className="space-y-6">
@@ -298,6 +311,64 @@ export default function DynastyPage() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Team Value Chart */}
+            <Card>
+              <CardHeader>
+                <CardTitle>📈 Team Value Over Time</CardTitle>
+                <CardDescription>Track your dynasty&apos;s growth</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {valueHistory.length > 1 ? (
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={valueHistory} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                        <XAxis 
+                          dataKey="date" 
+                          stroke="hsl(var(--muted-foreground))"
+                          tick={{ fontSize: 12 }}
+                          tickFormatter={(val) => {
+                            const d = new Date(val);
+                            return `${d.getMonth() + 1}/${d.getDate()}`;
+                          }}
+                        />
+                        <YAxis 
+                          stroke="hsl(var(--muted-foreground))"
+                          tick={{ fontSize: 12 }}
+                          tickFormatter={(val) => `${(val / 1000).toFixed(0)}k`}
+                        />
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: "hsl(var(--card))", 
+                            border: "1px solid hsl(var(--border))",
+                            borderRadius: "8px"
+                          }}
+                          labelStyle={{ color: "hsl(var(--foreground))" }}
+                          formatter={(value) => [Number(value).toLocaleString(), "Value"]}
+                          labelFormatter={(label) => new Date(label).toLocaleDateString()}
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey="value" 
+                          stroke="hsl(var(--primary))" 
+                          strokeWidth={2}
+                          dot={{ fill: "hsl(var(--primary))", strokeWidth: 2, r: 4 }}
+                          activeDot={{ r: 6, fill: "hsl(var(--primary))" }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <div className="h-64 flex items-center justify-center text-muted-foreground">
+                    <div className="text-center">
+                      <p>No history yet</p>
+                      <p className="text-sm mt-1">Chart will populate as you sync weekly</p>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
             {/* Position Breakdown */}
             <Card>
