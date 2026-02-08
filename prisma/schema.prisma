@@ -64,3 +64,118 @@ model RunLog {
 
   @@unique([week, day])
 }
+
+// Dynasty Fantasy Football Models
+model DynastySettings {
+  id              String   @id @default(cuid())
+  leagueId        String   @unique // Sleeper league ID
+  leagueName      String
+  userId          String   // Sleeper user ID
+  username        String
+  rosterId        Int
+  teamName        String?
+  mode            String   @default("tank") // tank, retool, contend
+  lastSync        DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model DynastyPlayer {
+  id              String   @id @default(cuid())
+  sleeperId       String   @unique // Sleeper player ID
+  name            String
+  position        String
+  team            String?  // NFL team
+  age             Int?
+  ktcValue        Int?     // KeepTradeCut value
+  fcValue         Int?     // FantasyCalc value
+  drewValue       Int?     // Our calculated value
+  recommendation  String?  // sell, hold
+  recommendReason String?
+  isOwned         Boolean  @default(false) // On Andrew's roster
+  news            Json?    // Recent news items
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model DynastyPick {
+  id              String   @id @default(cuid())
+  season          String   // "2026", "2027", etc.
+  round           Int
+  pick            Int?     // Actual pick number if known (e.g., 2 for 1.02)
+  originalOwner   String   // Sleeper username
+  currentOwner    String   // Who owns it now
+  isOwned         Boolean  @default(false) // Owned by Andrew
+  drewValue       Int?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([season, round, originalOwner])
+}
+
+model DynastyProspect {
+  id              String   @id @default(cuid())
+  name            String
+  position        String
+  college         String
+  draftClass      String   // "2026", "2027"
+  collegeStats    Json?    // Key stats
+  athleticScores  Json?    // Combine/pro day measurables
+  drewRank        Int?     // Our ranking
+  drewScore       Float?   // Our calculated score
+  consensus       Int?     // Consensus ranking
+  notes           String?
+  buzz            Json?    // Recent articles/news
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([name, draftClass])
+}
+
+model DynastyTeam {
+  id              String   @id @default(cuid())
+  leagueId        String
+  rosterId        Int
+  ownerUsername   String
+  teamName        String?
+  totalValue      Int?
+  mode            String?  // Estimated: contending, rebuilding, retooling
+  strengths       Json?    // Position strengths
+  weaknesses      Json?    // Position weaknesses  
+  needs           Json?    // What they need
+  draftCapital    Json?    // Their picks
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([leagueId, rosterId])
+}
+
+model DynastyTeamHistory {
+  id              String   @id @default(cuid())
+  leagueId        String
+  rosterId        Int
+  ownerUsername   String
+  totalValue      Int
+  recordedAt      DateTime @default(now())
+
+  @@index([leagueId, rosterId, recordedAt])
+}
+
+model DynastyTrade {
+  id              String   @id @default(cuid())
+  leagueId        String
+  transactionId   String?  @unique // Sleeper transaction ID
+  team1RosterId   Int
+  team1Username   String
+  team1Gives      Json     // Players/picks given
+  team1Value      Int?     // Value at time of trade
+  team2RosterId   Int
+  team2Username   String
+  team2Gives      Json     // Players/picks given
+  team2Value      Int?     // Value at time of trade
+  winner          String?  // team1, team2, fair
+  analysis        String?  // Drew's analysis
+  tradedAt        DateTime
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
