@@ -6,9 +6,49 @@ datasource db {
   provider = "postgresql"
 }
 
-// Run logs for marathon training
+model BusinessIdea {
+  id            String   @id @default(cuid())
+  name          String
+  oneLiner      String
+  category      String
+  source        String
+  whyNow        String
+  scores        Json
+  personalFit   Json
+  status        String   @default("new")
+  layer         Int      @default(1)
+  businessCase  Json?
+  executionPlan Json?
+  notes         String   @default("")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime
+}
+
+model MealPlan {
+  id           String   @id
+  weekOf       String   @unique
+  planData     Json
+  checkedItems Json     @default("{}")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime
+  attendance   Json?
+}
+
+model MealPreference {
+  id        String   @id
+  mealId    String
+  mealType  String
+  mealName  String
+  rating    Int
+  person    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+
+  @@unique([mealId, person])
+}
+
 model RunLog {
-  id          String   @id @default(cuid())
+  id          String   @id
   week        Int
   day         Int
   date        String
@@ -18,66 +58,7 @@ model RunLog {
   feeling     String
   notes       String   @default("")
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  updatedAt   DateTime
 
   @@unique([week, day])
-}
-
-// Meal plan for the week
-model MealPlan {
-  id           String   @id @default(cuid())
-  weekOf       String   @unique // ISO date of the Monday
-  planData     Json     // The full week plan as JSON
-  checkedItems Json     @default("{}") // Grocery items checked off
-  attendance   Json?    // Who's eating each day [{andrew: bool, olivia: bool}, ...]
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-}
-
-// Track meal preferences (likes/dislikes)
-model MealPreference {
-  id        String   @id @default(cuid())
-  mealId    String   // e.g., "b1", "l2", "d5"
-  mealType  String   // "breakfast", "lunch", "dinner", "snack"
-  mealName  String   // Human readable name
-  rating    Int      // 1 = dislike, 2 = like
-  person    String?  // "andrew", "olivia", or null for household
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([mealId, person])
-}
-
-// Business idea pipeline
-model BusinessIdea {
-  id          String   @id @default(cuid())
-  
-  // Layer 1 - Quick pitch
-  name        String
-  oneLiner    String
-  category    String   // service, product, local, arbitrage, b2b
-  source      String   // Where I found this signal
-  whyNow      String   // Why this opportunity exists now
-  
-  // Scores (1-5 scale)
-  scores      Json     // { startupCost, timeToRevenue, scalability, moat, timing, effort }
-  
-  // Personal fit scores
-  personalFit Json     // { hoursPerWeek, skillsMatch, networkLeverage }
-  
-  // Status: new -> researched -> ready -> archived
-  status      String   @default("new")
-  layer       Int      @default(1) // 1, 2, or 3
-  
-  // Layer 2 - Business Case (populated after first upvote)
-  businessCase Json?   // { marketSize, targetCustomer, businessModel, startupCosts, unitEconomics, projections, competitors, risks }
-  
-  // Layer 3 - Execution Plan (populated after second upvote)
-  executionPlan Json?  // { weekByWeek, hurdles, hireOrOutsource, mvpVsFull, cashRunway, killCriteria }
-  
-  // User notes
-  notes       String   @default("")
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
 }
