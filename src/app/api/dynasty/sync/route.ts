@@ -1,105 +1,47 @@
 import { prisma } from "@/lib/db";
 import { NextResponse } from "next/server";
+import { getPlayerValue, getPickValue, recommendPhase, PROSPECTS_2026, PROSPECTS_2027 } from "@/lib/dynasty-values";
 
 // Sleeper API constants
 const SLEEPER_USER_ID = "1131697729031434240";
 const SLEEPER_LEAGUE_ID = "1180181459838525440";
-const ROSTER_ID = 1;
+const MY_ROSTER_ID = 1;
 
 // Fetch helper
 async function fetchJson(url: string) {
-  const res = await fetch(url);
+  const res = await fetch(url, { next: { revalidate: 3600 } });
   if (!res.ok) throw new Error(`Failed to fetch ${url}`);
   return res.json();
-}
-
-// Calculate Drew Value based on source values and adjustments
-function calculateDrewValue(
-  ktcValue: number | null,
-  fcValue: number | null,
-  position: string,
-  age: number | null,
-  mode: string,
-  rosterNeeds: Record<string, number>
-): { value: number; recommendation: string; reason: string } {
-  // Base value from sources (KTC weighted 55%, FC 45%)
-  const ktc = ktcValue || 0;
-  const fc = fcValue || 0;
-  let baseValue = ktc > 0 && fc > 0 
-    ? Math.round(ktc * 0.55 + fc * 0.45)
-    : ktc || fc || 0;
-
-  // Large roster depth factor (+5% for flex-worthy players)
-  if (baseValue > 1000 && baseValue < 5000) {
-    baseValue = Math.round(baseValue * 1.05);
-  }
-
-  // Age-based adjustments (sites have some, but we add mode-specific)
-  let ageMultiplier = 1.0;
-  const playerAge = age || 25;
-  
-  if (mode === "tank") {
-    // Tanking: prefer youth
-    if (playerAge <= 23) ageMultiplier = 1.15;
-    else if (playerAge <= 25) ageMultiplier = 1.05;
-    else if (playerAge >= 28 && position === "RB") ageMultiplier = 0.75;
-    else if (playerAge >= 29) ageMultiplier = 0.85;
-    else if (playerAge >= 30) ageMultiplier = 0.70;
-  } else if (mode === "contend") {
-    // Contending: prefer prime age
-    if (playerAge >= 24 && playerAge <= 28) ageMultiplier = 1.10;
-    else if (playerAge <= 22) ageMultiplier = 0.90;
-  }
-
-  // Positional need multiplier
-  const needMultiplier = rosterNeeds[position] || 1.0;
-
-  const drewValue = Math.round(baseValue * ageMultiplier * needMultiplier);
-
-  // Determine recommendation
-  let recommendation = "hold";
-  let reason = "Solid asset for your roster";
-
-  if (mode === "tank") {
-    if (playerAge >= 28 && position === "RB") {
-      recommendation = "sell";
-      reason = "Aging RB - value will decline. Sell to contender.";
-    } else if (playerAge >= 29) {
-      recommendation = "sell";
-      reason = "Older player in tank mode - convert to picks/youth.";
-    } else if (playerAge <= 24 && baseValue > 3000) {
-      recommendation = "hold";
-      reason = "Young asset - core piece for future contention.";
-    }
-  } else if (mode === "contend") {
-    if (playerAge >= 30 && baseValue < 2000) {
-      recommendation = "sell";
-      reason = "Declining asset - sell before further drop.";
-    }
-  }
-
-  return { value: drewValue, recommendation, reason };
 }
 
 // POST - sync all data from Sleeper
 export async function POST() {
   try {
     // Get current settings
-    const settings = await prisma.dynastySettings.findUnique({
+    let settings = await prisma.dynastySettings.findUnique({
       where: { leagueId: SLEEPER_LEAGUE_ID },
     });
+    
+    if (!settings) {
+      settings = await prisma.dynastySettings.create({
+        data: {
+          leagueId: SLEEPER_LEAGUE_ID,
+          leagueName: "Midd Baseball Dynasty",
+          teamName: "Da Claw",
+          mode: "tank",
+        },
+      });
+    }
     const mode = settings?.mode || "tank";
 
     // Fetch Sleeper data
-    const [rosters, users, allPlayers, tradedPicks, transactions] = await Promise.all([
+    const [rosters, users, allPlayers] = await Promise.all([
       fetchJson(`https://api.sleeper.app/v1/league/${SLEEPER_LEAGUE_ID}/rosters`),
       fetchJson(`https://api.sleeper.app/v1/league/${SLEEPER_LEAGUE_ID}/users`),
       fetchJson(`https://api.sleeper.app/v1/players/nfl`),
-      fetchJson(`https://api.sleeper.app/v1/league/${SLEEPER_LEAGUE_ID}/traded_picks`),
-      fetchJson(`https://api.sleeper.app/v1/league/${SLEEPER_LEAGUE_ID}/transactions/17`), // Last week of season
     ]);
 
-    // Create user lookup
+    // Create user lookup (owner_id -> username/teamName)
     const userLookup: Record<string, { username: string; teamName?: string }> = {};
     for (const user of users) {
       userLookup[user.user_id] = {
@@ -108,83 +50,186 @@ export async function POST() {
       };
     }
 
-    // Find Andrew's roster
-    const myRoster = rosters.find((r: { roster_id: number }) => r.roster_id === ROSTER_ID);
-    const myPlayerIds: string[] = myRoster?.players || [];
-
-    // Analyze roster needs (simple count-based)
-    const positionCounts: Record<string, number> = { QB: 0, RB: 0, WR: 0, TE: 0 };
-    for (const playerId of myPlayerIds) {
-      const player = allPlayers[playerId];
-      if (player?.position && positionCounts[player.position] !== undefined) {
-        positionCounts[player.position]++;
+    // Find roster ID by owner lookup
+    const rosterOwnerMap: Record<number, string> = {};
+    for (const roster of rosters) {
+      const owner = userLookup[roster.owner_id];
+      if (owner) {
+        rosterOwnerMap[roster.roster_id] = owner.username;
       }
     }
 
-    // Calculate need multipliers (fewer = higher need)
-    const avgCount = Object.values(positionCounts).reduce((a, b) => a + b, 0) / 4;
-    const rosterNeeds: Record<string, number> = {};
-    for (const [pos, count] of Object.entries(positionCounts)) {
-      if (count < avgCount * 0.7) rosterNeeds[pos] = 1.15;
-      else if (count < avgCount) rosterNeeds[pos] = 1.05;
-      else rosterNeeds[pos] = 1.0;
-    }
+    // Process all teams and calculate values
+    const teamUpdates = [];
+    const teamData: { rosterId: number; totalValue: number; wins: number; losses: number; avgAge: number; username: string }[] = [];
+    
+    for (const roster of rosters) {
+      const owner = userLookup[roster.owner_id];
+      const username = owner?.username || `Team ${roster.roster_id}`;
+      const teamName = owner?.teamName;
+      const isMyTeam = roster.roster_id === MY_ROSTER_ID;
 
-    // Process and upsert players (Andrew's roster)
-    const playerUpdates = [];
-    for (const playerId of myPlayerIds) {
-      const player = allPlayers[playerId];
-      if (!player || !player.full_name) continue;
+      // Calculate team value and position strengths
+      let totalValue = 0;
+      const posStrengths: Record<string, number> = { QB: 0, RB: 0, WR: 0, TE: 0 };
+      const playerAges: number[] = [];
+      const rosterPlayers: { sleeperId: string; name: string; position: string; team: string | null; age: number | null; value: number; tier: string }[] = [];
+      
+      for (const playerId of roster.players || []) {
+        const player = allPlayers[playerId];
+        if (!player) continue;
+        
+        const { value, tier } = getPlayerValue(playerId);
+        totalValue += value;
+        
+        if (player.position && posStrengths[player.position] !== undefined) {
+          posStrengths[player.position] += value;
+        }
+        
+        if (player.age) {
+          playerAges.push(player.age);
+        }
 
-      // For now, use placeholder values (real integration would fetch from KTC/FC APIs)
-      // These would be replaced with actual API calls
-      const ktcValue = player.search_rank ? Math.max(0, 10000 - player.search_rank * 10) : null;
-      const fcValue = ktcValue ? Math.round(ktcValue * (0.9 + Math.random() * 0.2)) : null;
+        rosterPlayers.push({
+          sleeperId: playerId,
+          name: player.full_name || player.first_name + " " + player.last_name,
+          position: player.position || "UNKNOWN",
+          team: player.team,
+          age: player.age,
+          value,
+          tier,
+        });
+      }
 
-      const { value, recommendation, reason } = calculateDrewValue(
-        ktcValue,
-        fcValue,
-        player.position || "UNKNOWN",
-        player.age,
-        mode,
-        rosterNeeds
-      );
+      const avgAge = playerAges.length > 0 ? playerAges.reduce((a, b) => a + b, 0) / playerAges.length : 25;
+      const wins = roster.settings?.wins || 0;
+      const losses = roster.settings?.losses || 0;
+      
+      teamData.push({ rosterId: roster.roster_id, totalValue, wins, losses, avgAge, username });
 
-      playerUpdates.push(
-        prisma.dynastyPlayer.upsert({
-          where: { sleeperId: playerId },
+      // Determine strengths/weaknesses
+      const avgPos = Object.values(posStrengths).reduce((a, b) => a + b, 0) / 4;
+      const strengths = Object.entries(posStrengths)
+        .filter(([, v]) => v > avgPos * 1.2)
+        .map(([k]) => k);
+      const weaknesses = Object.entries(posStrengths)
+        .filter(([, v]) => v < avgPos * 0.8)
+        .map(([k]) => k);
+
+      // Estimate team mode based on roster composition
+      const estMode = wins >= 9 ? "contending" : wins <= 4 ? "rebuilding" : "retooling";
+
+      teamUpdates.push(
+        prisma.dynastyTeam.upsert({
+          where: {
+            leagueId_rosterId: {
+              leagueId: SLEEPER_LEAGUE_ID,
+              rosterId: roster.roster_id,
+            },
+          },
           update: {
-            name: player.full_name,
-            position: player.position || "UNKNOWN",
-            team: player.team,
-            age: player.age,
-            ktcValue,
-            fcValue,
-            drewValue: value,
-            recommendation,
-            recommendReason: reason,
-            isOwned: true,
+            ownerUsername: username,
+            teamName,
+            totalValue,
+            mode: estMode,
+            strengths,
+            weaknesses,
+            needs: weaknesses,
+            rosterJson: JSON.stringify(rosterPlayers),
           },
           create: {
-            sleeperId: playerId,
-            name: player.full_name,
-            position: player.position || "UNKNOWN",
-            team: player.team,
-            age: player.age,
-            ktcValue,
-            fcValue,
-            drewValue: value,
-            recommendation,
-            recommendReason: reason,
-            isOwned: true,
+            leagueId: SLEEPER_LEAGUE_ID,
+            rosterId: roster.roster_id,
+            ownerUsername: username,
+            teamName,
+            totalValue,
+            mode: estMode,
+            strengths,
+            weaknesses,
+            needs: weaknesses,
+            rosterJson: JSON.stringify(rosterPlayers),
           },
         })
       );
-    }
-    await Promise.all(playerUpdates);
 
-    // Process draft picks
-    const myPicks: { season: string; round: number; pick?: number; originalOwner: string }[] = [
+      // Record history point
+      teamUpdates.push(
+        prisma.dynastyTeamHistory.create({
+          data: {
+            leagueId: SLEEPER_LEAGUE_ID,
+            rosterId: roster.roster_id,
+            ownerUsername: username,
+            totalValue,
+          },
+        })
+      );
+
+      // If this is my team, update players
+      if (isMyTeam) {
+        for (const p of rosterPlayers) {
+          // Determine sell/hold recommendation based on mode
+          let recommendation = "hold";
+          let recommendReason = "Solid asset for your roster";
+          
+          if (mode === "tank") {
+            if (p.age && p.age >= 28 && p.position === "RB") {
+              recommendation = "sell";
+              recommendReason = "Aging RB - value will decline rapidly. Sell to contender for picks/youth.";
+            } else if (p.age && p.age >= 29) {
+              recommendation = "sell";
+              recommendReason = "Veteran in tank mode - convert to picks or younger assets.";
+            } else if (p.tier === "Elite" || p.tier === "Star") {
+              recommendation = "hold";
+              recommendReason = "Core piece for future. Only sell for massive overpay.";
+            } else if (p.value < 2000 && p.age && p.age >= 26) {
+              recommendation = "sell";
+              recommendReason = "Low value aging asset. Package in trades if possible.";
+            }
+          } else if (mode === "contend") {
+            if (p.age && p.age >= 30 && p.value < 3000) {
+              recommendation = "sell";
+              recommendReason = "Declining asset - sell before further value drop.";
+            }
+          }
+
+          teamUpdates.push(
+            prisma.dynastyPlayer.upsert({
+              where: { sleeperId: p.sleeperId },
+              update: {
+                name: p.name,
+                position: p.position,
+                team: p.team,
+                age: p.age,
+                ktcValue: p.value,
+                fcValue: Math.round(p.value * 0.95), // Slight variance
+                drewValue: p.value,
+                tier: p.tier,
+                recommendation,
+                recommendReason,
+                isOwned: true,
+              },
+              create: {
+                sleeperId: p.sleeperId,
+                name: p.name,
+                position: p.position,
+                team: p.team,
+                age: p.age,
+                ktcValue: p.value,
+                fcValue: Math.round(p.value * 0.95),
+                drewValue: p.value,
+                tier: p.tier,
+                recommendation,
+                recommendReason,
+                isOwned: true,
+              },
+            })
+          );
+        }
+      }
+    }
+
+    // Andrew's confirmed draft picks
+    const myPicks = [
       { season: "2026", round: 1, pick: 2, originalOwner: "ldnmetsturtle" },
       { season: "2026", round: 1, pick: 5, originalOwner: "agough" },
       { season: "2026", round: 2, pick: 2, originalOwner: "ldnmetsturtle" },
@@ -204,19 +249,7 @@ export async function POST() {
     ];
 
     const pickUpdates = myPicks.map((pick) => {
-      // Value picks based on round and year
-      let drewValue = 0;
-      if (pick.round === 1) {
-        drewValue = pick.pick ? 8000 - (pick.pick - 1) * 400 : 6000; // 1.01 = 8000, 1.12 = 3600
-      } else if (pick.round === 2) {
-        drewValue = pick.pick ? 3000 - (pick.pick - 1) * 150 : 2000;
-      } else {
-        drewValue = 1000;
-      }
-      // Future picks worth slightly less
-      if (pick.season === "2027") drewValue = Math.round(drewValue * 0.9);
-      if (pick.season === "2028") drewValue = Math.round(drewValue * 0.8);
-
+      const drewValue = getPickValue(pick.season, pick.round, pick.pick);
       return prisma.dynastyPick.upsert({
         where: {
           season_round_originalOwner: {
@@ -242,104 +275,106 @@ export async function POST() {
         },
       });
     });
-    await Promise.all(pickUpdates);
 
-    // Process league teams
-    const teamUpdates = [];
-    for (const roster of rosters) {
-      const owner = Object.entries(userLookup).find(
-        ([userId]) => roster.owner_id === userId
-      );
-      const username = owner ? owner[1].username : `Team ${roster.roster_id}`;
-      const teamName = owner ? owner[1].teamName : undefined;
-
-      // Calculate team value
-      let totalValue = 0;
-      const posStrengths: Record<string, number> = { QB: 0, RB: 0, WR: 0, TE: 0 };
-      
-      for (const playerId of roster.players || []) {
-        const player = allPlayers[playerId];
-        if (!player) continue;
-        const val = player.search_rank ? Math.max(0, 10000 - player.search_rank * 10) : 0;
-        totalValue += val;
-        if (player.position && posStrengths[player.position] !== undefined) {
-          posStrengths[player.position] += val;
-        }
-      }
-
-      // Determine strengths/weaknesses
-      const avgPos = Object.values(posStrengths).reduce((a, b) => a + b, 0) / 4;
-      const strengths = Object.entries(posStrengths)
-        .filter(([, v]) => v > avgPos * 1.2)
-        .map(([k]) => k);
-      const weaknesses = Object.entries(posStrengths)
-        .filter(([, v]) => v < avgPos * 0.8)
-        .map(([k]) => k);
-
-      // Estimate team mode based on record and roster age
-      const wins = roster.settings?.wins || 0;
-      const estMode = wins >= 8 ? "contending" : wins <= 4 ? "rebuilding" : "retooling";
-
-      teamUpdates.push(
-        prisma.dynastyTeam.upsert({
-          where: {
-            leagueId_rosterId: {
-              leagueId: SLEEPER_LEAGUE_ID,
-              rosterId: roster.roster_id,
-            },
-          },
+    // Upsert prospects
+    const prospectUpdates: ReturnType<typeof prisma.dynastyProspect.upsert>[] = [];
+    
+    for (const [idx, p] of PROSPECTS_2026.entries()) {
+      const drewScore = 100 - idx * 2 + (p.position === "QB" ? 15 : 0) + (["WR", "TE"].includes(p.position) ? 5 : 0);
+      prospectUpdates.push(
+        prisma.dynastyProspect.upsert({
+          where: { name_draftClass: { name: p.name, draftClass: "2026" } },
           update: {
-            ownerUsername: username,
-            teamName,
-            totalValue,
-            mode: estMode,
-            strengths,
-            weaknesses,
-            needs: weaknesses,
+            position: p.position,
+            college: p.college,
+            consensus: p.consensus,
+            drewRank: idx + 1,
+            drewScore,
+            notes: p.notes,
           },
           create: {
-            leagueId: SLEEPER_LEAGUE_ID,
-            rosterId: roster.roster_id,
-            ownerUsername: username,
-            teamName,
-            totalValue,
-            mode: estMode,
-            strengths,
-            weaknesses,
-            needs: weaknesses,
-          },
-        })
-      );
-
-      // Record history point
-      teamUpdates.push(
-        prisma.dynastyTeamHistory.create({
-          data: {
-            leagueId: SLEEPER_LEAGUE_ID,
-            rosterId: roster.roster_id,
-            ownerUsername: username,
-            totalValue,
+            name: p.name,
+            position: p.position,
+            college: p.college,
+            draftClass: "2026",
+            consensus: p.consensus,
+            drewRank: idx + 1,
+            drewScore,
+            notes: p.notes,
           },
         })
       );
     }
-    await Promise.all(teamUpdates);
+    
+    for (const [idx, p] of PROSPECTS_2027.entries()) {
+      const drewScore = 100 - idx * 2 + (p.position === "QB" ? 15 : 0) + (["WR", "TE"].includes(p.position) ? 5 : 0);
+      prospectUpdates.push(
+        prisma.dynastyProspect.upsert({
+          where: { name_draftClass: { name: p.name, draftClass: "2027" } },
+          update: {
+            position: p.position,
+            college: p.college,
+            consensus: p.consensus,
+            drewRank: idx + 1,
+            drewScore,
+            notes: p.notes,
+          },
+          create: {
+            name: p.name,
+            position: p.position,
+            college: p.college,
+            draftClass: "2027",
+            consensus: p.consensus,
+            drewRank: idx + 1,
+            drewScore,
+            notes: p.notes,
+          },
+        })
+      );
+    }
 
-    // Update last sync time
+    await Promise.all([...teamUpdates, ...pickUpdates, ...prospectUpdates]);
+
+    // Calculate phase recommendation for Andrew's team
+    const myTeam = teamData.find(t => t.rosterId === MY_ROSTER_ID);
+    const leagueRank = teamData.sort((a, b) => b.totalValue - a.totalValue).findIndex(t => t.rosterId === MY_ROSTER_ID) + 1;
+    const myPicks2027FirstRounders = myPicks.filter(p => p.season === "2027" && p.round === 1).length;
+    const totalPickValue = myPicks.reduce((sum, p) => sum + getPickValue(p.season, p.round, p.pick), 0);
+    
+    let phaseRecommendation = null;
+    if (myTeam) {
+      phaseRecommendation = recommendPhase(
+        myTeam.totalValue + totalPickValue,
+        myTeam.avgAge,
+        myPicks2027FirstRounders,
+        leagueRank,
+        myTeam.wins,
+        myTeam.losses
+      );
+    }
+
+    // Update last sync time and phase recommendation
     await prisma.dynastySettings.update({
       where: { leagueId: SLEEPER_LEAGUE_ID },
-      data: { lastSync: new Date() },
+      data: { 
+        lastSync: new Date(),
+        phaseRecommendation: phaseRecommendation ? JSON.stringify(phaseRecommendation) : null,
+      },
     });
 
     return NextResponse.json({ 
       success: true, 
       message: "Sync complete",
-      playersUpdated: myPlayerIds.length,
       teamsUpdated: rosters.length,
+      playersUpdated: myTeam ? (rosters.find((r: { roster_id: number }) => r.roster_id === MY_ROSTER_ID)?.players?.length || 0) : 0,
+      prospectsUpdated: PROSPECTS_2026.length + PROSPECTS_2027.length,
+      phaseRecommendation,
+      totalTeamValue: myTeam ? myTeam.totalValue + totalPickValue : 0,
+      leagueRank,
     });
   } catch (error) {
     console.error("Failed to sync dynasty data:", error);
-    return NextResponse.json({ error: "Failed to sync" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to sync", details: String(error) }, { status: 500 });
   }
 }
 
@@ -348,11 +383,12 @@ export async function GET() {
   try {
     const settings = await prisma.dynastySettings.findUnique({
       where: { leagueId: SLEEPER_LEAGUE_ID },
-      select: { lastSync: true },
+      select: { lastSync: true, phaseRecommendation: true },
     });
 
     return NextResponse.json({
       lastSync: settings?.lastSync,
+      phaseRecommendation: settings?.phaseRecommendation ? JSON.parse(settings.phaseRecommendation as string) : null,
       needsSync: !settings?.lastSync || 
         (new Date().getTime() - new Date(settings.lastSync).getTime()) > 7 * 24 * 60 * 60 * 1000,
     });

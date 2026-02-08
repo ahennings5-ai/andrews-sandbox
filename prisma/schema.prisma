@@ -67,17 +67,18 @@ model RunLog {
 
 // Dynasty Fantasy Football Models
 model DynastySettings {
-  id              String   @id @default(cuid())
-  leagueId        String   @unique // Sleeper league ID
-  leagueName      String
-  userId          String   // Sleeper user ID
-  username        String
-  rosterId        Int
-  teamName        String?
-  mode            String   @default("tank") // tank, retool, contend
-  lastSync        DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                  String   @id @default(cuid())
+  leagueId            String   @unique // Sleeper league ID
+  leagueName          String
+  userId              String   @default("1131697729031434240") // Sleeper user ID
+  username            String   @default("Hendawg55")
+  rosterId            Int      @default(1)
+  teamName            String?
+  mode                String   @default("tank") // tank, retool, contend
+  phaseRecommendation String?  // JSON: {phase, reason}
+  lastSync            DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 }
 
 model DynastyPlayer {
@@ -90,6 +91,7 @@ model DynastyPlayer {
   ktcValue        Int?     // KeepTradeCut value
   fcValue         Int?     // FantasyCalc value
   drewValue       Int?     // Our calculated value
+  tier            String?  // Elite, Star, Starter, Flex, Bench
   recommendation  String?  // sell, hold
   recommendReason String?
   isOwned         Boolean  @default(false) // On Andrew's roster
@@ -144,6 +146,7 @@ model DynastyTeam {
   weaknesses      Json?    // Position weaknesses  
   needs           Json?    // What they need
   draftCapital    Json?    // Their picks
+  rosterJson      String?  @db.Text // Full roster with values
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

@@ -3,14 +3,14 @@ import { NextRequest, NextResponse } from "next/server";
 
 const SLEEPER_LEAGUE_ID = "1180181459838525440";
 
-// GET all league teams
+// GET all league teams or single team with roster
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const rosterId = searchParams.get("rosterId");
 
   try {
     if (rosterId) {
-      // Get single team with history
+      // Get single team with full roster and history
       const team = await prisma.dynastyTeam.findUnique({
         where: {
           leagueId_rosterId: {
@@ -19,6 +19,16 @@ export async function GET(request: NextRequest) {
           },
         },
       });
+
+      // Parse roster JSON if available
+      let roster = [];
+      if (team?.rosterJson) {
+        try {
+          roster = JSON.parse(team.rosterJson);
+        } catch {
+          roster = [];
+        }
+      }
 
       const history = await prisma.dynastyTeamHistory.findMany({
         where: {
@@ -41,7 +51,11 @@ export async function GET(request: NextRequest) {
         take: 10,
       });
 
-      return NextResponse.json({ team, history, trades });
+      return NextResponse.json({ 
+        team: { ...team, roster }, 
+        history: history.map(h => ({ date: h.recordedAt.toISOString().split("T")[0], value: h.totalValue })),
+        trades 
+      });
     }
 
     // Get all teams
