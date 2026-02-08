@@ -299,7 +299,7 @@ export default function IdeasPage() {
                   <p className="text-sm text-muted-foreground">{idea.oneLiner}</p>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center gap-2 mb-3">
+                  <div className="flex items-center justify-between mb-3">
                     <Badge
                       variant="outline"
                       className={categoryColors[idea.category] || ""}
@@ -309,21 +309,11 @@ export default function IdeasPage() {
                     {(() => {
                       const { score, grade } = calculateOverall(idea.scores);
                       return (
-                        <span className={`text-xs font-medium ${grade.startsWith('A') ? 'text-green-400' : grade.startsWith('B') ? 'text-blue-400' : grade.startsWith('C') ? 'text-yellow-400' : 'text-red-400'}`}>
-                          {grade} ({score})
-                        </span>
+                        <div className={`text-lg font-bold ${grade.startsWith('A') ? 'text-green-400' : grade.startsWith('B') ? 'text-blue-400' : grade.startsWith('C') ? 'text-yellow-400' : 'text-red-400'}`}>
+                          {grade} <span className="text-sm font-normal text-muted-foreground">({score})</span>
+                        </div>
                       );
                     })()}
-                  </div>
-                  <div className="grid grid-cols-3 gap-2 text-xs">
-                    {(["demandEvidence", "capitalEfficiency", "personalFit"] as const).map((key) => (
-                      <div key={key}>
-                        <span className="text-muted-foreground">
-                          {scoreLabels[key]?.icon}
-                        </span>
-                        <ScoreBar score={idea.scores[key] ?? 3} />
-                      </div>
-                    ))}
                   </div>
                   <div className="flex gap-2 mt-4">
                     <Button
