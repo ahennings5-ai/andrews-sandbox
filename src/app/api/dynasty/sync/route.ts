@@ -2,6 +2,22 @@ import { prisma } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { getPlayerValue, getPickValue, recommendPhase, PROSPECTS_2026, PROSPECTS_2027, PLAYER_VALUES_BY_NAME } from "@/lib/dynasty-values";
 
+// Normalize player name for matching (removes Jr., II, III, Sr., etc.)
+function normalizeName(name: string): string {
+  return name
+    .replace(/\s+(Jr\.?|Sr\.?|II|III|IV)$/i, "")
+    .replace(/[.']/g, "")
+    .trim();
+}
+
+// Build normalized lookup map
+const normalizedPlayerValues: Record<string, { value: number; pos: string; team: string | null; age: number | null }> = {};
+for (const [name, data] of Object.entries(PLAYER_VALUES_BY_NAME)) {
+  const normalized = normalizeName(name);
+  normalizedPlayerValues[normalized] = data;
+  normalizedPlayerValues[name] = data; // also keep original
+}
+
 // Sleeper API constants
 const SLEEPER_USER_ID = "1131697729031434240";
 const SLEEPER_LEAGUE_ID = "1180181459838525440";
@@ -80,9 +96,11 @@ export async function POST() {
         if (!player) continue;
         
         const playerName = player.full_name || `${player.first_name} ${player.last_name}`;
+        const normalizedName = normalizeName(playerName);
         
         // Look up value by player name (from DynastyProcess data)
-        const dpData = PLAYER_VALUES_BY_NAME[playerName];
+        // Try exact match first, then normalized
+        const dpData = normalizedPlayerValues[playerName] || normalizedPlayerValues[normalizedName];
         let value = 100; // default for unknown players
         let tier = "Bench";
         
