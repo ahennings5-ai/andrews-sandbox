@@ -335,18 +335,19 @@ export async function POST() {
 
     await Promise.all([...teamUpdates, ...pickUpdates, ...prospectUpdates]);
 
-    // Calculate phase recommendation for Andrew's team
+    // Calculate phase recommendation for Andrew's team - ROSTER VALUE ONLY
     const myTeam = teamData.find(t => t.rosterId === MY_ROSTER_ID);
-    const leagueRank = teamData.sort((a, b) => b.totalValue - a.totalValue).findIndex(t => t.rosterId === MY_ROSTER_ID) + 1;
-    const myPicks2027FirstRounders = myPicks.filter(p => p.season === "2027" && p.round === 1).length;
+    // Sort by ROSTER value only (not picks) for league rank
+    const sortedByRoster = [...teamData].sort((a, b) => b.totalValue - a.totalValue);
+    const leagueRank = sortedByRoster.findIndex(t => t.rosterId === MY_ROSTER_ID) + 1;
     const totalPickValue = myPicks.reduce((sum, p) => sum + getPickValue(p.season, p.round, p.pick), 0);
     
     let phaseRecommendation = null;
     if (myTeam) {
+      // Phase recommendation based on ROSTER only
       phaseRecommendation = recommendPhase(
-        myTeam.totalValue + totalPickValue,
+        myTeam.totalValue, // Roster value only, no picks
         myTeam.avgAge,
-        myPicks2027FirstRounders,
         leagueRank,
         myTeam.wins,
         myTeam.losses
