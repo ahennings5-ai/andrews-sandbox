@@ -184,10 +184,17 @@ interface DayPlan {
   dinner: typeof dinners[0];
 }
 
-// Who's eating at home each day
-interface DayAttendance {
+// Who's eating each meal
+interface MealAttendance {
   andrew: boolean;
   olivia: boolean;
+}
+
+// Who's eating at home each day (per meal)
+interface DayAttendance {
+  breakfast: MealAttendance;
+  lunch: MealAttendance;
+  dinner: MealAttendance;
 }
 
 interface WeekPlan {
@@ -245,7 +252,12 @@ function generateWeekPlan(existingPlan?: WeekPlan): WeekPlan {
     });
   }
 
-  const defaultAttendance: DayAttendance[] = Array(7).fill(null).map(() => ({ andrew: true, olivia: true }));
+  const defaultMealAttendance: MealAttendance = { andrew: true, olivia: true };
+  const defaultAttendance: DayAttendance[] = Array(7).fill(null).map(() => ({ 
+    breakfast: { ...defaultMealAttendance },
+    lunch: { ...defaultMealAttendance },
+    dinner: { ...defaultMealAttendance },
+  }));
   return { 
     days, 
     generatedAt: new Date().toISOString(), 
@@ -315,41 +327,58 @@ function calculateWeeklyStats(plan: WeekPlan) {
   let totalCalories = 0;
   let totalProtein = 0;
   let totalCarbs = 0;
-  let totalPeopleDays = 0;
+  let totalMealServings = 0;
 
   // Track ingredient amounts: { "chicken": ["8 oz", "6 oz", "8 oz"] }
   const ingredientAmounts: Record<string, string[]> = {};
   const prepAheadMeals: { day: string; meal: string; name: string }[] = [];
 
+  // Helper to get meal attendance with migration for old data
+  const getMealAttendance = (dayAtt: DayAttendance | undefined, mealType: "breakfast" | "lunch" | "dinner") => {
+    if (!dayAtt) return { andrew: true, olivia: true };
+    // Handle old format migration
+    if (!dayAtt.breakfast) {
+      const old = dayAtt as unknown as { andrew: boolean; olivia: boolean };
+      return { andrew: old.andrew ?? true, olivia: old.olivia ?? true };
+    }
+    return dayAtt[mealType];
+  };
+
   plan.days.forEach((day, i) => {
-    const attendance = plan.attendance?.[i] || { andrew: true, olivia: true };
-    const peopleCount = (attendance.andrew ? 1 : 0) + (attendance.olivia ? 1 : 0);
+    const dayAttendance = plan.attendance?.[i];
     
-    if (peopleCount === 0) return; // Skip days with no one eating
-    
-    totalPeopleDays += peopleCount;
+    // Calculate per-meal
+    const meals = [
+      { type: "breakfast" as const, data: day.breakfast },
+      { type: "lunch" as const, data: day.lunch },
+      { type: "dinner" as const, data: day.dinner },
+    ];
 
-    // Cost based on how many people are eating
-    totalCost += (day.breakfast.cost + day.lunch.cost + day.dinner.cost) * peopleCount;
+    meals.forEach(({ type, data }) => {
+      const mealAtt = getMealAttendance(dayAttendance, type);
+      const peopleCount = (mealAtt.andrew ? 1 : 0) + (mealAtt.olivia ? 1 : 0);
+      
+      if (peopleCount === 0) return; // Skip meals with no one eating
+      
+      totalMealServings += peopleCount;
+      totalCost += data.cost * peopleCount;
+      totalCalories += data.calories * peopleCount;
+      totalProtein += data.protein * peopleCount;
+      totalCarbs += data.carbs * peopleCount;
 
-    // Macros (per person, averaged later)
-    totalCalories += (day.breakfast.calories + day.lunch.calories + day.dinner.calories) * peopleCount;
-    totalProtein += (day.breakfast.protein + day.lunch.protein + day.dinner.protein) * peopleCount;
-    totalCarbs += (day.breakfast.carbs + day.lunch.carbs + day.dinner.carbs) * peopleCount;
+      // Track ingredients with their amounts
+      data.ingredients.forEach(ing => {
+        if (!ingredientAmounts[ing.item]) ingredientAmounts[ing.item] = [];
+        for (let p = 0; p < peopleCount; p++) {
+          ingredientAmounts[ing.item].push(ing.amount);
+        }
+      });
 
-    // Track ingredients with their amounts
-    [...day.breakfast.ingredients, ...day.lunch.ingredients, ...day.dinner.ingredients].forEach(ing => {
-      if (!ingredientAmounts[ing.item]) ingredientAmounts[ing.item] = [];
-      // Add amount for each person eating
-      for (let p = 0; p < peopleCount; p++) {
-        ingredientAmounts[ing.item].push(ing.amount);
+      // Prep ahead
+      if (data.prepAhead) {
+        prepAheadMeals.push({ day: dayNames[i], meal: type.charAt(0).toUpperCase() + type.slice(1), name: data.name });
       }
     });
-
-    // Prep ahead (only if someone is eating)
-    if (day.breakfast.prepAhead) prepAheadMeals.push({ day: dayNames[i], meal: "Breakfast", name: day.breakfast.name });
-    if (day.lunch.prepAhead) prepAheadMeals.push({ day: dayNames[i], meal: "Lunch", name: day.lunch.name });
-    if (day.dinner.prepAhead) prepAheadMeals.push({ day: dayNames[i], meal: "Dinner", name: day.dinner.name });
   });
 
   // Build grocery list with aggregated amounts
@@ -361,16 +390,17 @@ function calculateWeeklyStats(plan: WeekPlan) {
       amount: aggregateAmounts(amounts)
     }));
 
-  const avgDays = totalPeopleDays > 0 ? totalPeopleDays : 1;
+  // For averaging, use total meal servings (divide by 3 to get rough "day equivalent")
+  const avgServings = totalMealServings > 0 ? totalMealServings : 1;
 
   return {
     totalCost: Math.round(totalCost),
-    avgDailyCalories: Math.round(totalCalories / avgDays),
-    avgDailyProtein: Math.round(totalProtein / avgDays),
-    avgDailyCarbs: Math.round(totalCarbs / avgDays),
+    avgDailyCalories: Math.round((totalCalories / avgServings) * 3), // Approximate daily
+    avgDailyProtein: Math.round((totalProtein / avgServings) * 3),
+    avgDailyCarbs: Math.round((totalCarbs / avgServings) * 3),
     groceryList,
     prepAheadMeals,
-    totalPeopleDays,
+    totalMealServings,
   };
 }
 
@@ -517,12 +547,29 @@ export default function MealPlanner() {
     savePlanToDb(newPlan);
   };
 
-  const toggleAttendance = (dayIndex: number, person: "andrew" | "olivia") => {
+  const toggleAttendance = (dayIndex: number, mealType: "breakfast" | "lunch" | "dinner", person: "andrew" | "olivia") => {
     if (!plan) return;
-    const newAttendance = [...(plan.attendance || Array(7).fill(null).map(() => ({ andrew: true, olivia: true })))];
+    const defaultMeal = { andrew: true, olivia: true };
+    const defaultDay = { breakfast: { ...defaultMeal }, lunch: { ...defaultMeal }, dinner: { ...defaultMeal } };
+    const newAttendance = [...(plan.attendance || Array(7).fill(null).map(() => ({ ...defaultDay })))];
+    
+    // Ensure the day has the new structure
+    if (!newAttendance[dayIndex].breakfast) {
+      // Migrate old structure to new
+      const oldAtt = newAttendance[dayIndex] as unknown as { andrew: boolean; olivia: boolean };
+      newAttendance[dayIndex] = {
+        breakfast: { andrew: oldAtt.andrew ?? true, olivia: oldAtt.olivia ?? true },
+        lunch: { andrew: oldAtt.andrew ?? true, olivia: oldAtt.olivia ?? true },
+        dinner: { andrew: oldAtt.andrew ?? true, olivia: oldAtt.olivia ?? true },
+      };
+    }
+    
     newAttendance[dayIndex] = {
       ...newAttendance[dayIndex],
-      [person]: !newAttendance[dayIndex][person],
+      [mealType]: {
+        ...newAttendance[dayIndex][mealType],
+        [person]: !newAttendance[dayIndex][mealType][person],
+      },
     };
     const newPlan = { ...plan, attendance: newAttendance };
     setPlan(newPlan);
@@ -651,61 +698,87 @@ export default function MealPlanner() {
             <TabsTrigger value="grocery">Grocery List</TabsTrigger>
           </TabsList>
 
-          {/* Schedule Tab - Who's eating each day */}
+          {/* Schedule Tab - Who's eating each meal */}
           <TabsContent value="schedule" className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle>Weekly Schedule</CardTitle>
-                <CardDescription>Toggle who&apos;s eating at home each day — costs adjust automatically</CardDescription>
+                <CardDescription>Toggle who&apos;s eating each meal — costs and grocery list adjust automatically</CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-8 gap-2 text-center text-sm">
-                  <div></div>
-                  {dayNames.map((day) => (
-                    <div key={day} className="font-medium">{day.slice(0, 3)}</div>
-                  ))}
-                  
-                  {/* Andrew's row */}
-                  <div className="text-left font-medium py-2">Andrew</div>
-                  {plan.attendance?.map((att, i) => (
-                    <button
-                      key={`andrew-${i}`}
-                      onClick={() => toggleAttendance(i, "andrew")}
-                      className={`p-2 rounded-lg border transition-all ${
-                        att.andrew
-                          ? "bg-primary text-primary-foreground border-primary"
-                          : "bg-muted text-muted-foreground border-border hover:border-primary/50"
-                      }`}
-                    >
-                      {att.andrew ? "✓" : "—"}
-                    </button>
-                  ))}
-                  
-                  {/* Olivia's row */}
-                  <div className="text-left font-medium py-2">Olivia</div>
-                  {plan.attendance?.map((att, i) => (
-                    <button
-                      key={`olivia-${i}`}
-                      onClick={() => toggleAttendance(i, "olivia")}
-                      className={`p-2 rounded-lg border transition-all ${
-                        att.olivia
-                          ? "bg-primary text-primary-foreground border-primary"
-                          : "bg-muted text-muted-foreground border-border hover:border-primary/50"
-                      }`}
-                    >
-                      {att.olivia ? "✓" : "—"}
-                    </button>
-                  ))}
-                </div>
+              <CardContent className="space-y-6">
+                {/* Helper to get meal attendance with migration for old data */}
+                {(() => {
+                  const getMealAtt = (dayAtt: DayAttendance | undefined, mealType: "breakfast" | "lunch" | "dinner") => {
+                    if (!dayAtt) return { andrew: true, olivia: true };
+                    // Handle old format migration
+                    if (!dayAtt.breakfast) {
+                      const old = dayAtt as unknown as { andrew: boolean; olivia: boolean };
+                      return { andrew: old.andrew ?? true, olivia: old.olivia ?? true };
+                    }
+                    return dayAtt[mealType];
+                  };
+
+                  const mealTypes = [
+                    { key: "breakfast" as const, label: "🍳 Breakfast", emoji: "🍳" },
+                    { key: "lunch" as const, label: "🥗 Lunch", emoji: "🥗" },
+                    { key: "dinner" as const, label: "🍽️ Dinner", emoji: "🍽️" },
+                  ];
+
+                  return mealTypes.map(({ key: mealType, label }) => (
+                    <div key={mealType} className="space-y-2">
+                      <h4 className="font-medium text-sm">{label}</h4>
+                      <div className="grid grid-cols-8 gap-2 text-center text-sm">
+                        <div></div>
+                        {dayNames.map((day) => (
+                          <div key={day} className="font-medium text-xs text-muted-foreground">{day.slice(0, 3)}</div>
+                        ))}
+                        
+                        {/* Andrew's row for this meal */}
+                        <div className="text-left text-xs py-2">Andrew</div>
+                        {plan.attendance?.map((att, i) => {
+                          const mealAtt = getMealAtt(att, mealType);
+                          return (
+                            <button
+                              key={`${mealType}-andrew-${i}`}
+                              onClick={() => toggleAttendance(i, mealType, "andrew")}
+                              className={`p-1.5 rounded-lg border transition-all text-xs ${
+                                mealAtt.andrew
+                                  ? "bg-primary text-primary-foreground border-primary"
+                                  : "bg-muted text-muted-foreground border-border hover:border-primary/50"
+                              }`}
+                            >
+                              {mealAtt.andrew ? "✓" : "—"}
+                            </button>
+                          );
+                        })}
+                        
+                        {/* Olivia's row for this meal */}
+                        <div className="text-left text-xs py-2">Olivia</div>
+                        {plan.attendance?.map((att, i) => {
+                          const mealAtt = getMealAtt(att, mealType);
+                          return (
+                            <button
+                              key={`${mealType}-olivia-${i}`}
+                              onClick={() => toggleAttendance(i, mealType, "olivia")}
+                              className={`p-1.5 rounded-lg border transition-all text-xs ${
+                                mealAtt.olivia
+                                  ? "bg-primary text-primary-foreground border-primary"
+                                  : "bg-muted text-muted-foreground border-border hover:border-primary/50"
+                              }`}
+                            >
+                              {mealAtt.olivia ? "✓" : "—"}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ));
+                })()}
                 
-                <div className="mt-6 pt-4 border-t border-border">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">This week:</span>
-                    <span>
-                      <strong>{plan.attendance?.filter(a => a.andrew).length || 7}</strong> days for Andrew, 
-                      <strong> {plan.attendance?.filter(a => a.olivia).length || 7}</strong> days for Olivia
-                    </span>
-                  </div>
+                <div className="pt-4 border-t border-border">
+                  <p className="text-xs text-muted-foreground">
+                    💡 Tip: If Andrew&apos;s traveling or Olivia&apos;s out, toggle off their meals — grocery list and costs will adjust.
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -718,50 +791,70 @@ export default function MealPlanner() {
             </p>
 
             {plan.days.map((day, dayIndex) => {
-              const attendance = plan.attendance?.[dayIndex] || { andrew: true, olivia: true };
-              const peopleCount = (attendance.andrew ? 1 : 0) + (attendance.olivia ? 1 : 0);
+              const dayAttendance = plan.attendance?.[dayIndex];
+              
+              // Helper to get meal attendance with old data migration
+              const getMealAtt = (mealType: "breakfast" | "lunch" | "dinner") => {
+                if (!dayAttendance) return { andrew: true, olivia: true };
+                if (!dayAttendance.breakfast) {
+                  const old = dayAttendance as unknown as { andrew: boolean; olivia: boolean };
+                  return { andrew: old.andrew ?? true, olivia: old.olivia ?? true };
+                }
+                return dayAttendance[mealType];
+              };
+
+              const breakfastAtt = getMealAtt("breakfast");
+              const lunchAtt = getMealAtt("lunch");
+              const dinnerAtt = getMealAtt("dinner");
+              
+              // Check if anyone is eating any meal this day
+              const anyMeals = (breakfastAtt.andrew || breakfastAtt.olivia) || 
+                               (lunchAtt.andrew || lunchAtt.olivia) || 
+                               (dinnerAtt.andrew || dinnerAtt.olivia);
               
               return (
-              <Card key={dayIndex} className={peopleCount === 0 ? "opacity-50" : ""}>
+              <Card key={dayIndex} className={!anyMeals ? "opacity-50" : ""}>
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-lg">{dayNames[dayIndex]}</CardTitle>
-                    <div className="flex items-center gap-2 text-sm">
-                      {attendance.andrew && <Badge variant="outline">Andrew</Badge>}
-                      {attendance.olivia && <Badge variant="outline">Olivia</Badge>}
-                      {peopleCount === 0 && <Badge variant="secondary">No meals needed</Badge>}
-                    </div>
+                    {!anyMeals && <Badge variant="secondary">No meals needed</Badge>}
                   </div>
                 </CardHeader>
                 <CardContent>
                   <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {/* Breakfast */}
-                    <MealCard
-                      label="Breakfast"
-                      meal={day.breakfast}
-                      onRevise={() => handleRevise(dayIndex, "breakfast")}
-                      onClick={() => setSelectedMeal(day.breakfast)}
-                      rating={preferences[day.breakfast.id]?.household}
-                      onRate={(r) => rateMeal(day.breakfast.id, "breakfast", day.breakfast.name, r)}
-                    />
+                    <div className={!(breakfastAtt.andrew || breakfastAtt.olivia) ? "opacity-40" : ""}>
+                      <MealCard
+                        label={`Breakfast${breakfastAtt.andrew && breakfastAtt.olivia ? "" : breakfastAtt.andrew ? " (A)" : breakfastAtt.olivia ? " (O)" : ""}`}
+                        meal={day.breakfast}
+                        onRevise={() => handleRevise(dayIndex, "breakfast")}
+                        onClick={() => setSelectedMeal(day.breakfast)}
+                        rating={preferences[day.breakfast.id]?.household}
+                        onRate={(r) => rateMeal(day.breakfast.id, "breakfast", day.breakfast.name, r)}
+                      />
+                    </div>
                     {/* Lunch */}
-                    <MealCard
-                      label="Lunch"
-                      meal={day.lunch}
-                      onRevise={() => handleRevise(dayIndex, "lunch")}
-                      onClick={() => setSelectedMeal(day.lunch)}
-                      rating={preferences[day.lunch.id]?.household}
-                      onRate={(r) => rateMeal(day.lunch.id, "lunch", day.lunch.name, r)}
-                    />
+                    <div className={!(lunchAtt.andrew || lunchAtt.olivia) ? "opacity-40" : ""}>
+                      <MealCard
+                        label={`Lunch${lunchAtt.andrew && lunchAtt.olivia ? "" : lunchAtt.andrew ? " (A)" : lunchAtt.olivia ? " (O)" : ""}`}
+                        meal={day.lunch}
+                        onRevise={() => handleRevise(dayIndex, "lunch")}
+                        onClick={() => setSelectedMeal(day.lunch)}
+                        rating={preferences[day.lunch.id]?.household}
+                        onRate={(r) => rateMeal(day.lunch.id, "lunch", day.lunch.name, r)}
+                      />
+                    </div>
                     {/* Dinner */}
-                    <MealCard
-                      label="Dinner"
-                      meal={day.dinner}
-                      onRevise={() => handleRevise(dayIndex, "dinner")}
-                      onClick={() => setSelectedMeal(day.dinner)}
-                      rating={preferences[day.dinner.id]?.household}
-                      onRate={(r) => rateMeal(day.dinner.id, "dinner", day.dinner.name, r)}
-                    />
+                    <div className={!(dinnerAtt.andrew || dinnerAtt.olivia) ? "opacity-40" : ""}>
+                      <MealCard
+                        label={`Dinner${dinnerAtt.andrew && dinnerAtt.olivia ? "" : dinnerAtt.andrew ? " (A)" : dinnerAtt.olivia ? " (O)" : ""}`}
+                        meal={day.dinner}
+                        onRevise={() => handleRevise(dayIndex, "dinner")}
+                        onClick={() => setSelectedMeal(day.dinner)}
+                        rating={preferences[day.dinner.id]?.household}
+                        onRate={(r) => rateMeal(day.dinner.id, "dinner", day.dinner.name, r)}
+                      />
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -984,7 +1077,7 @@ export default function MealPlanner() {
 
                 <div className="mt-6 p-4 bg-muted/30 rounded-lg border border-border">
                   <p className="text-sm text-muted-foreground">
-                    <strong>{stats.groceryList.length} items</strong> for {stats.totalPeopleDays} person-days of meals.
+                    <strong>{stats.groceryList.length} items</strong> for {stats.totalMealServings} meal servings.
                     Estimated: <strong>${Math.round(stats.totalCost * 0.5)}-${Math.round(stats.totalCost * 0.7)}</strong> at NYC grocery stores.
                   </p>
                 </div>
