@@ -59,7 +59,7 @@ export default function Home() {
         </header>
 
         {/* Projects Section */}
-        <section id="projects" className="grid md:grid-cols-3 gap-6">
+        <section id="projects" className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Link href="/marathon" className="group">
             <Card className="h-full transition-all hover:border-primary hover:shadow-lg hover:shadow-primary/5">
               <CardHeader>
@@ -112,6 +112,25 @@ export default function Home() {
               <CardContent>
                 <span className="text-primary text-sm font-medium group-hover:underline">
                   Explore ideas →
+                </span>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link href="/dynasty" className="group">
+            <Card className="h-full transition-all hover:border-primary hover:shadow-lg hover:shadow-primary/5">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <span>🏈</span>
+                  <span>Dynasty Manager</span>
+                </CardTitle>
+                <CardDescription>
+                  Midd Baseball Dynasty. Scout prospects, find trades, dominate the league.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <span className="text-primary text-sm font-medium group-hover:underline">
+                  Manage team →
                 </span>
               </CardContent>
             </Card>
