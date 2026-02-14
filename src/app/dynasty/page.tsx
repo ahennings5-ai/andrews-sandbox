@@ -94,6 +94,16 @@ interface TradeAsset {
   value: number;
 }
 
+interface TradeSuggestion {
+  targetTeam: string;
+  targetMode: string;
+  rationale: string;
+  yourSide: { players: string[]; picks: string[]; totalValue: number };
+  theirSide: { players: string[]; picks: string[]; totalValue: number };
+  type: string;
+  priority: "high" | "medium" | "low";
+}
+
 const modeConfig = {
   tank: { label: "Tank", color: "bg-red-500", description: "Accumulate picks & youth" },
   retool: { label: "Retool", color: "bg-yellow-500", description: "Transitioning roster" },
@@ -128,6 +138,9 @@ export default function DynastyPage() {
   const [mySideAssets, setMySideAssets] = useState<TradeAsset[]>([]);
   const [theirSideAssets, setTheirSideAssets] = useState<TradeAsset[]>([]);
   const [tradePartner, setTradePartner] = useState<Team | null>(null);
+  // Trade suggestions
+  const [tradeSuggestions, setTradeSuggestions] = useState<TradeSuggestion[]>([]);
+  const [loadingTrades, setLoadingTrades] = useState(false);
 
   // Load data
   const loadData = useCallback(async () => {
@@ -169,6 +182,20 @@ export default function DynastyPage() {
         if (data.historyByTeam && data.historyByTeam[1]) {
           setValueHistory(data.historyByTeam[1]);
         }
+      }
+
+      // Load trade suggestions
+      try {
+        setLoadingTrades(true);
+        const tradesRes = await fetch("/api/dynasty/trades");
+        if (tradesRes.ok) {
+          const tradesData = await tradesRes.json();
+          setTradeSuggestions(tradesData.suggestions || []);
+        }
+      } catch {
+        console.error("Failed to load trade suggestions");
+      } finally {
+        setLoadingTrades(false);
       }
     } catch (error) {
       console.error("Failed to load data:", error);
@@ -505,39 +532,65 @@ export default function DynastyPage() {
             </Card>
 
             {/* Recommended Actions */}
-            {sellCandidates.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>🎯 Recommended Actions</CardTitle>
-                  <CardDescription>Based on your {modeConfig[mode].label} strategy</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {sellCandidates.slice(0, 5).map((player) => (
-                      <div
-                        key={player.id}
-                        className="flex items-center justify-between p-3 rounded-lg border border-red-500/30 bg-red-500/5"
-                      >
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="destructive">SELL</Badge>
-                            <span className="font-medium">{player.name}</span>
-                            <Badge variant="outline" className={positionColors[player.position]}>
-                              {player.position}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-muted-foreground mt-1">{player.recommendReason}</p>
+            <Card>
+              <CardHeader>
+                <CardTitle>🎯 Recommended Actions</CardTitle>
+                <CardDescription>Based on your {modeConfig[mode].label} strategy</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {/* Top Trade Suggestions */}
+                  {tradeSuggestions.filter(t => t.priority === "high").slice(0, 3).map((trade, idx) => (
+                    <div
+                      key={`trade-${idx}`}
+                      className="flex items-center justify-between p-3 rounded-lg border border-green-500/30 bg-green-500/5"
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <Badge className="bg-green-500">TRADE</Badge>
+                          <span className="font-medium">Target: {trade.targetTeam}</span>
                         </div>
-                        <div className="text-right">
-                          <div className="font-bold">{player.drewValue?.toLocaleString()}</div>
-                          <div className="text-xs text-muted-foreground">Drew Value</div>
+                        <p className="text-sm text-muted-foreground mt-1">{trade.rationale}</p>
+                        <div className="text-xs mt-2">
+                          <span className="text-red-400">Give: {trade.yourSide.players.join(", ") || trade.yourSide.picks.join(", ")}</span>
+                          <span className="mx-2">→</span>
+                          <span className="text-green-400">Get: {trade.theirSide.players.join(", ") || trade.theirSide.picks.join(", ")}</span>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+                    </div>
+                  ))}
+                  
+                  {/* Sell Candidates */}
+                  {sellCandidates.slice(0, 3).map((player) => (
+                    <div
+                      key={player.id}
+                      className="flex items-center justify-between p-3 rounded-lg border border-red-500/30 bg-red-500/5"
+                    >
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="destructive">SELL</Badge>
+                          <span className="font-medium">{player.name}</span>
+                          <Badge variant="outline" className={positionColors[player.position]}>
+                            {player.position}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">{player.recommendReason}</p>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-bold">{player.drewValue?.toLocaleString()}</div>
+                        <div className="text-xs text-muted-foreground">Drew Value</div>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {sellCandidates.length === 0 && tradeSuggestions.length === 0 && (
+                    <p className="text-center text-muted-foreground py-4">
+                      Sync data to generate recommendations
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* My Assets */}
@@ -982,6 +1035,64 @@ export default function DynastyPage() {
 
           {/* League Intel */}
           <TabsContent value="intel" className="space-y-6">
+            {/* AI Trade Suggestions */}
+            <Card className="border-primary/50">
+              <CardHeader>
+                <CardTitle>🎯 AI Trade Suggestions</CardTitle>
+                <CardDescription>Based on league-wide roster analysis and team needs</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {loadingTrades ? (
+                  <p className="text-center text-muted-foreground py-4">Analyzing league...</p>
+                ) : tradeSuggestions.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-4">Sync data to generate trade ideas</p>
+                ) : (
+                  <div className="space-y-4">
+                    {tradeSuggestions.slice(0, 8).map((trade, idx) => (
+                      <div
+                        key={idx}
+                        className={`p-4 rounded-lg border ${
+                          trade.priority === "high" 
+                            ? "border-green-500/50 bg-green-500/5" 
+                            : trade.priority === "medium"
+                            ? "border-yellow-500/50 bg-yellow-500/5"
+                            : "border-border"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <Badge variant={trade.priority === "high" ? "default" : "secondary"}>
+                              {trade.priority.toUpperCase()}
+                            </Badge>
+                            <Badge variant="outline">{trade.type}</Badge>
+                            <span className="font-medium">→ {trade.targetTeam}</span>
+                            <span className="text-xs text-muted-foreground">({trade.targetMode})</span>
+                          </div>
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-3">{trade.rationale}</p>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div className="p-2 rounded bg-red-500/10">
+                            <div className="text-xs text-red-400 mb-1">You Give</div>
+                            <div>{trade.yourSide.players.join(", ") || "—"}</div>
+                            {trade.yourSide.picks.length > 0 && (
+                              <div className="text-xs text-muted-foreground">{trade.yourSide.picks.join(", ")}</div>
+                            )}
+                          </div>
+                          <div className="p-2 rounded bg-green-500/10">
+                            <div className="text-xs text-green-400 mb-1">You Get</div>
+                            <div>{trade.theirSide.players.join(", ") || "—"}</div>
+                            {trade.theirSide.picks.length > 0 && (
+                              <div className="text-xs text-muted-foreground">{trade.theirSide.picks.join(", ")}</div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader>
                 <CardTitle>📊 League Standings by Value</CardTitle>

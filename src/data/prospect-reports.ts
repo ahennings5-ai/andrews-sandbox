@@ -1,6 +1,6 @@
 // Dynasty Prospect Scouting Reports
 // Author: Agent Drew | Last Updated: Feb 2026
-// Sources: CBS Sports, WalterFootball, DynastyProcess
+// Sources: ESPN, CBS Sports, WalterFootball, DynastyProcess
 
 export interface ProspectReport {
   id: string;
@@ -12,8 +12,8 @@ export interface ProspectReport {
   weight: number;
   projectedPick: string;
   dynastyTier: 'Elite' | 'Blue Chip' | 'Solid' | 'Upside' | 'Dart';
+  grade: 'A+' | 'A' | 'A-' | 'B+' | 'B' | 'B-' | 'C+' | 'C';
   
-  // 2025 College Stats (where available)
   stats?: {
     games?: number;
     recYds?: number;
@@ -24,6 +24,7 @@ export interface ProspectReport {
     passYds?: number;
     passTD?: number;
     int?: number;
+    ypc?: number;
   };
   
   strengths: string[];
@@ -53,20 +54,21 @@ export const prospectReports: ProspectReport[] = [
     weight: 225,
     projectedPick: "Top 5",
     dynastyTier: "Blue Chip",
+    grade: "A-",
     stats: { games: 16, passYds: 3535, passTD: 41, int: 6 },
     strengths: [
-      "Prototype size with elite arm",
-      "72% completion, 41 TD, 6 INT",
-      "Massive 2025 breakout"
+      "UNANIMOUS QB1 - pocket passer with elite processing",
+      "Quick-game and RPO specialist",
+      "72% completion rate, elite production"
     ],
     weaknesses: [
-      "First year as starter",
-      "Raw—needs development"
+      "First year as full-time starter",
+      "Needs development in deep ball accuracy"
     ],
     comps: ["Josh Allen", "Derek Carr"],
     ceiling: "Franchise QB, top-5 fantasy",
-    floor: "Developmental project",
-    summary: "QB1 in a weak class. 41 TDs with 6 INTs is elite production. Raw but the tools are there.",
+    floor: "High-floor starter with limited rushing",
+    summary: "QB1 in a historically weak class. 41 TDs/6 INTs is elite. Quick processing translates day one.",
     idealFits: ["Raiders", "Browns", "Giants"]
   },
   
@@ -80,21 +82,103 @@ export const prospectReports: ProspectReport[] = [
     weight: 208,
     projectedPick: "Round 1-2",
     dynastyTier: "Solid",
+    grade: "B+",
     stats: { games: 15, passYds: 3567, passTD: 28, int: 5 },
     strengths: [
-      "28 TD / 5 INT ratio",
-      "Proven winner at Bama",
-      "Ball placement is plus"
+      "Strong arm with dual-threat ability",
+      "Proven winner at Alabama",
+      "28 TD / 5 INT efficiency"
     ],
     weaknesses: [
-      "Lacks elite arm talent",
-      "Ceiling concerns"
+      "Not elite arm talent for NFL standards",
+      "Ceiling questions remain"
     ],
-    comps: ["Mac Jones", "Kirk Cousins"],
-    ceiling: "Low-end QB1",
-    floor: "Safe backup",
-    summary: "Pro-ready but limited upside. 64.5% completion is fine, not elite. Late 1st in SF.",
+    comps: ["Dak Prescott", "Kirk Cousins"],
+    ceiling: "Low-end QB1 with rushing floor",
+    floor: "Safe backup/bridge starter",
+    summary: "Pro-ready but limited upside. 64.5% completion is fine, not elite. Late 1st SF value.",
     idealFits: ["Jets", "Steelers", "Vikings"]
+  },
+
+  {
+    id: "2026_qb_chambliss",
+    name: "Trinidad Chambliss",
+    position: "QB",
+    school: "Ole Miss",
+    draftYear: 2026,
+    height: "6'0\"",
+    weight: 195,
+    projectedPick: "Round 1-2",
+    dynastyTier: "Upside",
+    grade: "B+",
+    strengths: [
+      "Russell Wilson comp - electric playmaker",
+      "Undersized but plays big",
+      "Dynamic dual-threat with arm talent"
+    ],
+    weaknesses: [
+      "6'0\" - legitimate size concerns",
+      "May appeal to 2027 class"
+    ],
+    comps: ["Russell Wilson", "Kyler Murray"],
+    ceiling: "Dynamic fantasy QB1",
+    floor: "Boom-bust starter",
+    summary: "Electric playmaker with Wilson-like traits. Size is the only knock. High upside dart.",
+    idealFits: ["Panthers", "Cardinals", "Broncos"]
+  },
+
+  {
+    id: "2026_qb_allar",
+    name: "Drew Allar",
+    position: "QB",
+    school: "Penn State",
+    draftYear: 2026,
+    height: "6'5\"",
+    weight: 238,
+    projectedPick: "Round 2",
+    dynastyTier: "Upside",
+    grade: "B",
+    strengths: [
+      "Big arm with ideal NFL size",
+      "Developing rapidly",
+      "Penn State pedigree"
+    ],
+    weaknesses: [
+      "Still raw in processing",
+      "Inconsistent accuracy"
+    ],
+    comps: ["Josh Allen (lite)", "Daniel Jones"],
+    ceiling: "Starting NFL QB with upside",
+    floor: "Backup/project",
+    summary: "Raw tools and massive frame. Needs development but the arm talent is real.",
+    idealFits: ["Saints", "Titans", "Colts"]
+  },
+
+  {
+    id: "2026_qb_nussmeier",
+    name: "Garrett Nussmeier",
+    position: "QB",
+    school: "LSU",
+    draftYear: 2026,
+    height: "6'2\"",
+    weight: 210,
+    projectedPick: "Round 2-3",
+    dynastyTier: "Upside",
+    grade: "B",
+    strengths: [
+      "Gunslinger mentality",
+      "LSU QB factory production",
+      "Aggressive downfield thrower"
+    ],
+    weaknesses: [
+      "Decision-making lapses",
+      "Turnover-prone"
+    ],
+    comps: ["Baker Mayfield", "Drew Lock"],
+    ceiling: "Boom-bust starter",
+    floor: "Backup with glimpses",
+    summary: "Gunslinger with upside and risk. Will make big throws and bad decisions.",
+    idealFits: ["Falcons", "Bears", "Texans"]
   },
 
   // RUNNING BACKS
@@ -108,20 +192,21 @@ export const prospectReports: ProspectReport[] = [
     weight: 214,
     projectedPick: "Top 10",
     dynastyTier: "Elite",
-    stats: { games: 12, rushYds: 1372, rushTD: 18 },
+    grade: "A",
+    stats: { games: 12, rushYds: 1372, rushTD: 18, ypc: 6.9 },
     strengths: [
+      "UNANIMOUS RB1 - explosive game-breaker",
       "6.9 YPC (!), 18 rushing TDs",
-      "Plus receiving ability",
-      "Workhorse build"
+      "Plus receiving ability, workhorse build"
     ],
     weaknesses: [
-      "Not elite long speed",
-      "Pass pro needs work"
+      "Not elite long speed (4.5+ forty)",
+      "Pass protection needs refinement"
     ],
     comps: ["Josh Jacobs", "Alvin Kamara"],
-    ceiling: "Top-5 dynasty RB",
-    floor: "Solid RB2",
-    summary: "RB1 in this class. 6.9 YPC and 18 TDs is absurd. 1.01-1.02 in 1QB formats.",
+    ceiling: "Top-5 dynasty RB, three-down back",
+    floor: "Solid RB2 even in committee",
+    summary: "Clear RB1 in the class. 6.9 YPC and 18 TDs is elite. 1.01-1.02 in 1QB formats.",
     idealFits: ["Commanders", "Titans", "Saints"]
   },
   
@@ -135,24 +220,161 @@ export const prospectReports: ProspectReport[] = [
     weight: 210,
     projectedPick: "Round 2-3",
     dynastyTier: "Solid",
-    stats: { games: 12, rushYds: 674, rushTD: 11 },
+    grade: "B+",
+    stats: { games: 12, rushYds: 674, rushTD: 11, ypc: 6.0 },
     strengths: [
-      "6.0 YPC efficiency",
-      "11 TDs in limited work",
-      "Change-of-pace upside"
+      "Versatile skill set",
+      "6.0 YPC efficiency despite backup role",
+      "11 TDs in limited touches"
     ],
     weaknesses: [
-      "Split backfield with Love",
-      "Smaller frame"
+      "Split backfield production with Love",
+      "Smaller frame concerns"
     ],
     comps: ["Jaylen Warren", "Tony Pollard"],
-    ceiling: "High-end RB2",
+    ceiling: "High-end RB2 with receiving upside",
     floor: "Backup/committee back",
-    summary: "Love's backup but efficient. Day 2 pick—2nd round dynasty value.",
+    summary: "Love's backup but efficient when used. Day 2 pick—late 1st/early 2nd dynasty value.",
     idealFits: ["Broncos", "Cardinals", "Bears"]
   },
 
+  {
+    id: "2026_rb_johnson",
+    name: "Emmett Johnson",
+    position: "RB",
+    school: "Nebraska",
+    draftYear: 2026,
+    height: "5'10\"",
+    weight: 225,
+    projectedPick: "Round 3-4",
+    dynastyTier: "Solid",
+    grade: "B",
+    strengths: [
+      "Power back with contact balance",
+      "Short-yardage specialist",
+      "High motor"
+    ],
+    weaknesses: [
+      "Limited receiving upside",
+      "Not a home-run hitter"
+    ],
+    comps: ["David Montgomery", "Kareem Hunt"],
+    ceiling: "Starting power back",
+    floor: "Short-yardage specialist",
+    summary: "Old-school power runner. Won't win leagues but provides steady production.",
+    idealFits: ["Ravens", "Browns", "Steelers"]
+  },
+
+  {
+    id: "2026_rb_coleman",
+    name: "Jonah Coleman",
+    position: "RB",
+    school: "Washington",
+    draftYear: 2026,
+    height: "5'9\"",
+    weight: 205,
+    projectedPick: "Round 3-4",
+    dynastyTier: "Upside",
+    grade: "B",
+    strengths: [
+      "Elite burst and speed",
+      "Home-run threat ability",
+      "Improved vision in 2025"
+    ],
+    weaknesses: [
+      "Smaller frame durability",
+      "Between-the-tackles running"
+    ],
+    comps: ["De'Von Achane", "Raheem Mostert"],
+    ceiling: "Speed-dependent RB1",
+    floor: "Change-of-pace specialist",
+    summary: "Electric speed but needs right system. High-upside day 3 dart.",
+    idealFits: ["Dolphins", "Chiefs", "Bills"]
+  },
+
+  {
+    id: "2026_rb_singleton",
+    name: "Nicholas Singleton",
+    position: "RB",
+    school: "Penn State",
+    draftYear: 2026,
+    height: "6'0\"",
+    weight: 220,
+    projectedPick: "Round 2-3",
+    dynastyTier: "Solid",
+    grade: "B+",
+    strengths: [
+      "Elite contact balance",
+      "Powerful through contact",
+      "Complete skill set"
+    ],
+    weaknesses: [
+      "Split backfield with Allen",
+      "Not elite top-end speed"
+    ],
+    comps: ["Nick Chubb", "Derrick Henry (lite)"],
+    ceiling: "Three-down power back",
+    floor: "Solid committee RB",
+    summary: "Physical runner with plus contact balance. Penn State RB room competition lowers stock.",
+    idealFits: ["Bengals", "Packers", "Cowboys"]
+  },
+
+  {
+    id: "2026_rb_claiborne",
+    name: "Demond Claiborne",
+    position: "RB",
+    school: "Wake Forest",
+    draftYear: 2026,
+    height: "5'11\"",
+    weight: 208,
+    projectedPick: "Round 4-5",
+    dynastyTier: "Dart",
+    grade: "B-",
+    strengths: [
+      "Sleeper with receiving ability",
+      "Good hands out of backfield",
+      "Patient runner"
+    ],
+    weaknesses: [
+      "Small-school competition level",
+      "Limited NFL draft buzz"
+    ],
+    comps: ["James White", "Dion Lewis"],
+    ceiling: "Pass-catching specialist RB2",
+    floor: "3rd-down back",
+    summary: "Under-the-radar sleeper. PPR upside in right system.",
+    idealFits: ["Patriots", "Lions", "Vikings"]
+  },
+
   // WIDE RECEIVERS
+  {
+    id: "2026_wr_tate",
+    name: "Carnell Tate",
+    position: "WR",
+    school: "Ohio State",
+    draftYear: 2026,
+    height: "6'2\"",
+    weight: 195,
+    projectedPick: "Top 10",
+    dynastyTier: "Elite",
+    grade: "A",
+    stats: { games: 11, rec: 51, recYds: 875, recTD: 9 },
+    strengths: [
+      "WR1 in the class - elite route runner",
+      "17.2 YPR with 9 TDs",
+      "Big-play ability from Ohio State"
+    ],
+    weaknesses: [
+      "Could add more mass to frame",
+      "Quiet freshman year"
+    ],
+    comps: ["Chris Olave", "Terry McLaurin"],
+    ceiling: "Alpha WR1 with route-running dominance",
+    floor: "High-floor WR2",
+    summary: "Best route runner in class. 17.2 YPR proves big-play ability. Top-10 pick, mid-1st dynasty.",
+    idealFits: ["Ravens", "Rams", "Patriots"]
+  },
+
   {
     id: "2026_wr_tyson",
     name: "Jordyn Tyson",
@@ -161,50 +383,24 @@ export const prospectReports: ProspectReport[] = [
     draftYear: 2026,
     height: "6'2\"",
     weight: 200,
-    projectedPick: "Top 10",
-    dynastyTier: "Elite",
-    stats: { games: 9, rec: 61, recYds: 711, recTD: 8 },
-    strengths: [
-      "11.7 YPR, 8 TDs in 9 games",
-      "Explosive speed/size combo",
-      "Alpha mentality"
-    ],
-    weaknesses: [
-      "Only 9 games (injury?)",
-      "Route tree needs refinement"
-    ],
-    comps: ["Chris Olave", "Terry McLaurin"],
-    ceiling: "WR1 with deep threat ability",
-    floor: "Boom-bust WR2",
-    summary: "WR1 in the class. Per-game production is elite—8 TDs in 9 games. Top-5 pick.",
-    idealFits: ["Saints", "Chiefs", "Ravens"]
-  },
-  
-  {
-    id: "2026_wr_tate",
-    name: "Carnell Tate",
-    position: "WR",
-    school: "Ohio State",
-    draftYear: 2026,
-    height: "6'3\"",
-    weight: 195,
     projectedPick: "Top 15",
     dynastyTier: "Blue Chip",
-    stats: { games: 11, rec: 51, recYds: 875, recTD: 9 },
+    grade: "A-",
+    stats: { games: 9, rec: 61, recYds: 711, recTD: 8 },
     strengths: [
-      "17.2 YPR (!), 9 TDs",
-      "Big-play ability",
-      "Breakout sophomore year"
+      "Speed and size combo",
+      "8 TDs in 9 games - per-game monster",
+      "Explosive playmaker"
     ],
     weaknesses: [
-      "Quiet freshman year",
-      "Needs to add weight"
+      "Limited sample (9 games)",
+      "Route tree still developing"
     ],
-    comps: ["Mike Evans", "DK Metcalf"],
-    ceiling: "Alpha WR1",
-    floor: "TD-dependent WR3",
-    summary: "17.2 yards per catch is elite. Big-play machine with size. WR2 in class, mid-1st pick.",
-    idealFits: ["Rams", "Patriots", "Bears"]
+    comps: ["CeeDee Lamb", "Terry McLaurin"],
+    ceiling: "WR1 with deep threat ability",
+    floor: "Boom-bust WR2",
+    summary: "Per-game production is elite—8 TDs in 9 games. Small sample risk but talent is obvious.",
+    idealFits: ["Saints", "Chiefs", "Ravens"]
   },
   
   {
@@ -217,50 +413,24 @@ export const prospectReports: ProspectReport[] = [
     weight: 195,
     projectedPick: "Round 1",
     dynastyTier: "Blue Chip",
+    grade: "A-",
     stats: { games: 12, rec: 79, recYds: 1156, recTD: 11 },
     strengths: [
-      "79 rec, 1156 yds, 11 TD",
-      "Volume monster",
-      "Wins contested catches"
+      "Explosive playmaker - 79 catches lead class",
+      "1,156 yards, 11 TDs",
+      "Wins contested catches despite size"
     ],
     weaknesses: [
-      "Under 6 feet",
+      "Under 6 feet - outside role questions",
       "Not a burner"
     ],
     comps: ["Amon-Ra St. Brown", "Keenan Allen"],
-    ceiling: "PPR WR1",
+    ceiling: "PPR WR1 monster",
     floor: "High-floor WR2",
-    summary: "Volume king—79 catches leads the class. 14.6 YPR with 11 TDs. PPR darling, mid-1st.",
+    summary: "Volume king—79 catches leads class. 14.6 YPR with 11 TDs. PPR darling, mid-1st value.",
     idealFits: ["Ravens", "Broncos", "Panthers"]
   },
-  
-  {
-    id: "2026_wr_brazzell",
-    name: "Chris Brazzell II",
-    position: "WR",
-    school: "Tennessee",
-    draftYear: 2026,
-    height: "6'5\"",
-    weight: 200,
-    projectedPick: "Round 2",
-    dynastyTier: "Solid",
-    stats: { games: 12, rec: 62, recYds: 1017, recTD: 9 },
-    strengths: [
-      "1,000+ yard season",
-      "6'5\" with 16.4 YPR",
-      "Red zone weapon"
-    ],
-    weaknesses: [
-      "Needs to add mass",
-      "May lack elite speed"
-    ],
-    comps: ["Mike Williams", "Allen Robinson"],
-    ceiling: "Big-bodied WR1",
-    floor: "TD-dependent WR3",
-    summary: "Sneaky good—1017 yards at 6'5\". High-upside day 2 pick. Late 1st value.",
-    idealFits: ["Steelers", "Jaguars", "Texans"]
-  },
-  
+
   {
     id: "2026_wr_boston",
     name: "Denzel Boston",
@@ -269,25 +439,26 @@ export const prospectReports: ProspectReport[] = [
     draftYear: 2026,
     height: "6'4\"",
     weight: 210,
-    projectedPick: "Round 2",
-    dynastyTier: "Solid",
+    projectedPick: "Round 1-2",
+    dynastyTier: "Blue Chip",
+    grade: "B+",
     stats: { games: 11, rec: 62, recYds: 881, recTD: 11 },
     strengths: [
-      "11 TDs in 11 games",
-      "14.2 YPR",
-      "Size/TD combo"
+      "Elite size at 6'4\"",
+      "11 TDs in 11 games - red zone monster",
+      "Contested catch specialist"
     ],
     weaknesses: [
-      "Post-Penix production—system?",
+      "Post-Penix production—system concerns",
       "Not elite separation"
     ],
-    comps: ["DeAndre Hopkins", "Courtland Sutton"],
+    comps: ["Mike Evans", "Courtland Sutton"],
     ceiling: "TD-machine WR1",
-    floor: "Red zone specialist",
-    summary: "11 TDs in 11 games is ridiculous. TD regression likely but upside is real. Day 2 value.",
+    floor: "Red zone specialist WR3",
+    summary: "11 TDs in 11 games is absurd. TD regression likely but size + hands = real upside.",
     idealFits: ["Jaguars", "Browns", "Cardinals"]
   },
-  
+
   {
     id: "2026_wr_concepcion",
     name: "KC Concepcion",
@@ -298,48 +469,76 @@ export const prospectReports: ProspectReport[] = [
     weight: 190,
     projectedPick: "Round 2",
     dynastyTier: "Solid",
+    grade: "B+",
     stats: { games: 13, rec: 61, recYds: 919, recTD: 9 },
     strengths: [
-      "15.1 YPR, 9 TDs",
-      "Playmaker ability",
-      "Reliable hands"
+      "Elite slot skills - 15.1 YPR",
+      "9 TDs from slot",
+      "Reliable hands and route running"
     ],
     weaknesses: [
-      "Smaller frame",
-      "SEC competition?"
+      "Smaller frame for outside",
+      "Slot-only projection"
     ],
-    comps: ["Brandin Cooks", "Tyler Lockett"],
-    ceiling: "Deep threat WR2",
-    floor: "Solid WR3",
-    summary: "Another 900-yard guy with 9 TDs. Deep threat upside. Late 1st/early 2nd value.",
+    comps: ["Chris Godwin", "Tyler Lockett"],
+    ceiling: "Elite slot WR2",
+    floor: "Solid WR3 in slot",
+    summary: "Slot specialist with plus production. 919 yards, 9 TDs. Late 1st/early 2nd value.",
     idealFits: ["Bills", "Lions", "Seahawks"]
   },
-  
+
   {
-    id: "2026_wr_cooper",
-    name: "Omar Cooper Jr.",
+    id: "2026_wr_fields",
+    name: "Malachi Fields",
     position: "WR",
-    school: "Indiana",
+    school: "Notre Dame",
     draftYear: 2026,
-    height: "6'0\"",
-    weight: 204,
+    height: "6'2\"",
+    weight: 205,
     projectedPick: "Round 2-3",
-    dynastyTier: "Upside",
-    stats: { games: 16, rec: 69, recYds: 937, recTD: 13 },
+    dynastyTier: "Solid",
+    grade: "B",
     strengths: [
-      "13 TDs—2nd in class",
-      "Mendoza's top target",
-      "Solid frame"
+      "Size/speed combo",
+      "Notre Dame offense production",
+      "Contested catch ability"
     ],
     weaknesses: [
-      "Indiana competition level",
-      "Can he do it without Mendoza?"
+      "Route tree needs polish",
+      "Consistency concerns"
     ],
-    comps: ["Jameson Williams", "Rashod Bateman"],
-    ceiling: "High-upside WR2",
-    floor: "Boom-bust WR4",
-    summary: "13 TDs with Mendoza—chemistry matters. If they go together, value rises. Mid-2nd.",
-    idealFits: ["Raiders", "Browns", "Giants"]
+    comps: ["Allen Robinson", "Darnell Mooney"],
+    ceiling: "Starting WR2",
+    floor: "WR4 with upside",
+    summary: "Solid day 2 prospect with size. Notre Dame passing game helped stock.",
+    idealFits: ["Vikings", "Packers", "Dolphins"]
+  },
+
+  {
+    id: "2026_wr_branch",
+    name: "Zachariah Branch",
+    position: "WR",
+    school: "Georgia",
+    draftYear: 2026,
+    height: "5'10\"",
+    weight: 178,
+    projectedPick: "Round 2-3",
+    dynastyTier: "Upside",
+    grade: "B",
+    strengths: [
+      "Speed demon - sub-4.3 burner",
+      "Dynamic return ability",
+      "Explosive after the catch"
+    ],
+    weaknesses: [
+      "Slight frame",
+      "Limited route tree"
+    ],
+    comps: ["Tyreek Hill (lite)", "Jaylen Waddle"],
+    ceiling: "Deep threat WR2",
+    floor: "Return specialist",
+    summary: "Elite speed but raw. Home-run threat with proper development. High-upside dart.",
+    idealFits: ["Chiefs", "Ravens", "Bills"]
   },
 
   // TIGHT ENDS
@@ -352,22 +551,50 @@ export const prospectReports: ProspectReport[] = [
     height: "6'3\"",
     weight: 245,
     projectedPick: "Round 1-2",
-    dynastyTier: "Solid",
+    dynastyTier: "Blue Chip",
+    grade: "A-",
     stats: { games: 14, rec: 51, recYds: 560, recTD: 8 },
     strengths: [
-      "8 TDs leads TEs",
-      "Red zone monster",
-      "Solid hands"
+      "UNANIMOUS TE1 - complete tight end",
+      "8 TDs leads all TEs",
+      "Red zone monster, solid hands"
     ],
     weaknesses: [
       "Only 11 YPR",
-      "Blocking needs work"
+      "Blocking still developing"
     ],
     comps: ["Dallas Goedert", "Hunter Henry"],
     ceiling: "TE1 with TD upside",
     floor: "TE2 in right scheme",
-    summary: "TE1 in the class. 8 TDs is elite for the position. Worth late 1st in TEP.",
+    summary: "TE1 in the class. 8 TDs is elite for position. Worth late 1st in TEP leagues.",
     idealFits: ["Chiefs", "Chargers", "Cowboys"]
+  },
+
+  {
+    id: "2026_te_royer",
+    name: "Joe Royer",
+    position: "TE",
+    school: "Cincinnati",
+    draftYear: 2026,
+    height: "6'5\"",
+    weight: 255,
+    projectedPick: "Round 2-3",
+    dynastyTier: "Solid",
+    grade: "B",
+    strengths: [
+      "Good size for position",
+      "Red zone target ability",
+      "Improving route runner"
+    ],
+    weaknesses: [
+      "Limited athletic ceiling",
+      "Blocking inconsistent"
+    ],
+    comps: ["Pat Freiermuth", "Tyler Higbee"],
+    ceiling: "Starting TE1",
+    floor: "TE2/blocking TE",
+    summary: "Solid TE prospect with good size. Not flashy but productive.",
+    idealFits: ["Patriots", "Titans", "Saints"]
   },
   
   {
@@ -380,27 +607,29 @@ export const prospectReports: ProspectReport[] = [
     weight: 243,
     projectedPick: "Round 2-3",
     dynastyTier: "Upside",
+    grade: "B",
     stats: { games: 13, rec: 43, recYds: 448, recTD: 2 },
     strengths: [
-      "Great size/athleticism",
-      "Improving each year",
-      "Day 2 value"
+      "Great size/athleticism combo",
+      "Ohio State pedigree",
+      "Improving each season"
     ],
     weaknesses: [
       "Only 2 TDs",
-      "Usage was limited"
+      "Limited usage in college"
     ],
-    comps: ["Kyle Pitts (lite)", "Pat Freiermuth"],
+    comps: ["Kyle Pitts (lite)", "Noah Fant"],
     ceiling: "Top-5 TE with development",
     floor: "Blocking TE with upside",
-    summary: "Upside play—athletic freak who needs target share. 2nd round dynasty value.",
-    idealFits: ["Patriots", "Jaguars", "Dolphins"]
+    summary: "Athletic freak who needs target share. 2nd round dynasty value, needs patience.",
+    idealFits: ["Jaguars", "Dolphins", "Bears"]
   },
 
   // ═══════════════════════════════════════════════════════════
   // 2027 NFL DRAFT CLASS (April 2027)
   // ═══════════════════════════════════════════════════════════
   
+  // QUARTERBACKS
   {
     id: "2027_qb_manning",
     name: "Arch Manning",
@@ -408,22 +637,24 @@ export const prospectReports: ProspectReport[] = [
     school: "Texas",
     draftYear: 2027,
     height: "6'4\"",
-    weight: 225,
+    weight: 220,
     projectedPick: "1.01",
     dynastyTier: "Elite",
+    grade: "A+",
+    stats: { games: 12, passYds: 3163, passTD: 26, int: 5 },
     strengths: [
-      "Elite bloodline/football IQ",
-      "Improved exponentially as starter",
-      "Arm talent is real"
+      "THE franchise QB prospect - potential #1 overall",
+      "Elite bloodline with arm talent to back it",
+      "Dual-threat ability (6'4\" 220 and mobile)"
     ],
     weaknesses: [
-      "Started slow in 2025",
-      "Pressure of the name"
+      "Pressure of the name",
+      "Still developing at high level"
     ],
-    comps: ["Peyton Manning", "Eli Manning"],
-    ceiling: "Generational franchise QB",
-    floor: "Starting NFL QB",
-    summary: "The name. The talent. 1.01 in SF, no questions. Dynasty cornerstone for 15 years.",
+    comps: ["Peyton Manning", "Andrew Luck"],
+    ceiling: "Generational franchise QB, 15-year dynasty cornerstone",
+    floor: "Starting NFL QB floor",
+    summary: "The name. The talent. 3,163 yards, 26 TD, 5 INT. 1.01 in SF leagues, no questions asked.",
     idealFits: ["Jets", "Giants", "Raiders"]
   },
   
@@ -437,22 +668,53 @@ export const prospectReports: ProspectReport[] = [
     weight: 210,
     projectedPick: "Top 5",
     dynastyTier: "Blue Chip",
+    grade: "A",
+    stats: { games: 13, passYds: 3565, passTD: 30, int: 10 },
     strengths: [
-      "Quick release and processing",
-      "Dual-threat ability",
-      "Returned to boost stock"
+      "Returned from 2026 draft - smart move!",
+      "3,565 yards, 30 TDs - could be QB1",
+      "Quick release and processing"
     ],
     weaknesses: [
-      "Needs to add weight",
-      "Decision-making lapses"
+      "10 INTs - decision-making lapses",
+      "Needs to add weight"
     ],
-    comps: ["Russell Wilson", "Kyler Murray"],
-    ceiling: "Dynamic dual-threat QB1",
-    floor: "Boom-bust QB2",
-    summary: "Returned to school—smart move. Quick-twitch playmaker. Top-3 SF pick.",
+    comps: ["Russell Wilson", "Justin Herbert"],
+    ceiling: "Dynamic franchise QB",
+    floor: "Boom-bust starter",
+    summary: "Returned to school and elevated stock. 30 TDs shows arm talent. Top-3 SF pick.",
     idealFits: ["Cardinals", "Browns", "Panthers"]
   },
-  
+
+  {
+    id: "2027_qb_sorsby",
+    name: "Brendan Sorsby",
+    position: "QB",
+    school: "Texas Tech",
+    draftYear: 2027,
+    height: "6'3\"",
+    weight: 218,
+    projectedPick: "Round 1",
+    dynastyTier: "Blue Chip",
+    grade: "A-",
+    stats: { games: 12, passYds: 2800, passTD: 27, int: 5 },
+    strengths: [
+      "Elite arm talent - transferred from Cincy",
+      "27 TDs, only 5 INTs",
+      "Big-play ability"
+    ],
+    weaknesses: [
+      "Newer to the system",
+      "Consistency game-to-game"
+    ],
+    comps: ["Patrick Mahomes (lite)", "Joe Burrow"],
+    ceiling: "Top-10 dynasty QB",
+    floor: "Starting QB with arm",
+    summary: "Transfer success story with elite efficiency. 27/5 TD-INT ratio is outstanding.",
+    idealFits: ["Saints", "Broncos", "Bears"]
+  },
+
+  // WIDE RECEIVERS
   {
     id: "2027_wr_smith",
     name: "Jeremiah Smith",
@@ -460,48 +722,50 @@ export const prospectReports: ProspectReport[] = [
     school: "Ohio State",
     draftYear: 2027,
     height: "6'3\"",
-    weight: 215,
+    weight: 223,
     projectedPick: "Top 5",
     dynastyTier: "Elite",
+    grade: "A+",
     strengths: [
-      "Generational size/speed/skill",
-      "Alpha mentality—commands targets",
-      "Already elite as sophomore"
+      "THE PROSPECT - Julio Jones comp",
+      "27 TDs in 2 seasons, 1,200+ yards both years",
+      "GENERATIONAL size/speed/skill combo"
     ],
     weaknesses: [
-      "Still developing",
-      "Will face NFL's best"
+      "Will face NFL's best corners",
+      "Minor concerns (none significant)"
     ],
-    comps: ["Ja'Marr Chase", "A.J. Green"],
-    ceiling: "Top-3 dynasty WR ever",
-    floor: "High-end WR2",
-    summary: "THE prospect. Best WR since Chase, maybe better. 1.01 in 1QB, top-3 SF. League-winner.",
-    idealFits: ["Titans", "Texans", "Chargers"]
+    comps: ["Julio Jones", "Ja'Marr Chase"],
+    ceiling: "Top-3 dynasty WR ever, generational talent",
+    floor: "High-end WR1",
+    summary: "THE prospect. Best WR since Chase, arguably better. 1.01 in 1QB, top-3 SF. League-winner.",
+    idealFits: ["Any team", "Titans", "Chargers"]
   },
   
   {
     id: "2027_wr_coleman",
     name: "Cam Coleman",
     position: "WR",
-    school: "Auburn",
+    school: "Texas",
     draftYear: 2027,
     height: "6'3\"",
-    weight: 205,
-    projectedPick: "Top 10",
+    weight: 201,
+    projectedPick: "Top 15",
     dynastyTier: "Blue Chip",
+    grade: "A",
     strengths: [
-      "Ridiculous speed for size",
-      "Vertical threat",
-      "Great athleticism"
+      "Transferred from Auburn - 6'3\" 201",
+      "Big-play ability, vertical threat",
+      "Great athleticism and speed for size"
     ],
     weaknesses: [
-      "Route tree needs polish",
-      "Concentration drops"
+      "Route tree still developing",
+      "New system transition"
     ],
-    comps: ["DK Metcalf", "Marvin Harrison Jr."],
-    ceiling: "Elite WR1",
+    comps: ["DK Metcalf", "Chris Olave"],
+    ceiling: "Elite WR1, top-10 dynasty",
     floor: "Boom-bust WR2",
-    summary: "Smith is 1A, Coleman is 1B. Size + speed = cheat code. Top-5 dynasty pick.",
+    summary: "Smith is 1A, Coleman is 1B. Size + speed = cheat code. Texas transfer boosted stock.",
     idealFits: ["Dolphins", "Ravens", "Bills"]
   },
   
@@ -515,98 +779,187 @@ export const prospectReports: ProspectReport[] = [
     weight: 185,
     projectedPick: "Top 15",
     dynastyTier: "Blue Chip",
+    grade: "A-",
     strengths: [
-      "Electric playmaker",
-      "Route running advanced",
-      "YAC ability"
+      "Electric playmaker with burst",
+      "Route running is advanced",
+      "Elite YAC ability"
     ],
     weaknesses: [
-      "Needs to add strength",
-      "Slight frame"
+      "13% drop rate - concentration lapses",
+      "Slight frame needs strength"
     ],
-    comps: ["Justin Jefferson", "Rashod Bateman"],
+    comps: ["Justin Jefferson", "Marvin Harrison Jr."],
     ceiling: "Top-10 dynasty WR",
-    floor: "Solid WR2",
-    summary: "Slippery route runner with burst. Needs to bulk up but skill is special. Mid-1st.",
+    floor: "WR2 with drop issues",
+    summary: "Electric talent with one flaw - 13% drop rate. If he fixes hands, he's special.",
     idealFits: ["Jets", "Raiders", "Seahawks"]
   },
-  
+
+  // RUNNING BACKS
   {
-    id: "2027_rb_baugh",
-    name: "Jadan Baugh",
+    id: "2027_rb_hardy",
+    name: "Ahmad Hardy",
     position: "RB",
-    school: "Florida",
+    school: "Missouri",
     draftYear: 2027,
     height: "5'11\"",
-    weight: 205,
+    weight: 215,
+    projectedPick: "Top 15",
+    dynastyTier: "Elite",
+    grade: "A",
+    stats: { games: 13, rushYds: 1649, rushTD: 16, ypc: 6.4 },
+    strengths: [
+      "Ashton Jeanty comp - 1,649 yards, 16 TDs",
+      "6.4 YPC efficiency at high volume",
+      "Top-15 pick potential"
+    ],
+    weaknesses: [
+      "Receiving game developing",
+      "One elite season sample"
+    ],
+    comps: ["Ashton Jeanty", "Derrick Henry"],
+    ceiling: "Top-5 dynasty RB, bell cow",
+    floor: "Starting RB with TD upside",
+    summary: "RB1 in 2027 class. Jeanty-level production at 6.4 YPC. Could be special.",
+    idealFits: ["Commanders", "Cardinals", "Bengals"]
+  },
+
+  {
+    id: "2027_rb_lacy",
+    name: "Kewan Lacy",
+    position: "RB",
+    school: "Ole Miss",
+    draftYear: 2027,
+    height: "5'10\"",
+    weight: 200,
     projectedPick: "Round 1",
     dynastyTier: "Blue Chip",
+    grade: "A-",
+    stats: { games: 14, rushYds: 1567, rushTD: 24 },
     strengths: [
-      "Elite burst",
-      "Yards after contact",
-      "Home-run speed"
+      "24 TDs - elite touchdown production",
+      "Track speed, explosive",
+      "1,567 rushing yards"
     ],
     weaknesses: [
-      "Pass pro unknown",
-      "Limited receiving work"
+      "Slighter frame durability",
+      "Not a bruiser between tackles"
     ],
-    comps: ["Jahmyr Gibbs", "Alvin Kamara"],
-    ceiling: "Top-5 dynasty RB",
-    floor: "Speed-dependent RB2",
-    summary: "RB1 in 2027. Electric runner—could be top-5 dynasty RB. Worth mid-1st.",
-    idealFits: ["Chiefs", "Ravens", "Bills"]
+    comps: ["Jahmyr Gibbs", "Raheem Mostert"],
+    ceiling: "Dynamic RB1 with speed",
+    floor: "TD-dependent RB2",
+    summary: "24 TDs is ABSURD production. Track speed makes him electric. Top dynasty RB.",
+    idealFits: ["Chiefs", "Bills", "Dolphins"]
   },
-  
+
   {
-    id: "2027_qb_mateer",
-    name: "John Mateer",
-    position: "QB",
-    school: "Oklahoma",
+    id: "2027_rb_brown",
+    name: "Isaac Brown",
+    position: "RB",
+    school: "Louisville",
     draftYear: 2027,
-    height: "6'1\"",
-    weight: 210,
-    projectedPick: "Round 1",
-    dynastyTier: "Solid",
-    strengths: [
-      "Very accurate",
-      "Mobile and athletic",
-      "Baker Mayfield comp"
-    ],
-    weaknesses: [
-      "Slight frame",
-      "Limited tape in new system"
-    ],
-    comps: ["Baker Mayfield", "Jalen Hurts (lite)"],
-    ceiling: "Starting QB with rush upside",
-    floor: "Backup-level arm",
-    summary: "Sleeper QB in loaded class. Accuracy + mobility is appealing. Late 1st SF.",
-    idealFits: ["Browns", "Titans", "Saints"]
-  },
-  
-  {
-    id: "2027_qb_johnson",
-    name: "Avery Johnson",
-    position: "QB",
-    school: "Kansas State",
-    draftYear: 2027,
-    height: "6'2\"",
+    height: "5'10\"",
     weight: 205,
-    projectedPick: "Round 1",
-    dynastyTier: "Upside",
+    projectedPick: "Round 2",
+    dynastyTier: "Solid",
+    grade: "B+",
     strengths: [
-      "Elite rushing ability",
-      "Off-the-charts athleticism",
-      "Clutch playmaker"
+      "Explosive dual-threat",
+      "Returning from injury",
+      "Pass-catching ability"
     ],
     weaknesses: [
-      "Accuracy inconsistent",
-      "Relies on legs"
+      "Injury return status",
+      "Durability concerns"
     ],
-    comps: ["Lamar Jackson (lite)", "Jalen Hurts"],
-    ceiling: "Dual-threat fantasy monster",
-    floor: "Boom-bust project",
-    summary: "Rushing upside is insane but arm questions persist. High-risk, high-reward dart.",
-    idealFits: ["Steelers", "Broncos", "Falcons"]
+    comps: ["Austin Ekeler", "Alvin Kamara (lite)"],
+    ceiling: "PPR RB1",
+    floor: "Change-of-pace back",
+    summary: "Pre-injury was elite. Health is the question. If healthy, top dynasty value.",
+    idealFits: ["Rams", "49ers", "Bengals"]
+  },
+
+  // TIGHT ENDS
+  {
+    id: "2027_te_johnson",
+    name: "Jamari Johnson",
+    position: "TE",
+    school: "Oregon",
+    draftYear: 2027,
+    height: "6'5\"",
+    weight: 257,
+    projectedPick: "Round 1",
+    dynastyTier: "Blue Chip",
+    grade: "A",
+    strengths: [
+      "Best TE in 2027 class - 6'5\" 257",
+      "Complete tight end skill set",
+      "Receiving and blocking ability"
+    ],
+    weaknesses: [
+      "Not elite athleticism",
+      "Route tree developing"
+    ],
+    comps: ["Mark Andrews", "Travis Kelce"],
+    ceiling: "Top-5 dynasty TE",
+    floor: "Starting TE1",
+    summary: "Clear TE1 in loaded 2027 class. Size and skill make him day 1 starter.",
+    idealFits: ["Patriots", "Broncos", "Cowboys"]
+  },
+
+  {
+    id: "2027_te_carter",
+    name: "Terrance Carter Jr.",
+    position: "TE",
+    school: "Texas Tech",
+    draftYear: 2027,
+    height: "6'4\"",
+    weight: 250,
+    projectedPick: "Round 2",
+    dynastyTier: "Solid",
+    grade: "B+",
+    strengths: [
+      "Harold Fannin comp",
+      "Athletic receiving TE",
+      "Air Raid production"
+    ],
+    weaknesses: [
+      "Blocking needs work",
+      "System production concerns"
+    ],
+    comps: ["Harold Fannin Jr.", "Kyle Pitts (lite)"],
+    ceiling: "Top-10 dynasty TE",
+    floor: "Receiving specialist TE2",
+    summary: "Athletic TE from Air Raid system. Fannin comp is exciting. TEP sleeper.",
+    idealFits: ["Chiefs", "Bengals", "Raiders"]
+  },
+
+  {
+    id: "2027_te_green",
+    name: "Trey'Dez Green",
+    position: "TE",
+    school: "LSU",
+    draftYear: 2027,
+    height: "6'7\"",
+    weight: 240,
+    projectedPick: "Round 2-3",
+    dynastyTier: "Upside",
+    grade: "B+",
+    strengths: [
+      "6'7\" 240 - massive red zone weapon",
+      "Mismatch nightmare in end zone",
+      "Developing skill set"
+    ],
+    weaknesses: [
+      "Raw route runner",
+      "Needs to add muscle"
+    ],
+    comps: ["Mike Gesicki", "Darren Waller"],
+    ceiling: "Elite red zone TE1",
+    floor: "TD-dependent TE2",
+    summary: "Size is ridiculous. 6'7\" in the red zone is unfair. High-upside TE dart.",
+    idealFits: ["Rams", "Cardinals", "Giants"]
   }
 ];
 
@@ -619,3 +972,12 @@ export const getProspectsByPosition = (pos: 'QB' | 'RB' | 'WR' | 'TE') =>
 
 export const getProspect = (id: string) =>
   prospectReports.find(p => p.id === id);
+
+export const getEliteProspects = () =>
+  prospectReports.filter(p => p.dynastyTier === 'Elite');
+
+export const getProspectsByGrade = (minGrade: string) => {
+  const gradeOrder = ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C'];
+  const minIndex = gradeOrder.indexOf(minGrade);
+  return prospectReports.filter(p => gradeOrder.indexOf(p.grade) <= minIndex);
+};

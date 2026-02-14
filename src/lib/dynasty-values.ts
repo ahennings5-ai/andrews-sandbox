@@ -281,21 +281,34 @@ export const PICK_VALUES_2028: Record<string, number> = {
   "1st": 2567, "2nd": 1364, "3rd": 827,
 };
 
-// 2026 NFL Draft Prospects (NOT YET DRAFTED)
+// 2026 NFL Draft Prospects (NOT YET DRAFTED) - Updated Feb 2026
 export const PROSPECTS_2026 = [
-  { name: "Jeremiyah Love", position: "RB", college: "Notre Dame", consensus: 1, notes: "RB1 of the class. Elite athleticism." },
-  { name: "Jordyn Tyson", position: "WR", college: "Arizona State", consensus: 2, notes: "Top playmaker. Day 1-2 pick." },
-  { name: "Makai Lemon", position: "WR", college: "USC", consensus: 3, notes: "Elite quickness. Day 2 pick." },
-  { name: "Carnell Tate", position: "WR", college: "Ohio State", consensus: 4, notes: "Big catch radius." },
-  { name: "Ty Simpson", position: "QB", college: "Alabama", consensus: 5, notes: "Developmental QB with tools." },
-  { name: "Kenyon Sadiq", position: "TE", college: "Oregon", consensus: 6, notes: "Athletic TE prospect." },
+  { name: "Fernando Mendoza", position: "QB", college: "Indiana", consensus: 1, notes: "UNANIMOUS QB1. Pocket passer, quick-game specialist. 41 TD/6 INT." },
+  { name: "Jeremiyah Love", position: "RB", college: "Notre Dame", consensus: 2, notes: "UNANIMOUS RB1. 6.9 YPC, 18 TDs. Explosive." },
+  { name: "Carnell Tate", position: "WR", college: "Ohio State", consensus: 3, notes: "WR1 in class. Elite route runner, 17.2 YPR." },
+  { name: "Jordyn Tyson", position: "WR", college: "Arizona State", consensus: 4, notes: "Speed/size combo. 8 TDs in 9 games." },
+  { name: "Makai Lemon", position: "WR", college: "USC", consensus: 5, notes: "Volume king. 79 catches, 1,156 yards, 11 TDs." },
+  { name: "Kenyon Sadiq", position: "TE", college: "Oregon", consensus: 6, notes: "UNANIMOUS TE1. 8 TDs leads TEs." },
+  { name: "Ty Simpson", position: "QB", college: "Alabama", consensus: 7, notes: "Dual-threat with strong arm. 28 TD/5 INT." },
+  { name: "Denzel Boston", position: "WR", college: "Washington", consensus: 8, notes: "6'4\" red zone monster. 11 TDs in 11 games." },
+  { name: "Trinidad Chambliss", position: "QB", college: "Ole Miss", consensus: 9, notes: "Russell Wilson comp. Undersized (6'0) but electric." },
+  { name: "Jadarian Price", position: "RB", college: "Notre Dame", consensus: 10, notes: "Versatile. 6.0 YPC, 11 TDs." },
+  { name: "Nicholas Singleton", position: "RB", college: "Penn State", consensus: 11, notes: "Elite contact balance. Power runner." },
+  { name: "KC Concepcion", position: "WR", college: "Texas A&M", consensus: 12, notes: "Slot specialist. 919 yards, 9 TDs." },
 ];
 
-// 2027 NFL Draft Prospects (PROJECTIONS)
+// 2027 NFL Draft Prospects (PROJECTIONS) - Updated Feb 2026
 export const PROSPECTS_2027 = [
-  { name: "Jeremiah Smith", position: "WR", college: "Ohio State", consensus: 1, notes: "GENERATIONAL. Best WR prospect in years." },
-  { name: "Arch Manning", position: "QB", college: "Texas", consensus: 2, notes: "Manning bloodlines. Elite arm." },
-  { name: "Ryan Williams", position: "WR", college: "Alabama", consensus: 3, notes: "Electric freshman. Game-breaker." },
+  { name: "Jeremiah Smith", position: "WR", college: "Ohio State", consensus: 1, notes: "THE PROSPECT. Julio Jones comp. 27 TDs in 2 seasons. GENERATIONAL." },
+  { name: "Arch Manning", position: "QB", college: "Texas", consensus: 2, notes: "Potential #1 overall. 3,163 yards, 26 TD, 5 INT. 6'4\" 220 dual-threat." },
+  { name: "Dante Moore", position: "QB", college: "Oregon", consensus: 3, notes: "Returned from 2026 draft! 3,565 yards, 30 TD. Could be QB1." },
+  { name: "Ahmad Hardy", position: "RB", college: "Missouri", consensus: 4, notes: "Ashton Jeanty comp. 1,649 yards, 16 TD, 6.4 YPC. Top-15 pick potential." },
+  { name: "Cam Coleman", position: "WR", college: "Texas", consensus: 5, notes: "Transfer from Auburn. 6'3\" 201, big play ability." },
+  { name: "Ryan Williams", position: "WR", college: "Alabama", consensus: 6, notes: "Electric but 13% drop rate. Needs to fix hands." },
+  { name: "Kewan Lacy", position: "RB", college: "Ole Miss", consensus: 7, notes: "24 TDs (!), 1,567 yards. Track speed, explosive." },
+  { name: "Brendan Sorsby", position: "QB", college: "Texas Tech", consensus: 8, notes: "Elite arm talent. 2,800 yards, 27 TD, 5 INT." },
+  { name: "Jamari Johnson", position: "TE", college: "Oregon", consensus: 9, notes: "Best TE in class. 6'5\" 257, complete skill set." },
+  { name: "Terrance Carter Jr.", position: "TE", college: "Texas Tech", consensus: 10, notes: "Harold Fannin comp. Athletic receiving TE." },
 ];
 
 // Get player value by name with normalization
@@ -354,5 +367,265 @@ export function recommendPhase(
   } else {
     return { phase: "retool", reason: `Middle-tier roster (#${leagueRank}, ${rosterValue.toLocaleString()} value). Look for value trades.` };
   }
+}
+
+// ═══════════════════════════════════════════════════════════
+// DYNASTY AGING CURVES (Research-Backed, Feb 2026)
+// Sources: DynastyProcess, FantasyPros, historical NFL data
+// ═══════════════════════════════════════════════════════════
+
+export interface AgingCurveResult {
+  adjustedValue: number;
+  discountPercent: number;
+  peakYearsLeft: number;
+  phase: 'ascending' | 'peak' | 'declining' | 'cliff';
+  note: string;
+}
+
+/**
+ * RB Aging Curve - Research-backed formula
+ * - Peak: Ages 24-27
+ * - Decline starts: 27.5-28 (10% PPG drop)
+ * - Cliff: Year 7 / Age 29+ (29.1% drop)
+ * - Only 5% of RBs play past 30
+ * - Formula: 15% discount per year after age 27
+ */
+export function applyRBAgingCurve(currentValue: number, age: number): AgingCurveResult {
+  const PEAK_START = 24;
+  const PEAK_END = 27;
+  const DISCOUNT_PER_YEAR = 0.15; // 15% per year after 27
+  const CLIFF_AGE = 29;
+  const CLIFF_MULTIPLIER = 0.50; // 50% additional discount at cliff
+  
+  let adjustedValue = currentValue;
+  let discountPercent = 0;
+  let phase: AgingCurveResult['phase'] = 'peak';
+  let note = '';
+  
+  if (age < PEAK_START) {
+    // Ascending - still developing
+    phase = 'ascending';
+    note = `Still ascending. Peak window: ${PEAK_START}-${PEAK_END}.`;
+    // Slight premium for youth
+    adjustedValue = currentValue * 1.05;
+    discountPercent = -5;
+  } else if (age <= PEAK_END) {
+    // Peak years
+    phase = 'peak';
+    const yearsLeft = PEAK_END - age;
+    note = `Peak window. ${yearsLeft.toFixed(1)} elite years remaining.`;
+  } else if (age < CLIFF_AGE) {
+    // Declining
+    phase = 'declining';
+    const yearsOverPeak = age - PEAK_END;
+    discountPercent = Math.round(yearsOverPeak * DISCOUNT_PER_YEAR * 100);
+    adjustedValue = currentValue * (1 - (yearsOverPeak * DISCOUNT_PER_YEAR));
+    note = `Decline phase. ${discountPercent}% discount applied. Cliff at ${CLIFF_AGE}.`;
+  } else {
+    // Cliff - severe decline
+    phase = 'cliff';
+    const yearsOverPeak = CLIFF_AGE - PEAK_END;
+    const yearsOnCliff = age - CLIFF_AGE;
+    const preCliffDiscount = yearsOverPeak * DISCOUNT_PER_YEAR;
+    const cliffDiscount = CLIFF_MULTIPLIER + (yearsOnCliff * 0.20); // 20% more per year on cliff
+    discountPercent = Math.min(90, Math.round((preCliffDiscount + cliffDiscount) * 100));
+    adjustedValue = currentValue * (1 - (discountPercent / 100));
+    note = `RB cliff! Only 5% play past 30. ${discountPercent}% discount. Sell if contending.`;
+  }
+  
+  const peakYearsLeft = Math.max(0, PEAK_END - age);
+  
+  return { adjustedValue: Math.round(adjustedValue), discountPercent, peakYearsLeft, phase, note };
+}
+
+/**
+ * WR Aging Curve - Research-backed formula
+ * - Peak: Ages 25-29
+ * - Decline: After age 29 season (~3.47 WR1 seasons left)
+ * - Formula: 8% discount per year after age 29
+ */
+export function applyWRAgingCurve(currentValue: number, age: number): AgingCurveResult {
+  const PEAK_START = 25;
+  const PEAK_END = 29;
+  const DISCOUNT_PER_YEAR = 0.08; // 8% per year after 29
+  const CLIFF_AGE = 32;
+  
+  let adjustedValue = currentValue;
+  let discountPercent = 0;
+  let phase: AgingCurveResult['phase'] = 'peak';
+  let note = '';
+  
+  if (age < PEAK_START) {
+    // Ascending
+    phase = 'ascending';
+    const yearsToGo = PEAK_START - age;
+    note = `Ascending. ${yearsToGo.toFixed(1)} years until peak window.`;
+    // Premium for young WRs
+    adjustedValue = currentValue * 1.03;
+    discountPercent = -3;
+  } else if (age <= PEAK_END) {
+    // Peak years
+    phase = 'peak';
+    const yearsLeft = PEAK_END - age;
+    note = `Peak window (25-29). ~${yearsLeft.toFixed(1)} elite years remaining.`;
+  } else if (age < CLIFF_AGE) {
+    // Declining
+    phase = 'declining';
+    const yearsOverPeak = age - PEAK_END;
+    discountPercent = Math.round(yearsOverPeak * DISCOUNT_PER_YEAR * 100);
+    adjustedValue = currentValue * (1 - (yearsOverPeak * DISCOUNT_PER_YEAR));
+    // ~3.47 WR1 seasons left after 29
+    const wr1SeasonsLeft = Math.max(0, 3.47 - yearsOverPeak);
+    note = `Decline phase. ${discountPercent}% discount. ~${wr1SeasonsLeft.toFixed(1)} WR1 seasons left.`;
+  } else {
+    // Cliff
+    phase = 'cliff';
+    const yearsOverPeak = age - PEAK_END;
+    discountPercent = Math.min(70, Math.round(yearsOverPeak * DISCOUNT_PER_YEAR * 100) + 15);
+    adjustedValue = currentValue * (1 - (discountPercent / 100));
+    note = `WR cliff. ${discountPercent}% discount. Production fading fast.`;
+  }
+  
+  const peakYearsLeft = Math.max(0, PEAK_END - age);
+  
+  return { adjustedValue: Math.round(adjustedValue), discountPercent, peakYearsLeft, phase, note };
+}
+
+/**
+ * QB Aging Curve - Research-backed formula
+ * - Peak: Ages 27-34 (longest window)
+ * - Slow decline after 34
+ * - Formula: 5% discount per year after 34
+ */
+export function applyQBAgingCurve(currentValue: number, age: number): AgingCurveResult {
+  const PEAK_START = 27;
+  const PEAK_END = 34;
+  const DISCOUNT_PER_YEAR = 0.05; // 5% per year after 34
+  const CLIFF_AGE = 38;
+  
+  let adjustedValue = currentValue;
+  let discountPercent = 0;
+  let phase: AgingCurveResult['phase'] = 'peak';
+  let note = '';
+  
+  if (age < PEAK_START) {
+    // Ascending
+    phase = 'ascending';
+    const yearsToGo = PEAK_START - age;
+    note = `Ascending. ${yearsToGo.toFixed(1)} years until peak. Long-term asset.`;
+    // Premium for young franchise QBs
+    adjustedValue = currentValue * 1.08;
+    discountPercent = -8;
+  } else if (age <= PEAK_END) {
+    // Peak years - longest for QBs
+    phase = 'peak';
+    const yearsLeft = PEAK_END - age;
+    note = `Prime years (27-34). ${yearsLeft.toFixed(1)} elite years remaining.`;
+  } else if (age < CLIFF_AGE) {
+    // Declining but still productive
+    phase = 'declining';
+    const yearsOverPeak = age - PEAK_END;
+    discountPercent = Math.round(yearsOverPeak * DISCOUNT_PER_YEAR * 100);
+    adjustedValue = currentValue * (1 - (yearsOverPeak * DISCOUNT_PER_YEAR));
+    note = `Decline phase. ${discountPercent}% discount. Still productive but window closing.`;
+  } else {
+    // Cliff
+    phase = 'cliff';
+    const yearsOverPeak = age - PEAK_END;
+    discountPercent = Math.min(60, Math.round(yearsOverPeak * DISCOUNT_PER_YEAR * 100) + 10);
+    adjustedValue = currentValue * (1 - (discountPercent / 100));
+    note = `QB cliff. ${discountPercent}% discount. Retirement risk increasing.`;
+  }
+  
+  const peakYearsLeft = Math.max(0, PEAK_END - age);
+  
+  return { adjustedValue: Math.round(adjustedValue), discountPercent, peakYearsLeft, phase, note };
+}
+
+/**
+ * TE Aging Curve - Similar to WR but slightly later peak
+ * - Peak: Ages 26-30
+ * - Decline: After 30
+ * - Formula: 7% discount per year after 30
+ */
+export function applyTEAgingCurve(currentValue: number, age: number): AgingCurveResult {
+  const PEAK_START = 26;
+  const PEAK_END = 30;
+  const DISCOUNT_PER_YEAR = 0.07;
+  const CLIFF_AGE = 33;
+  
+  let adjustedValue = currentValue;
+  let discountPercent = 0;
+  let phase: AgingCurveResult['phase'] = 'peak';
+  let note = '';
+  
+  if (age < PEAK_START) {
+    phase = 'ascending';
+    note = `Ascending. TEs develop slowly. Peak: ${PEAK_START}-${PEAK_END}.`;
+    adjustedValue = currentValue * 1.04;
+    discountPercent = -4;
+  } else if (age <= PEAK_END) {
+    phase = 'peak';
+    const yearsLeft = PEAK_END - age;
+    note = `Peak window. ${yearsLeft.toFixed(1)} elite years remaining.`;
+  } else if (age < CLIFF_AGE) {
+    phase = 'declining';
+    const yearsOverPeak = age - PEAK_END;
+    discountPercent = Math.round(yearsOverPeak * DISCOUNT_PER_YEAR * 100);
+    adjustedValue = currentValue * (1 - (yearsOverPeak * DISCOUNT_PER_YEAR));
+    note = `Decline phase. ${discountPercent}% discount applied.`;
+  } else {
+    phase = 'cliff';
+    const yearsOverPeak = age - PEAK_END;
+    discountPercent = Math.min(65, Math.round(yearsOverPeak * DISCOUNT_PER_YEAR * 100) + 12);
+    adjustedValue = currentValue * (1 - (discountPercent / 100));
+    note = `TE cliff. ${discountPercent}% discount. Limited production remaining.`;
+  }
+  
+  const peakYearsLeft = Math.max(0, PEAK_END - age);
+  
+  return { adjustedValue: Math.round(adjustedValue), discountPercent, peakYearsLeft, phase, note };
+}
+
+/**
+ * Universal aging curve applicator
+ */
+export function applyAgingCurve(
+  currentValue: number, 
+  age: number, 
+  position: 'QB' | 'RB' | 'WR' | 'TE'
+): AgingCurveResult {
+  switch (position) {
+    case 'QB': return applyQBAgingCurve(currentValue, age);
+    case 'RB': return applyRBAgingCurve(currentValue, age);
+    case 'WR': return applyWRAgingCurve(currentValue, age);
+    case 'TE': return applyTEAgingCurve(currentValue, age);
+    default: return { adjustedValue: currentValue, discountPercent: 0, peakYearsLeft: 5, phase: 'peak', note: 'Unknown position' };
+  }
+}
+
+/**
+ * Get age-adjusted value with position context
+ */
+export function getAgeAdjustedValue(playerName: string): { 
+  rawValue: number; 
+  adjustedValue: number; 
+  agingInfo: AgingCurveResult;
+} | null {
+  const player = PLAYER_VALUES_BY_NAME[playerName];
+  if (!player || !player.age) return null;
+  
+  const position = player.pos as 'QB' | 'RB' | 'WR' | 'TE';
+  if (!['QB', 'RB', 'WR', 'TE'].includes(position)) {
+    return { rawValue: player.value, adjustedValue: player.value, agingInfo: { adjustedValue: player.value, discountPercent: 0, peakYearsLeft: 0, phase: 'peak', note: 'N/A' } };
+  }
+  
+  const agingInfo = applyAgingCurve(player.value, player.age, position);
+  
+  return {
+    rawValue: player.value,
+    adjustedValue: agingInfo.adjustedValue,
+    agingInfo
+  };
 }
 
