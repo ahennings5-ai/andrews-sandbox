@@ -397,6 +397,7 @@ export default function DynastyPage() {
               <TabsTrigger value="trades" className="whitespace-nowrap px-3 py-2 text-sm font-medium">💱 Trades</TabsTrigger>
               <TabsTrigger value="intel" className="whitespace-nowrap px-3 py-2 text-sm font-medium">🕵️ Intel</TabsTrigger>
               <TabsTrigger value="history" className="whitespace-nowrap px-3 py-2 text-sm font-medium">📜 History</TabsTrigger>
+              <TabsTrigger value="gems" className="whitespace-nowrap px-3 py-2 text-sm font-medium">🔮 Gems</TabsTrigger>
             </TabsList>
           </div>
 
@@ -1196,6 +1197,202 @@ export default function DynastyPage() {
                 <p className="text-muted-foreground text-center py-8">
                   Trade history will populate after first sync and as trades occur.
                 </p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Gem Finder Tab */}
+          <TabsContent value="gems" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Undervalued Gems - Drew > Consensus */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <span className="text-2xl">💎</span> Hidden Gems
+                  </CardTitle>
+                  <CardDescription>
+                    Players where Drew values significantly higher than KTC consensus — potential buy targets
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {players
+                      .filter(p => {
+                        const drew = p.drewValue || 0;
+                        const ktc = p.ktcValue || drew;
+                        const diff = ((drew - ktc) / ktc) * 100;
+                        return diff >= 15 && drew > 500; // At least 15% higher and meaningful value
+                      })
+                      .sort((a, b) => {
+                        const diffA = ((a.drewValue || 0) - (a.ktcValue || a.drewValue || 1)) / (a.ktcValue || a.drewValue || 1);
+                        const diffB = ((b.drewValue || 0) - (b.ktcValue || b.drewValue || 1)) / (b.ktcValue || b.drewValue || 1);
+                        return diffB - diffA;
+                      })
+                      .slice(0, 10)
+                      .map((player) => {
+                        const drew = player.drewValue || 0;
+                        const ktc = player.ktcValue || drew;
+                        const diff = Math.round(((drew - ktc) / ktc) * 100);
+                        return (
+                          <div
+                            key={player.id}
+                            className="flex items-center justify-between p-3 rounded-lg border border-green-500/20 bg-green-500/5 hover:bg-green-500/10 cursor-pointer transition-colors"
+                            onClick={() => setSelectedPlayer(player)}
+                          >
+                            <div className="flex items-center gap-3">
+                              <Badge className={positionColors[player.position]}>{player.position}</Badge>
+                              <div>
+                                <div className="font-medium">{player.name}</div>
+                                <div className="text-xs text-muted-foreground">{player.team || "FA"} • Age {player.age}</div>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-bold text-green-500">+{diff}%</div>
+                              <div className="text-xs text-muted-foreground">
+                                Drew: {drew.toLocaleString()} vs KTC: {ktc.toLocaleString()}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    {players.filter(p => {
+                      const drew = p.drewValue || 0;
+                      const ktc = p.ktcValue || drew;
+                      const diff = ((drew - ktc) / ktc) * 100;
+                      return diff >= 15 && drew > 500;
+                    }).length === 0 && (
+                      <p className="text-muted-foreground text-center py-4">
+                        No significant undervalued gems found. Sync data to analyze.
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Overvalued - Drew < Consensus */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <span className="text-2xl">📉</span> Sell High Candidates
+                  </CardTitle>
+                  <CardDescription>
+                    Players where consensus values higher than Drew — potential sell targets
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {players
+                      .filter(p => {
+                        const drew = p.drewValue || 0;
+                        const ktc = p.ktcValue || drew;
+                        const diff = ((ktc - drew) / drew) * 100;
+                        return diff >= 15 && drew > 500; // KTC at least 15% higher
+                      })
+                      .sort((a, b) => {
+                        const diffA = ((a.ktcValue || a.drewValue || 1) - (a.drewValue || 1)) / (a.drewValue || 1);
+                        const diffB = ((b.ktcValue || b.drewValue || 1) - (b.drewValue || 1)) / (b.drewValue || 1);
+                        return diffB - diffA;
+                      })
+                      .slice(0, 10)
+                      .map((player) => {
+                        const drew = player.drewValue || 0;
+                        const ktc = player.ktcValue || drew;
+                        const diff = Math.round(((ktc - drew) / drew) * 100);
+                        return (
+                          <div
+                            key={player.id}
+                            className="flex items-center justify-between p-3 rounded-lg border border-amber-500/20 bg-amber-500/5 hover:bg-amber-500/10 cursor-pointer transition-colors"
+                            onClick={() => setSelectedPlayer(player)}
+                          >
+                            <div className="flex items-center gap-3">
+                              <Badge className={positionColors[player.position]}>{player.position}</Badge>
+                              <div>
+                                <div className="font-medium">{player.name}</div>
+                                <div className="text-xs text-muted-foreground">{player.team || "FA"} • Age {player.age}</div>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-bold text-amber-500">+{diff}% KTC</div>
+                              <div className="text-xs text-muted-foreground">
+                                KTC: {ktc.toLocaleString()} vs Drew: {drew.toLocaleString()}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    {players.filter(p => {
+                      const drew = p.drewValue || 0;
+                      const ktc = p.ktcValue || drew;
+                      const diff = ((ktc - drew) / drew) * 100;
+                      return diff >= 15 && drew > 500;
+                    }).length === 0 && (
+                      <p className="text-muted-foreground text-center py-4">
+                        No significant overvalued players found. Sync data to analyze.
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Prospect Gems */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <span className="text-2xl">🎓</span> Prospect Gems
+                </CardTitle>
+                <CardDescription>
+                  Prospects where Drew ranks significantly higher than consensus — draft targets
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {prospects
+                    .filter(p => {
+                      const drewRank = p.drewRank || 99;
+                      const consensus = p.consensus || drewRank;
+                      return consensus - drewRank >= 3; // Drew has them at least 3 spots higher
+                    })
+                    .sort((a, b) => {
+                      const diffA = (a.consensus || 99) - (a.drewRank || 99);
+                      const diffB = (b.consensus || 99) - (b.drewRank || 99);
+                      return diffB - diffA;
+                    })
+                    .slice(0, 9)
+                    .map((prospect) => {
+                      const drewRank = prospect.drewRank || 99;
+                      const consensus = prospect.consensus || drewRank;
+                      const diff = consensus - drewRank;
+                      return (
+                        <div
+                          key={prospect.id}
+                          className="p-3 rounded-lg border border-primary/20 bg-primary/5 hover:bg-primary/10 cursor-pointer transition-colors"
+                          onClick={() => loadProspectReport(prospect)}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <Badge className={positionColors[prospect.position] || "bg-gray-500"}>{prospect.position}</Badge>
+                            <Badge variant="outline" className="text-green-500 border-green-500/30">
+                              +{diff} spots
+                            </Badge>
+                          </div>
+                          <div className="font-medium">{prospect.name}</div>
+                          <div className="text-xs text-muted-foreground">{prospect.college}</div>
+                          <div className="text-xs mt-1">
+                            Drew: #{drewRank} • Consensus: #{consensus}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  {prospects.filter(p => {
+                    const drewRank = p.drewRank || 99;
+                    const consensus = p.consensus || drewRank;
+                    return consensus - drewRank >= 3;
+                  }).length === 0 && (
+                    <p className="text-muted-foreground text-center py-4 col-span-full">
+                      No prospect gems found with significant ranking difference.
+                    </p>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
