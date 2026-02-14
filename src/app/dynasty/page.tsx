@@ -1028,10 +1028,167 @@ export default function DynastyPage() {
 
           {/* Trade Finder */}
           <TabsContent value="trades" className="space-y-6">
+            {/* Trade Builder Section */}
+            <Card className="border-primary/30">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <span className="text-2xl">🔄</span> Interactive Trade Builder
+                </CardTitle>
+                <CardDescription>Select a player to explore trade packages</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {/* Player Selection */}
+                <div className="mb-6">
+                  <p className="text-sm text-muted-foreground mb-3">Click a player to build a trade around them:</p>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 max-h-48 overflow-y-auto">
+                    {players
+                      .sort((a, b) => (b.drewValue || 0) - (a.drewValue || 0))
+                      .map((player) => (
+                        <div
+                          key={player.id}
+                          className={`p-2 rounded border cursor-pointer transition-colors ${
+                            tradeTargetPlayer?.id === player.id 
+                              ? "border-primary bg-primary/10" 
+                              : "border-border hover:border-primary/50 hover:bg-muted/50"
+                          }`}
+                          onClick={() => setTradeTargetPlayer(player)}
+                        >
+                          <div className="flex items-center gap-2">
+                            <Badge className={`${positionColors[player.position]} text-xs`}>{player.position}</Badge>
+                            <span className="text-sm font-medium truncate">{player.name}</span>
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {player.drewValue?.toLocaleString()}
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+
+                {/* Trade Package Builder */}
+                {tradeTargetPlayer && (
+                  <div className="p-4 rounded-lg border border-primary/30 bg-primary/5">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <Badge className={positionColors[tradeTargetPlayer.position]}>{tradeTargetPlayer.position}</Badge>
+                        <span className="font-semibold text-lg">{tradeTargetPlayer.name}</span>
+                        <span className="text-muted-foreground">({tradeTargetPlayer.drewValue?.toLocaleString()} value)</span>
+                      </div>
+                      <Button variant="ghost" size="sm" onClick={() => setTradeTargetPlayer(null)}>✕</Button>
+                    </div>
+
+                    {/* Trade Packages */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      {/* Best Trade Partners */}
+                      <div>
+                        <h4 className="font-medium mb-2 text-sm">🎯 Best Trade Partners</h4>
+                        <div className="space-y-2">
+                          {teams
+                            .filter((t) => t.weaknesses?.includes(tradeTargetPlayer.position))
+                            .sort((a, b) => {
+                              // Prioritize contenders for veterans, rebuilders for young players
+                              const playerAge = tradeTargetPlayer.age || 25;
+                              if (playerAge >= 27) {
+                                return (b.mode === "contending" ? 1 : 0) - (a.mode === "contending" ? 1 : 0);
+                              }
+                              return (b.totalValue || 0) - (a.totalValue || 0);
+                            })
+                            .slice(0, 4)
+                            .map((team) => (
+                              <div 
+                                key={team.id} 
+                                className="p-3 rounded border border-border hover:bg-muted/50 cursor-pointer"
+                                onClick={() => loadTeamRoster(team)}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <span className="font-medium">{team.ownerUsername}</span>
+                                    <Badge variant="outline" className="ml-2 text-xs">{team.mode}</Badge>
+                                  </div>
+                                  <span className="text-xs text-muted-foreground">Needs: {tradeTargetPlayer.position}</span>
+                                </div>
+                              </div>
+                            ))}
+                          {teams.filter((t) => t.weaknesses?.includes(tradeTargetPlayer.position)).length === 0 && (
+                            <p className="text-sm text-muted-foreground text-center py-2">
+                              No teams currently need {tradeTargetPlayer.position}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Suggested Returns */}
+                      <div>
+                        <h4 className="font-medium mb-2 text-sm">💰 Target Returns</h4>
+                        <div className="space-y-2">
+                          {/* Pick packages */}
+                          <div className="p-3 rounded border border-green-500/20 bg-green-500/5">
+                            <div className="font-medium text-sm text-green-600 mb-1">📦 Pick Package</div>
+                            <p className="text-sm">
+                              {(tradeTargetPlayer.drewValue || 0) >= 7000 ? "2026 1.01-1.03 + 2nd" :
+                               (tradeTargetPlayer.drewValue || 0) >= 5500 ? "2026 1st (early) + 2027 2nd" :
+                               (tradeTargetPlayer.drewValue || 0) >= 4000 ? "2026 1st (mid)" :
+                               (tradeTargetPlayer.drewValue || 0) >= 2500 ? "2026 Late 1st OR 2027 1st" :
+                               (tradeTargetPlayer.drewValue || 0) >= 1500 ? "2026 2nd + 3rd" :
+                               "2026 3rd + future pick"}
+                            </p>
+                          </div>
+
+                          {/* Player swap */}
+                          <div className="p-3 rounded border border-blue-500/20 bg-blue-500/5">
+                            <div className="font-medium text-sm text-blue-600 mb-1">🔄 Player Swap</div>
+                            <p className="text-sm">
+                              {(tradeTargetPlayer.drewValue || 0) >= 7000 ? "Young WR1/RB1 + sweetener" :
+                               (tradeTargetPlayer.drewValue || 0) >= 5000 ? "Rising starter + 2nd round pick" :
+                               (tradeTargetPlayer.drewValue || 0) >= 3000 ? "Upside player + mid pick" :
+                               "Depth + late pick"}
+                            </p>
+                          </div>
+
+                          {/* Tank mode specific */}
+                          {mode === "tank" && (tradeTargetPlayer.age || 0) >= 26 && (
+                            <div className="p-3 rounded border border-amber-500/20 bg-amber-500/5">
+                              <div className="font-medium text-sm text-amber-600 mb-1">🎯 Tank Mode Target</div>
+                              <p className="text-sm">
+                                Prioritize 2027+ picks over 2026. Target rebuilding teams&apos; future 1sts.
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Action Button */}
+                    <div className="mt-4 flex gap-2">
+                      <Button 
+                        className="flex-1"
+                        onClick={() => {
+                          addToMySide({
+                            type: "player",
+                            id: tradeTargetPlayer.sleeperId,
+                            name: tradeTargetPlayer.name,
+                            position: tradeTargetPlayer.position,
+                            value: tradeTargetPlayer.drewValue || 0
+                          });
+                          setTradeTargetPlayer(null);
+                        }}
+                      >
+                        Add to Trade Calculator →
+                      </Button>
+                      <Button variant="outline" onClick={() => setSelectedPlayer(tradeTargetPlayer)}>
+                        Full Details
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Existing Sell Candidates */}
             <Card>
               <CardHeader>
-                <CardTitle>💱 Trade Suggestions</CardTitle>
-                <CardDescription>Based on your sell candidates and league needs</CardDescription>
+                <CardTitle>💱 Auto-Suggested Sells</CardTitle>
+                <CardDescription>Based on your {modeConfig[mode].label} strategy</CardDescription>
               </CardHeader>
               <CardContent>
                 {sellCandidates.length === 0 ? (
@@ -1039,39 +1196,32 @@ export default function DynastyPage() {
                     No sell candidates in {modeConfig[mode].label} mode. Adjust strategy or roster.
                   </p>
                 ) : (
-                  <div className="space-y-4">
-                    {sellCandidates.map((player) => {
-                      // Find teams that need this position
+                  <div className="space-y-3">
+                    {sellCandidates.slice(0, 5).map((player) => {
                       const needyTeams = teams.filter(
                         (t) => t.weaknesses?.includes(player.position) && t.mode === "contending"
                       );
-
                       return (
-                        <div key={player.id} className="p-4 rounded-lg border border-border">
-                          <div className="flex items-center gap-3 mb-3">
-                            <Badge variant="destructive">SELL</Badge>
-                            <span className="font-medium">{player.name}</span>
-                            <Badge className={positionColors[player.position]}>{player.position}</Badge>
-                            <span className="text-muted-foreground">→ Value: {player.drewValue?.toLocaleString()}</span>
-                          </div>
-                          
-                          {needyTeams.length > 0 ? (
-                            <div className="space-y-2">
-                              <p className="text-sm text-muted-foreground">Target teams needing {player.position}:</p>
-                              <div className="flex flex-wrap gap-2">
-                                {needyTeams.map((team) => (
-                                  <Badge key={team.id} variant="outline" className="cursor-pointer hover:bg-muted">
-                                    {team.ownerUsername}
-                                    {team.teamName && ` (${team.teamName})`}
-                                  </Badge>
-                                ))}
-                              </div>
+                        <div 
+                          key={player.id} 
+                          className="p-3 rounded-lg border border-red-500/20 bg-red-500/5 hover:bg-red-500/10 cursor-pointer transition-colors"
+                          onClick={() => setTradeTargetPlayer(player)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <Badge variant="destructive" className="text-xs">SELL</Badge>
+                              <Badge className={positionColors[player.position]}>{player.position}</Badge>
+                              <span className="font-medium">{player.name}</span>
                             </div>
-                          ) : (
-                            <p className="text-sm text-muted-foreground">
-                              No contending teams currently weak at {player.position}. Monitor for injuries/trades.
-                            </p>
-                          )}
+                            <div className="text-right">
+                              <div className="font-medium">{player.drewValue?.toLocaleString()}</div>
+                              {needyTeams.length > 0 && (
+                                <div className="text-xs text-muted-foreground">
+                                  {needyTeams.length} interested team{needyTeams.length > 1 ? "s" : ""}
+                                </div>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       );
                     })}
@@ -1398,24 +1548,33 @@ export default function DynastyPage() {
           </TabsContent>
         </Tabs>
 
-        {/* Player Detail Modal */}
-        <Dialog open={!!selectedPlayer} onOpenChange={() => setSelectedPlayer(null)}>
-          <DialogContent className="max-w-lg">
+        {/* Player Detail Modal - Enhanced */}
+        <Dialog open={!!selectedPlayer} onOpenChange={() => { setSelectedPlayer(null); setTradeTargetPlayer(null); }}>
+          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
             {selectedPlayer && (
               <>
                 <DialogHeader>
-                  <DialogTitle className="flex items-center gap-2">
+                  <DialogTitle className="flex items-center gap-3">
                     <Badge className={positionColors[selectedPlayer.position]}>{selectedPlayer.position}</Badge>
-                    {selectedPlayer.name}
+                    <span className="text-xl">{selectedPlayer.name}</span>
+                    <Badge variant="outline" className="ml-auto">
+                      {(selectedPlayer.drewValue || 0) >= 9000 ? "Elite" :
+                       (selectedPlayer.drewValue || 0) >= 7000 ? "Star" :
+                       (selectedPlayer.drewValue || 0) >= 5000 ? "Starter" :
+                       (selectedPlayer.drewValue || 0) >= 3000 ? "Flex" :
+                       (selectedPlayer.drewValue || 0) >= 1500 ? "Bench" : "Clogger"}
+                    </Badge>
                   </DialogTitle>
                   <DialogDescription>
                     {selectedPlayer.team || "Free Agent"} • Age {selectedPlayer.age || "Unknown"}
                   </DialogDescription>
                 </DialogHeader>
+                
                 <div className="space-y-4 mt-4">
-                  <div className="grid grid-cols-3 gap-4 text-center">
-                    <div className="p-3 rounded-lg bg-muted">
-                      <div className="text-2xl font-bold">{selectedPlayer.drewValue?.toLocaleString()}</div>
+                  {/* Values Grid */}
+                  <div className="grid grid-cols-3 gap-3 text-center">
+                    <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
+                      <div className="text-2xl font-bold text-primary">{selectedPlayer.drewValue?.toLocaleString()}</div>
                       <div className="text-xs text-muted-foreground">Drew Value</div>
                     </div>
                     <div className="p-3 rounded-lg bg-muted">
@@ -1428,32 +1587,133 @@ export default function DynastyPage() {
                     </div>
                   </div>
 
+                  {/* Outlook Section */}
+                  <div className="p-4 rounded-lg bg-muted/50 border border-border">
+                    <h4 className="font-semibold mb-2">📊 Dynasty Outlook</h4>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">Position:</span>{" "}
+                        <span className="font-medium">{selectedPlayer.position}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Age:</span>{" "}
+                        <span className="font-medium">{selectedPlayer.age || "Unknown"}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Phase:</span>{" "}
+                        <span className={`font-medium ${
+                          selectedPlayer.position === "RB" && (selectedPlayer.age || 0) >= 27 ? "text-red-500" :
+                          selectedPlayer.position === "WR" && (selectedPlayer.age || 0) >= 29 ? "text-amber-500" :
+                          selectedPlayer.position === "QB" && (selectedPlayer.age || 0) >= 34 ? "text-amber-500" :
+                          "text-green-500"
+                        }`}>
+                          {selectedPlayer.position === "RB" ? (
+                            (selectedPlayer.age || 0) < 24 ? "Ascending" :
+                            (selectedPlayer.age || 0) <= 27 ? "Peak" :
+                            (selectedPlayer.age || 0) <= 29 ? "Declining" : "Cliff"
+                          ) : selectedPlayer.position === "WR" ? (
+                            (selectedPlayer.age || 0) < 25 ? "Ascending" :
+                            (selectedPlayer.age || 0) <= 29 ? "Peak" :
+                            (selectedPlayer.age || 0) <= 32 ? "Declining" : "Cliff"
+                          ) : selectedPlayer.position === "QB" ? (
+                            (selectedPlayer.age || 0) < 27 ? "Developing" :
+                            (selectedPlayer.age || 0) <= 34 ? "Prime" : "Declining"
+                          ) : "Active"}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Team:</span>{" "}
+                        <span className="font-medium">{selectedPlayer.team || "Free Agent"}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Recommendation */}
                   <div className={`p-4 rounded-lg border ${selectedPlayer.recommendation === "sell" ? "border-red-500/30 bg-red-500/5" : "border-green-500/30 bg-green-500/5"}`}>
                     <div className="flex items-center gap-2 mb-2">
                       <Badge variant={selectedPlayer.recommendation === "sell" ? "destructive" : "secondary"}>
-                        {selectedPlayer.recommendation?.toUpperCase()}
+                        {selectedPlayer.recommendation?.toUpperCase() || "HOLD"}
                       </Badge>
                       <span className="font-medium">Recommendation</span>
                     </div>
-                    <p className="text-sm text-muted-foreground">{selectedPlayer.recommendReason}</p>
+                    <p className="text-sm text-muted-foreground">{selectedPlayer.recommendReason || "Solid asset for your roster."}</p>
                   </div>
 
-                  {selectedPlayer.recommendation === "sell" && (
-                    <div>
-                      <h4 className="font-medium mb-2">Trade Targets</h4>
-                      <div className="space-y-2">
+                  {/* Trade Options - Always Show */}
+                  <div className="p-4 rounded-lg bg-muted/50 border border-border">
+                    <h4 className="font-semibold mb-3">💱 Trade Options</h4>
+                    
+                    {/* Teams that need this position */}
+                    <div className="mb-4">
+                      <p className="text-sm text-muted-foreground mb-2">Teams needing {selectedPlayer.position}:</p>
+                      <div className="flex flex-wrap gap-2">
                         {teams
                           .filter((t) => t.weaknesses?.includes(selectedPlayer.position))
-                          .slice(0, 3)
+                          .slice(0, 5)
                           .map((team) => (
-                            <div key={team.id} className="p-2 rounded border border-border text-sm">
-                              <span className="font-medium">{team.ownerUsername}</span>
-                              <span className="text-muted-foreground"> needs {selectedPlayer.position}</span>
-                            </div>
+                            <Badge 
+                              key={team.id} 
+                              variant="outline" 
+                              className="cursor-pointer hover:bg-primary/10"
+                              onClick={() => loadTeamRoster(team)}
+                            >
+                              {team.ownerUsername}
+                              <span className="ml-1 text-xs text-muted-foreground">
+                                ({team.mode})
+                              </span>
+                            </Badge>
                           ))}
+                        {teams.filter((t) => t.weaknesses?.includes(selectedPlayer.position)).length === 0 && (
+                          <span className="text-sm text-muted-foreground">No teams currently weak at {selectedPlayer.position}</span>
+                        )}
                       </div>
                     </div>
-                  )}
+
+                    {/* Suggested Returns */}
+                    <div className="mb-4">
+                      <p className="text-sm text-muted-foreground mb-2">Target return value: ~{((selectedPlayer.drewValue || 0) * 1.1).toLocaleString()}</p>
+                      <div className="grid grid-cols-1 gap-2">
+                        {/* Pick equivalent */}
+                        <div className="p-2 rounded border border-border text-sm flex justify-between">
+                          <span>Pick Equivalent:</span>
+                          <span className="font-medium">
+                            {(selectedPlayer.drewValue || 0) >= 6000 ? "2026 Early 1st + 2nd" :
+                             (selectedPlayer.drewValue || 0) >= 4500 ? "2026 Mid 1st" :
+                             (selectedPlayer.drewValue || 0) >= 3000 ? "2026 Late 1st" :
+                             (selectedPlayer.drewValue || 0) >= 2000 ? "2026 2nd" :
+                             (selectedPlayer.drewValue || 0) >= 1000 ? "2026 3rd" : "Dart throw"}
+                          </span>
+                        </div>
+                        {/* Young player swap */}
+                        <div className="p-2 rounded border border-border text-sm flex justify-between">
+                          <span>+ Young Player:</span>
+                          <span className="font-medium">
+                            {(selectedPlayer.drewValue || 0) >= 5000 ? "Rising WR/RB under 24" :
+                             (selectedPlayer.drewValue || 0) >= 3000 ? "Promising flex player" :
+                             "Depth piece + pick"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Add to Trade Calculator Button */}
+                    <Button 
+                      className="w-full" 
+                      variant="outline"
+                      onClick={() => {
+                        addToMySide({
+                          type: "player",
+                          id: selectedPlayer.sleeperId,
+                          name: selectedPlayer.name,
+                          position: selectedPlayer.position,
+                          value: selectedPlayer.drewValue || 0
+                        });
+                        setSelectedPlayer(null);
+                      }}
+                    >
+                      Add to Trade Calculator →
+                    </Button>
+                  </div>
                 </div>
               </>
             )}
