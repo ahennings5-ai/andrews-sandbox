@@ -65,7 +65,7 @@ export const prospectReports: ProspectReport[] = [
       "First year as full-time starter",
       "Needs development in deep ball accuracy"
     ],
-    comps: ["Josh Allen", "Derek Carr"],
+    comps: ["Derek Carr", "Geno Smith"],
     ceiling: "Franchise QB, top-5 fantasy",
     floor: "High-floor starter with limited rushing",
     summary: "QB1 in a historically weak class. 41 TDs/6 INTs is elite. Quick processing translates day one.",
@@ -93,7 +93,7 @@ export const prospectReports: ProspectReport[] = [
       "Not elite arm talent for NFL standards",
       "Ceiling questions remain"
     ],
-    comps: ["Dak Prescott", "Kirk Cousins"],
+    comps: ["Kirk Cousins", "Jacoby Brissett"],
     ceiling: "Low-end QB1 with rushing floor",
     floor: "Safe backup/bridge starter",
     summary: "Pro-ready but limited upside. 64.5% completion is fine, not elite. Late 1st SF value.",
@@ -120,7 +120,7 @@ export const prospectReports: ProspectReport[] = [
       "6'0\" - legitimate size concerns",
       "May appeal to 2027 class"
     ],
-    comps: ["Russell Wilson", "Kyler Murray"],
+    comps: ["Jalen Hurts", "Marcus Mariota"],
     ceiling: "Dynamic fantasy QB1",
     floor: "Boom-bust starter",
     summary: "Electric playmaker with Wilson-like traits. Size is the only knock. High upside dart.",
@@ -147,7 +147,7 @@ export const prospectReports: ProspectReport[] = [
       "Still raw in processing",
       "Inconsistent accuracy"
     ],
-    comps: ["Josh Allen (lite)", "Daniel Jones"],
+    comps: ["Daniel Jones", "Zach Wilson"],
     ceiling: "Starting NFL QB with upside",
     floor: "Backup/project",
     summary: "Raw tools and massive frame. Needs development but the arm talent is real.",
@@ -174,7 +174,7 @@ export const prospectReports: ProspectReport[] = [
       "Decision-making lapses",
       "Turnover-prone"
     ],
-    comps: ["Baker Mayfield", "Drew Lock"],
+    comps: ["Drew Lock", "Sam Howell"],
     ceiling: "Boom-bust starter",
     floor: "Backup with glimpses",
     summary: "Gunslinger with upside and risk. Will make big throws and bad decisions.",
@@ -203,7 +203,7 @@ export const prospectReports: ProspectReport[] = [
       "Not elite long speed (4.5+ forty)",
       "Pass protection needs refinement"
     ],
-    comps: ["Josh Jacobs", "Alvin Kamara"],
+    comps: ["Josh Jacobs", "David Montgomery"],
     ceiling: "Top-5 dynasty RB, three-down back",
     floor: "Solid RB2 even in committee",
     summary: "Clear RB1 in the class. 6.9 YPC and 18 TDs is elite. 1.01-1.02 in 1QB formats.",
@@ -312,7 +312,7 @@ export const prospectReports: ProspectReport[] = [
       "Split backfield with Allen",
       "Not elite top-end speed"
     ],
-    comps: ["Nick Chubb", "Derrick Henry (lite)"],
+    comps: ["Najee Harris", "Rhamondre Stevenson"],
     ceiling: "Three-down power back",
     floor: "Solid committee RB",
     summary: "Physical runner with plus contact balance. Penn State RB room competition lowers stock.",
@@ -651,7 +651,7 @@ export const prospectReports: ProspectReport[] = [
       "Pressure of the name",
       "Still developing at high level"
     ],
-    comps: ["Peyton Manning", "Andrew Luck"],
+    comps: ["Trevor Lawrence", "Justin Herbert"],
     ceiling: "Generational franchise QB, 15-year dynasty cornerstone",
     floor: "Starting NFL QB floor",
     summary: "The name. The talent. 3,163 yards, 26 TD, 5 INT. 1.01 in SF leagues, no questions asked.",
@@ -735,7 +735,7 @@ export const prospectReports: ProspectReport[] = [
       "Will face NFL's best corners",
       "Minor concerns (none significant)"
     ],
-    comps: ["Julio Jones", "Ja'Marr Chase"],
+    comps: ["CeeDee Lamb", "Garrett Wilson"],
     ceiling: "Top-3 dynasty WR ever, generational talent",
     floor: "High-end WR1",
     summary: "THE prospect. Best WR since Chase, arguably better. 1.01 in 1QB, top-3 SF. League-winner.",
@@ -789,7 +789,7 @@ export const prospectReports: ProspectReport[] = [
       "13% drop rate - concentration lapses",
       "Slight frame needs strength"
     ],
-    comps: ["Justin Jefferson", "Marvin Harrison Jr."],
+    comps: ["Jaylen Waddle", "Drake London"],
     ceiling: "Top-10 dynasty WR",
     floor: "WR2 with drop issues",
     summary: "Electric talent with one flaw - 13% drop rate. If he fixes hands, he's special.",
@@ -818,7 +818,7 @@ export const prospectReports: ProspectReport[] = [
       "Receiving game developing",
       "One elite season sample"
     ],
-    comps: ["Ashton Jeanty", "Derrick Henry"],
+    comps: ["Bijan Robinson", "Breece Hall"],
     ceiling: "Top-5 dynasty RB, bell cow",
     floor: "Starting RB with TD upside",
     summary: "RB1 in 2027 class. Jeanty-level production at 6.4 YPC. Could be special.",
@@ -901,7 +901,7 @@ export const prospectReports: ProspectReport[] = [
       "Not elite athleticism",
       "Route tree developing"
     ],
-    comps: ["Mark Andrews", "Travis Kelce"],
+    comps: ["Dallas Goedert", "David Njoku"],
     ceiling: "Top-5 dynasty TE",
     floor: "Starting TE1",
     summary: "Clear TE1 in loaded 2027 class. Size and skill make him day 1 starter.",
