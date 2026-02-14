@@ -104,6 +104,27 @@ interface TradeSuggestion {
   priority: "high" | "medium" | "low";
 }
 
+interface ProspectReport {
+  id: string;
+  name: string;
+  position: string;
+  school: string;
+  draftYear: number;
+  height: string;
+  weight: number;
+  projectedPick: string;
+  dynastyTier: string;
+  grade: string;
+  stats?: Record<string, number>;
+  strengths: string[];
+  weaknesses: string[];
+  comps: string[];
+  ceiling: string;
+  floor: string;
+  summary: string;
+  idealFits: string[];
+}
+
 const modeConfig = {
   tank: { label: "Tank", color: "bg-red-500", description: "Accumulate picks & youth" },
   retool: { label: "Retool", color: "bg-yellow-500", description: "Transitioning roster" },
@@ -134,6 +155,10 @@ export default function DynastyPage() {
   const [phaseRecommendation, setPhaseRecommendation] = useState<{ phase: string; reason: string } | null>(null);
   const [selectedTeamRoster, setSelectedTeamRoster] = useState<RosterPlayer[]>([]);
   const [loadingTeamRoster, setLoadingTeamRoster] = useState(false);
+  const [prospectReport, setProspectReport] = useState<ProspectReport | null>(null);
+  const [loadingProspectReport, setLoadingProspectReport] = useState(false);
+  const [selectedTeamPicks, setSelectedTeamPicks] = useState<Pick[]>([]);
+  const [tradeTargetPlayer, setTradeTargetPlayer] = useState<Player | null>(null);
   // Trade calculator state
   const [mySideAssets, setMySideAssets] = useState<TradeAsset[]>([]);
   const [theirSideAssets, setTheirSideAssets] = useState<TradeAsset[]>([]);
@@ -253,20 +278,42 @@ export default function DynastyPage() {
     loadProspects();
   }, [prospectClass]);
 
-  // Load full roster when team selected
+  // Load full roster and picks when team selected
   const loadTeamRoster = async (team: Team) => {
     setSelectedTeam(team);
     setLoadingTeamRoster(true);
+    setSelectedTeamPicks([]);
     try {
       const res = await fetch(`/api/dynasty/teams?rosterId=${team.rosterId}`);
       if (res.ok) {
         const data = await res.json();
         setSelectedTeamRoster(data.team?.roster || []);
       }
+      // Find picks owned by this team (originalOwner matches username)
+      const teamPicks = picks.filter(p => p.originalOwner === team.ownerUsername);
+      setSelectedTeamPicks(teamPicks);
     } catch (error) {
       console.error("Failed to load team roster:", error);
     } finally {
       setLoadingTeamRoster(false);
+    }
+  };
+
+  // Load prospect report when prospect selected
+  const loadProspectReport = async (prospect: Prospect) => {
+    setSelectedProspect(prospect);
+    setProspectReport(null);
+    setLoadingProspectReport(true);
+    try {
+      const res = await fetch(`/api/dynasty/prospect-report?name=${encodeURIComponent(prospect.name)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setProspectReport(data.report || null);
+      }
+    } catch (error) {
+      console.error("Failed to load prospect report:", error);
+    } finally {
+      setLoadingProspectReport(false);
     }
   };
 
@@ -702,7 +749,7 @@ export default function DynastyPage() {
                   {prospects.slice(0, 30).map((prospect, idx) => (
                     <button
                       key={prospect.id}
-                      onClick={() => setSelectedProspect(prospect)}
+                      onClick={() => loadProspectReport(prospect)}
                       className="w-full flex items-center justify-between p-3 rounded-lg border border-border hover:border-primary/50 hover:bg-muted/50 transition-colors text-left"
                     >
                       <div className="flex items-center gap-3">
@@ -1216,58 +1263,171 @@ export default function DynastyPage() {
           </DialogContent>
         </Dialog>
 
-        {/* Prospect Detail Modal */}
-        <Dialog open={!!selectedProspect} onOpenChange={() => setSelectedProspect(null)}>
-          <DialogContent className="max-w-lg">
+        {/* Prospect Detail Modal - Enhanced */}
+        <Dialog open={!!selectedProspect} onOpenChange={() => { setSelectedProspect(null); setProspectReport(null); }}>
+          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
             {selectedProspect && (
               <>
                 <DialogHeader>
-                  <DialogTitle className="flex items-center gap-2">
+                  <DialogTitle className="flex items-center gap-3">
                     <Badge className={positionColors[selectedProspect.position] || "bg-gray-500"}>
                       {selectedProspect.position}
                     </Badge>
-                    {selectedProspect.name}
+                    <span className="text-xl">{selectedProspect.name}</span>
+                    {prospectReport && (
+                      <Badge variant="outline" className="ml-auto">{prospectReport.grade}</Badge>
+                    )}
                   </DialogTitle>
-                  <DialogDescription>
-                    {selectedProspect.college} • {selectedProspect.draftClass} Class
+                  <DialogDescription className="flex items-center gap-2">
+                    {prospectReport ? (
+                      <>
+                        {prospectReport.school} • {prospectReport.height}, {prospectReport.weight} lbs • {prospectReport.draftYear} Class
+                        <Badge variant="secondary" className="ml-2">{prospectReport.projectedPick}</Badge>
+                      </>
+                    ) : (
+                      <>{selectedProspect.college} • {selectedProspect.draftClass} Class</>
+                    )}
                   </DialogDescription>
                 </DialogHeader>
-                <div className="space-y-4 mt-4">
-                  <div className="grid grid-cols-2 gap-4 text-center">
-                    <div className="p-3 rounded-lg bg-muted">
-                      <div className="text-2xl font-bold">#{selectedProspect.drewRank}</div>
-                      <div className="text-xs text-muted-foreground">Drew Rank</div>
-                    </div>
-                    <div className="p-3 rounded-lg bg-muted">
-                      <div className="text-2xl font-bold">#{selectedProspect.consensus}</div>
-                      <div className="text-xs text-muted-foreground">Consensus</div>
-                    </div>
-                  </div>
 
-                  <div className="p-4 rounded-lg bg-muted/50">
-                    <h4 className="font-medium mb-2">Scouting Notes</h4>
-                    <p className="text-sm text-muted-foreground">{selectedProspect.notes}</p>
-                  </div>
+                {loadingProspectReport ? (
+                  <div className="py-8 text-center text-muted-foreground">Loading scouting report...</div>
+                ) : (
+                  <div className="space-y-4 mt-4">
+                    {/* Rankings */}
+                    <div className="grid grid-cols-3 gap-3 text-center">
+                      <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
+                        <div className="text-2xl font-bold text-primary">#{selectedProspect.drewRank}</div>
+                        <div className="text-xs text-muted-foreground">Drew Rank</div>
+                      </div>
+                      <div className="p-3 rounded-lg bg-muted">
+                        <div className="text-2xl font-bold">#{selectedProspect.consensus}</div>
+                        <div className="text-xs text-muted-foreground">Consensus</div>
+                      </div>
+                      <div className="p-3 rounded-lg bg-muted">
+                        <div className="text-2xl font-bold">{selectedProspect.drewScore?.toFixed(0)}</div>
+                        <div className="text-xs text-muted-foreground">Drew Score</div>
+                      </div>
+                    </div>
 
-                  {selectedProspect.athleticScores && (
+                    {/* Why This Ranking */}
+                    <div className="p-4 rounded-lg bg-muted/50 border border-border">
+                      <h4 className="font-semibold mb-2 text-primary">📊 Ranking Breakdown</h4>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Base: 100 - (Consensus #{selectedProspect.consensus} × 2) = {100 - ((selectedProspect.consensus || 1) - 1) * 2}
+                      </p>
+                      <div className="text-sm text-muted-foreground">
+                        {selectedProspect.position === "QB" && <span className="text-green-500">+15 SF QB Premium</span>}
+                        {["WR", "TE"].includes(selectedProspect.position) && <span className="text-blue-500">+5 PPR Bonus</span>}
+                      </div>
+                    </div>
+
+                    {/* Comps */}
+                    {prospectReport?.comps && prospectReport.comps.length > 0 && (
+                      <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                        <h4 className="font-semibold mb-2 text-amber-500">🎯 Player Comps</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {prospectReport.comps.map((comp, i) => (
+                            <Badge key={i} variant="outline" className="bg-amber-500/10">{comp}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Strengths & Weaknesses */}
+                    {prospectReport && (
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="p-4 rounded-lg border border-green-500/30 bg-green-500/5">
+                          <h4 className="font-semibold text-green-500 mb-2">✅ Strengths</h4>
+                          <ul className="space-y-1">
+                            {prospectReport.strengths.map((s, i) => (
+                              <li key={i} className="text-sm text-muted-foreground">• {s}</li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div className="p-4 rounded-lg border border-red-500/30 bg-red-500/5">
+                          <h4 className="font-semibold text-red-500 mb-2">⚠️ Weaknesses</h4>
+                          <ul className="space-y-1">
+                            {prospectReport.weaknesses.map((w, i) => (
+                              <li key={i} className="text-sm text-muted-foreground">• {w}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Ceiling/Floor */}
+                    {prospectReport && (
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="p-3 rounded-lg bg-muted/50">
+                          <h4 className="text-xs text-muted-foreground mb-1">🚀 Ceiling</h4>
+                          <p className="text-sm font-medium">{prospectReport.ceiling}</p>
+                        </div>
+                        <div className="p-3 rounded-lg bg-muted/50">
+                          <h4 className="text-xs text-muted-foreground mb-1">📉 Floor</h4>
+                          <p className="text-sm font-medium">{prospectReport.floor}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Summary */}
                     <div className="p-4 rounded-lg bg-muted/50">
-                      <h4 className="font-medium mb-2">Athletic Testing</h4>
-                      <p className="text-sm text-muted-foreground">Combine/Pro Day data coming soon</p>
+                      <h4 className="font-semibold mb-2">📝 Scouting Summary</h4>
+                      <p className="text-sm text-muted-foreground">
+                        {prospectReport?.summary || selectedProspect.notes}
+                      </p>
                     </div>
-                  )}
 
-                  <div className="p-4 rounded-lg bg-muted/50">
-                    <h4 className="font-medium mb-2">Latest Buzz</h4>
-                    <p className="text-sm text-muted-foreground">News articles coming soon</p>
+                    {/* Stats if available */}
+                    {prospectReport?.stats && Object.keys(prospectReport.stats).length > 0 && (
+                      <div className="p-4 rounded-lg bg-muted/50">
+                        <h4 className="font-semibold mb-2">📈 College Stats</h4>
+                        <div className="grid grid-cols-4 gap-2 text-center">
+                          {prospectReport.stats.passYds && (
+                            <div><div className="font-bold">{prospectReport.stats.passYds.toLocaleString()}</div><div className="text-xs text-muted-foreground">Pass Yds</div></div>
+                          )}
+                          {prospectReport.stats.passTD && (
+                            <div><div className="font-bold">{prospectReport.stats.passTD}</div><div className="text-xs text-muted-foreground">Pass TD</div></div>
+                          )}
+                          {prospectReport.stats.rushYds && (
+                            <div><div className="font-bold">{prospectReport.stats.rushYds.toLocaleString()}</div><div className="text-xs text-muted-foreground">Rush Yds</div></div>
+                          )}
+                          {prospectReport.stats.rushTD && (
+                            <div><div className="font-bold">{prospectReport.stats.rushTD}</div><div className="text-xs text-muted-foreground">Rush TD</div></div>
+                          )}
+                          {prospectReport.stats.recYds && (
+                            <div><div className="font-bold">{prospectReport.stats.recYds.toLocaleString()}</div><div className="text-xs text-muted-foreground">Rec Yds</div></div>
+                          )}
+                          {prospectReport.stats.recTD && (
+                            <div><div className="font-bold">{prospectReport.stats.recTD}</div><div className="text-xs text-muted-foreground">Rec TD</div></div>
+                          )}
+                          {prospectReport.stats.ypc && (
+                            <div><div className="font-bold">{prospectReport.stats.ypc}</div><div className="text-xs text-muted-foreground">YPC</div></div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Ideal NFL Fits */}
+                    {prospectReport?.idealFits && prospectReport.idealFits.length > 0 && (
+                      <div className="p-4 rounded-lg bg-muted/50">
+                        <h4 className="font-semibold mb-2">🏈 Ideal NFL Fits</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {prospectReport.idealFits.map((fit, i) => (
+                            <Badge key={i} variant="outline">{fit}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
+                )}
               </>
             )}
           </DialogContent>
         </Dialog>
 
         {/* Team Detail Modal */}
-        <Dialog open={!!selectedTeam} onOpenChange={() => { setSelectedTeam(null); setSelectedTeamRoster([]); }}>
+        <Dialog open={!!selectedTeam} onOpenChange={() => { setSelectedTeam(null); setSelectedTeamRoster([]); setSelectedTeamPicks([]); }}>
           <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
             {selectedTeam && (
               <>
@@ -1335,11 +1495,35 @@ export default function DynastyPage() {
                     )}
                   </div>
 
+                  {/* Draft Picks */}
+                  <div>
+                    <h4 className="font-medium mb-2">🎯 Draft Capital</h4>
+                    {selectedTeamPicks.length > 0 ? (
+                      <div className="grid grid-cols-2 gap-2">
+                        {selectedTeamPicks
+                          .sort((a, b) => a.season.localeCompare(b.season) || a.round - b.round)
+                          .map((pick) => (
+                          <div key={pick.id} className="flex items-center justify-between p-2 rounded border border-border text-sm">
+                            <span className="font-medium">
+                              {pick.season} R{pick.round}
+                              {pick.pick && `.${pick.pick.toString().padStart(2, "0")}`}
+                            </span>
+                            <span className="text-muted-foreground">{pick.drewValue?.toLocaleString() || "—"}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-2">
+                        No picks tracked for this team. They may have traded away their picks.
+                      </p>
+                    )}
+                  </div>
+
                   <div className="p-3 rounded-lg bg-muted/50">
-                    <h4 className="font-medium mb-2">Trade Opportunity</h4>
+                    <h4 className="font-medium mb-2">💡 Trade Opportunity</h4>
                     {(selectedTeam.weaknesses as string[] || []).length > 0 ? (
                       <p className="text-sm text-muted-foreground">
-                        This team needs help at {(selectedTeam.weaknesses as string[]).join(", ")}. 
+                        This team needs help at <span className="font-medium text-amber-500">{(selectedTeam.weaknesses as string[]).join(", ")}</span>. 
                         Check your roster for assets to offer.
                       </p>
                     ) : (
