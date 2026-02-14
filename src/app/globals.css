@@ -151,7 +151,11 @@
   }
   
   .glass-card-hover {
-    @apply glass-card transition-all duration-300;
+    @apply bg-card/80 backdrop-blur-xl border border-white/5 transition-all duration-300;
+    box-shadow: 
+      0 0 0 1px hsl(265 90% 60% / 5%),
+      0 4px 24px -4px hsl(0 0% 0% / 40%),
+      inset 0 1px 0 0 hsl(0 0% 100% / 5%);
   }
   
   .glass-card-hover:hover {
@@ -226,11 +230,26 @@
   
   /* Stat card */
   .stat-card {
-    @apply glass-card-hover p-6 rounded-xl;
+    @apply bg-card/80 backdrop-blur-xl border border-white/5 transition-all duration-300 p-6 rounded-xl;
+    box-shadow: 
+      0 0 0 1px hsl(265 90% 60% / 5%),
+      0 4px 24px -4px hsl(0 0% 0% / 40%),
+      inset 0 1px 0 0 hsl(0 0% 100% / 5%);
+  }
+  
+  .stat-card:hover {
+    @apply border-white/10;
+    box-shadow: 
+      0 0 0 1px hsl(265 90% 60% / 15%),
+      0 8px 32px -4px hsl(0 0% 0% / 50%),
+      0 0 24px -8px hsl(265 90% 60% / 30%),
+      inset 0 1px 0 0 hsl(0 0% 100% / 8%);
+    transform: translateY(-2px);
   }
   
   .stat-value {
-    @apply text-4xl font-bold gradient-text;
+    @apply text-4xl font-bold bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, hsl(265 90% 65%), hsl(195 95% 60%));
   }
   
   .stat-label {
