@@ -8,7 +8,7 @@ import {
   Activity, 
   Utensils, 
   Lightbulb, 
-  Trophy, 
+  Crown, 
   TrendingUp,
   Calendar,
   Flame,
@@ -76,16 +76,30 @@ export default function Home() {
     // Fetch stats
     const fetchStats = async () => {
       try {
-        const [ideasRes, dynastyRes] = await Promise.all([
+        const [ideasRes, dynastyRes, runsRes] = await Promise.all([
           fetch("/api/ideas").catch(() => null),
           fetch("/api/dynasty/teams?rosterId=1").catch(() => null),
+          fetch("/api/runs").catch(() => null),
         ]);
         
         const ideas = ideasRes ? await ideasRes.json() : [];
         const dynasty = dynastyRes ? await dynastyRes.json() : null;
+        const runs = runsRes ? await runsRes.json() : [];
+        
+        // Calculate running stats from actual data
+        const totalMiles = Array.isArray(runs) 
+          ? runs.reduce((sum: number, r: {actualMiles?: number}) => sum + (r.actualMiles || 0), 0)
+          : 0;
+        const now = new Date();
+        const weekStart = new Date(now);
+        weekStart.setDate(now.getDate() - now.getDay());
+        weekStart.setHours(0, 0, 0, 0);
+        const runsThisWeek = Array.isArray(runs)
+          ? runs.filter((r: {date?: string}) => r.date && new Date(r.date) >= weekStart).length
+          : 0;
         
         setStats({
-          marathon: { totalMiles: 127.4, runsThisWeek: 3, streak: 5 },
+          marathon: { totalMiles, runsThisWeek, streak: 5 },
           ideas: { 
             total: Array.isArray(ideas) ? ideas.length : 0,
             upvoted: Array.isArray(ideas) ? ideas.filter((i: {layer: number}) => i.layer >= 2).length : 0,
@@ -174,7 +188,7 @@ export default function Home() {
           
           <div className="stat-card">
             <div className="flex items-center gap-2 text-cyan-400 mb-2">
-              <Trophy className="w-5 h-5" />
+              <Crown className="w-5 h-5" />
               <span className="text-xs uppercase tracking-wider">Dynasty</span>
             </div>
             <div className="stat-value">#{stats?.dynasty.rank || "—"}</div>
@@ -209,7 +223,7 @@ export default function Home() {
             </Link>
             <Link href="/dynasty">
               <Button variant="secondary" className="glass-card border-0 hover:bg-cyan-500/20 hover:text-cyan-400 transition-all">
-                <Trophy className="w-4 h-4 mr-2" />
+                <Crown className="w-4 h-4 mr-2" />
                 Check Dynasty
               </Button>
             </Link>
@@ -340,7 +354,7 @@ export default function Home() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="p-2 rounded-lg bg-cyan-500/20 text-cyan-400">
-                      <Trophy className="w-6 h-6" />
+                      <Crown className="w-6 h-6" />
                     </div>
                     <div>
                       <CardTitle className="text-xl">Dynasty Manager</CardTitle>
