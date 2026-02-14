@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { Prisma } from "@prisma/client";
 
 // POST - trigger research on an idea (generates business case)
 export async function POST(request: NextRequest) {
@@ -51,13 +52,13 @@ export async function GET() {
           {
             AND: [
               { layer: 2 },
-              { businessCase: null },
+              { businessCase: { equals: Prisma.DbNull } },
             ],
           },
           {
             AND: [
               { layer: 3 },
-              { executionPlan: null },
+              { executionPlan: { equals: Prisma.DbNull } },
             ],
           },
         ],
