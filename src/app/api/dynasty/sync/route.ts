@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { NextResponse } from "next/server";
-import { getPlayerValue, getPickValue, recommendPhase, PROSPECTS_2026, PROSPECTS_2027, PLAYER_VALUES_BY_NAME } from "@/lib/dynasty-values";
+import { getPlayerValue, getPickValue, recommendPhase, PROSPECTS_2026, PROSPECTS_2027, PLAYER_VALUES_BY_NAME, getProjectedPickValueByRank } from "@/lib/dynasty-values";
 
 // Normalize player name for matching (removes Jr., II, III, Sr., etc.)
 function normalizeName(name: string): string {
@@ -260,6 +260,16 @@ export async function POST() {
       }
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // TEAM RANKINGS FOR PICK PROJECTIONS
+    // Sort by roster value (worst roster = best pick)
+    // ═══════════════════════════════════════════════════════════
+    const sortedTeams = [...teamData].sort((a, b) => b.totalValue - a.totalValue);
+    const usernameToRank: Record<string, number> = {};
+    sortedTeams.forEach((team, idx) => {
+      usernameToRank[team.username] = idx + 1; // 1 = best roster, 12 = worst
+    });
+
     // Andrew's confirmed draft picks
     const myPicks = [
       { season: "2026", round: 1, pick: 2, originalOwner: "ldnmetsturtle" },
@@ -280,8 +290,14 @@ export async function POST() {
       { season: "2028", round: 2, originalOwner: "trund1e" },
     ];
 
+    const totalTeams = teamData.length || 12;
     const pickUpdates = myPicks.map((pick) => {
-      const drewValue = getPickValue(pick.season, pick.round, pick.pick);
+      const baseValue = getPickValue(pick.season, pick.round, pick.pick);
+      
+      // Get projected value based on original owner's team strength
+      const ownerRank = usernameToRank[pick.originalOwner] || Math.ceil(totalTeams / 2);
+      const { value: drewValue, projection } = getProjectedPickValueByRank(baseValue, ownerRank, totalTeams);
+      
       return prisma.dynastyPick.upsert({
         where: {
           season_round_originalOwner: {
@@ -372,7 +388,14 @@ export async function POST() {
     // Sort by ROSTER value only (not picks) for league rank
     const sortedByRoster = [...teamData].sort((a, b) => b.totalValue - a.totalValue);
     const leagueRank = sortedByRoster.findIndex(t => t.rosterId === MY_ROSTER_ID) + 1;
-    const totalPickValue = myPicks.reduce((sum, p) => sum + getPickValue(p.season, p.round, p.pick), 0);
+    
+    // Calculate total pick value using projected values based on original owner strength
+    const totalPickValue = myPicks.reduce((sum, p) => {
+      const baseValue = getPickValue(p.season, p.round, p.pick);
+      const ownerRank = usernameToRank[p.originalOwner] || Math.ceil(totalTeams / 2);
+      const { value } = getProjectedPickValueByRank(baseValue, ownerRank, totalTeams);
+      return sum + value;
+    }, 0);
     
     let phaseRecommendation = null;
     if (myTeam) {
@@ -395,6 +418,15 @@ export async function POST() {
       },
     });
 
+    // Build team rankings for UI
+    const teamRankings = sortedTeams.map((t, idx) => ({
+      username: t.username,
+      rosterId: t.rosterId,
+      rosterValue: t.totalValue,
+      leagueRank: idx + 1,
+      projectedPickPosition: totalTeams - idx, // Inverse: best roster = worst pick position
+    }));
+
     return NextResponse.json({ 
       success: true, 
       message: "Sync complete",
@@ -404,6 +436,7 @@ export async function POST() {
       phaseRecommendation,
       totalTeamValue: myTeam ? myTeam.totalValue + totalPickValue : 0,
       leagueRank,
+      teamRankings, // For pick projection display
     });
   } catch (error) {
     console.error("Failed to sync dynasty data:", error);

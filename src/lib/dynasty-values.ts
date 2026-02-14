@@ -228,50 +228,72 @@ export const PICK_VALUES_2028: Record<string, number> = {
 };
 
 // ═══════════════════════════════════════════════════════════
-// TEAM OUTLOOK 2026 - For projecting future pick values
-// Based on current roster strength, age, cap situation
+// LEAGUE TEAM PICK PROJECTIONS
+// Based on fantasy league team roster strength, not NFL teams
 // ═══════════════════════════════════════════════════════════
-export const TEAM_OUTLOOK_2026: Record<string, { outlook: 'strong' | 'average' | 'weak' | 'rebuilding'; pickMultiplier: number; notes: string }> = {
-  // STRONG TEAMS (picks worth less - likely late)
-  "DET": { outlook: "strong", pickMultiplier: 0.75, notes: "Championship window open. Young core." },
-  "BUF": { outlook: "strong", pickMultiplier: 0.75, notes: "Josh Allen in prime. Perennial contender." },
-  "KC": { outlook: "strong", pickMultiplier: 0.75, notes: "Mahomes era continues." },
-  "BAL": { outlook: "strong", pickMultiplier: 0.80, notes: "Lamar Jackson MVP caliber. Elite roster." },
-  "PHI": { outlook: "strong", pickMultiplier: 0.80, notes: "Loaded roster, win-now mode." },
-  "SF": { outlook: "strong", pickMultiplier: 0.80, notes: "Contender but aging in spots." },
-  "CIN": { outlook: "strong", pickMultiplier: 0.85, notes: "Burrow/Chase stack is elite." },
+
+export interface TeamPickProjection {
+  projectedFinish: number;  // 1 = worst team (best pick), 12 = best team (worst pick)
+  pickTier: 'early' | 'mid' | 'late';
+  multiplier: number;
+  description: string;
+}
+
+/**
+ * Calculate pick projection based on team's league rank
+ * @param leagueRank - Team's rank by roster value (1 = best roster, 12 = worst roster)
+ * @param totalTeams - Total teams in league (default 12)
+ */
+export function getTeamPickProjection(leagueRank: number, totalTeams: number = 12): TeamPickProjection {
+  // Inverse: worst roster (rank 12) = best pick (finish 1)
+  const projectedFinish = totalTeams - leagueRank + 1;
   
-  // AVERAGE TEAMS (picks worth face value)
-  "WAS": { outlook: "average", pickMultiplier: 1.00, notes: "Jayden Daniels ascending. Building." },
-  "MIN": { outlook: "average", pickMultiplier: 1.00, notes: "JJ McCarthy developing. Playoff caliber." },
-  "LAC": { outlook: "average", pickMultiplier: 1.00, notes: "Herbert weapons loading." },
-  "GB": { outlook: "average", pickMultiplier: 1.00, notes: "Young and improving." },
-  "HOU": { outlook: "average", pickMultiplier: 1.00, notes: "Stroud figuring it out." },
-  "TB": { outlook: "average", pickMultiplier: 1.00, notes: "Baker ball continues." },
-  "ATL": { outlook: "average", pickMultiplier: 1.00, notes: "Bijan + offense cooking." },
-  "DEN": { outlook: "average", pickMultiplier: 1.00, notes: "Bo Nix leading improvement." },
-  "SEA": { outlook: "average", pickMultiplier: 1.05, notes: "JSN leading new era." },
-  "LAR": { outlook: "average", pickMultiplier: 1.05, notes: "Puka/McVay combo works." },
-  "PIT": { outlook: "average", pickMultiplier: 1.05, notes: "QB situation unclear." },
-  "MIA": { outlook: "average", pickMultiplier: 1.10, notes: "Tua health concerns." },
-  "ARI": { outlook: "average", pickMultiplier: 1.10, notes: "Kyler weapons improving." },
-  "CHI": { outlook: "average", pickMultiplier: 1.10, notes: "Caleb Williams developing." },
+  // Top 4 picks = early, middle 4 = mid, bottom 4 = late
+  const thirdOfLeague = Math.ceil(totalTeams / 3);
   
-  // WEAK TEAMS (picks worth more - likely early)
-  "NYJ": { outlook: "weak", pickMultiplier: 1.20, notes: "Perpetual rebuild mode." },
-  "IND": { outlook: "weak", pickMultiplier: 1.15, notes: "JT aging, QB questions." },
-  "JAC": { outlook: "weak", pickMultiplier: 1.20, notes: "Trevor Lawrence situation unclear." },
-  "NO": { outlook: "weak", pickMultiplier: 1.20, notes: "Aging roster, cap hell." },
-  "DAL": { outlook: "weak", pickMultiplier: 1.15, notes: "Post-Dak uncertainty." },
-  "CLE": { outlook: "weak", pickMultiplier: 1.25, notes: "Watson disaster continuing." },
-  "TEN": { outlook: "weak", pickMultiplier: 1.20, notes: "Full rebuild mode." },
-  "NE": { outlook: "weak", pickMultiplier: 1.15, notes: "Maye building but takes time." },
-  
-  // REBUILDING TEAMS (picks worth premium - likely top picks)
-  "NYG": { outlook: "rebuilding", pickMultiplier: 1.30, notes: "Bottom feeder for picks." },
-  "CAR": { outlook: "rebuilding", pickMultiplier: 1.30, notes: "Bryce Young project continues." },
-  "LV": { outlook: "rebuilding", pickMultiplier: 1.25, notes: "Jeanty bright spot, rest is mess." },
-};
+  if (projectedFinish <= thirdOfLeague) {
+    // Early pick (1-4) - worst teams, picks worth more
+    return {
+      projectedFinish,
+      pickTier: 'early',
+      multiplier: 1.25 + (thirdOfLeague - projectedFinish) * 0.05, // 1.25-1.40
+      description: `Projected Top ${thirdOfLeague} Pick`
+    };
+  } else if (projectedFinish <= thirdOfLeague * 2) {
+    // Mid pick (5-8) - average teams
+    return {
+      projectedFinish,
+      pickTier: 'mid',
+      multiplier: 1.0,
+      description: 'Projected Mid Pick'
+    };
+  } else {
+    // Late pick (9-12) - best teams, picks worth less
+    const latePosition = projectedFinish - thirdOfLeague * 2;
+    return {
+      projectedFinish,
+      pickTier: 'late',
+      multiplier: 0.85 - (latePosition - 1) * 0.05, // 0.70-0.85
+      description: `Projected Pick ${projectedFinish}`
+    };
+  }
+}
+
+/**
+ * Calculate projected pick value based on original owner's team strength
+ * @param baseValue - Base pick value from PICK_VALUES
+ * @param ownerLeagueRank - Original owner's league rank (1 = best, 12 = worst)
+ */
+export function getProjectedPickValueByRank(baseValue: number, ownerLeagueRank: number, totalTeams: number = 12): {
+  value: number;
+  projection: TeamPickProjection;
+} {
+  const projection = getTeamPickProjection(ownerLeagueRank, totalTeams);
+  return {
+    value: Math.round(baseValue * projection.multiplier),
+    projection
+  };
+}
 
 // ═══════════════════════════════════════════════════════════
 // 2026 NFL Draft Prospects (April 2026)
@@ -336,17 +358,6 @@ export function getPickValue(season: string, round: number, pick?: number): numb
     return round === 1 ? PICK_VALUES_2028["1st"] : round === 2 ? PICK_VALUES_2028["2nd"] : PICK_VALUES_2028["3rd"] || 700;
   }
   return 500;
-}
-
-// Project future pick value based on team outlook
-export function getProjectedPickValue(season: string, round: number, ownerTeam?: string): number {
-  const baseValue = getPickValue(season, round);
-  if (!ownerTeam) return baseValue;
-  
-  const outlook = TEAM_OUTLOOK_2026[ownerTeam];
-  if (!outlook) return baseValue;
-  
-  return Math.round(baseValue * outlook.pickMultiplier);
 }
 
 export function recommendPhase(
