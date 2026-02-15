@@ -1,8 +1,37 @@
 import { prisma } from "@/lib/db";
 import { NextResponse } from "next/server";
+import { PLAYER_VALUES_BY_NAME } from "@/lib/dynasty-values";
 
 const SLEEPER_LEAGUE_ID = "1180181459838525440";
 const MY_ROSTER_ID = 1;
+
+// Normalize name for matching
+function normalizeName(name: string): string {
+  return name
+    .replace(/\s+(Jr\.?|Sr\.?|II|III|IV)$/i, "")
+    .replace(/[.']/g, "")
+    .trim();
+}
+
+// Build lookup map
+const normalizedValues: Record<string, number> = {};
+for (const [name, data] of Object.entries(PLAYER_VALUES_BY_NAME)) {
+  normalizedValues[normalizeName(name)] = data.value;
+  normalizedValues[name] = data.value;
+}
+
+function getLiveValue(name: string): number {
+  return normalizedValues[name] || normalizedValues[normalizeName(name)] || 100;
+}
+
+function getTier(value: number): string {
+  if (value >= 9000) return "Elite";
+  if (value >= 7000) return "Star";
+  if (value >= 5000) return "Starter";
+  if (value >= 3000) return "Flex";
+  if (value >= 1500) return "Bench";
+  return "Clogger";
+}
 
 interface TeamAnalysis {
   rosterId: number;
@@ -70,32 +99,37 @@ export async function GET() {
       where: { isOwned: true },
     });
 
-    // Parse team data
+    // Parse team data with LIVE values
     const teamAnalyses: TeamAnalysis[] = teams.map((team) => {
-      const players = team.rosterJson ? JSON.parse(team.rosterJson as string) : [];
+      const rawPlayers = team.rosterJson ? JSON.parse(team.rosterJson as string) : [];
+      const players = rawPlayers.map((p: { name: string; position: string; age: number | null }) => {
+        const liveValue = getLiveValue(p.name);
+        return {
+          name: p.name,
+          position: p.position,
+          value: liveValue,
+          age: p.age,
+          tier: getTier(liveValue),
+        };
+      });
       const playersWithAge = players.filter((p: { age: number | null }) => p.age);
       const avgAge = playersWithAge.length > 0 
         ? playersWithAge.reduce((sum: number, p: { age: number }) => sum + p.age, 0) / playersWithAge.length
         : 25;
+      const totalValue = players.reduce((sum: number, p: { value: number }) => sum + p.value, 0);
 
       return {
         rosterId: team.rosterId,
         username: team.ownerUsername,
         mode: team.mode || "unknown",
-        totalValue: team.totalValue || 0,
+        totalValue,
         avgAge,
         strengths: parseJsonArray(team.strengths),
         weaknesses: parseJsonArray(team.weaknesses),
         wantsPicks: team.mode === "rebuilding" || team.mode === "tank",
         wantsVets: team.mode === "contending",
         hasPicksToTrade: team.mode === "contending", // contenders often trade picks
-        players: players.map((p: { name: string; position: string; value: number; age: number | null; tier: string }) => ({
-          name: p.name,
-          position: p.position,
-          value: p.value || 0,
-          age: p.age,
-          tier: p.tier || "Bench",
-        })),
+        players,
       };
     });
 
