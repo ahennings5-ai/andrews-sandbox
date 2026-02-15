@@ -356,145 +356,6 @@ function MarathonTrackerInner() {
     }
   };
   
-  // Custom starting location for routes
-  const HOME_ADDRESS = "5241+Center+Blvd,+Long+Island+City,+NY";
-  const [customLocation, setCustomLocation] = useState<string | null>(null);
-  const [locationInput, setLocationInput] = useState("");
-  const [gettingLocation, setGettingLocation] = useState(false);
-  
-  const startingPoint = customLocation || HOME_ADDRESS;
-  const startingPointDisplay = customLocation 
-    ? decodeURIComponent(customLocation.replace(/\+/g, " ")) 
-    : "5241 Center Blvd";
-
-  // Get user's current location via GPS
-  const useCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      alert("Geolocation not supported by your browser");
-      return;
-    }
-    setGettingLocation(true);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        setCustomLocation(`${latitude},${longitude}`);
-        setGettingLocation(false);
-      },
-      (error) => {
-        alert("Could not get location: " + error.message);
-        setGettingLocation(false);
-      },
-      { enableHighAccuracy: true }
-    );
-  };
-
-  // Set custom address
-  const setCustomAddress = () => {
-    if (locationInput.trim()) {
-      setCustomLocation(encodeURIComponent(locationInput.trim()).replace(/%20/g, "+"));
-      setLocationInput("");
-    }
-  };
-
-  // Reset to home
-  const resetToHome = () => {
-    setCustomLocation(null);
-  };
-  
-  // Route destinations (without starting point - we'll add that dynamically)
-  const routeDestinations: Record<number, { name: string; description: string; miles: number; waypoints: string[] }[]> = {
-    3: [
-      { name: "Hunters Point South Loop", miles: 3, description: "Waterfront loop around the park", waypoints: ["Hunters+Point+South+Park", "Gantry+Plaza+State+Park"] },
-      { name: "Gantry to Vernon", miles: 3, description: "North along waterfront and back", waypoints: ["Vernon+Blvd,+Long+Island+City"] },
-    ],
-    4: [
-      { name: "Roosevelt Island Loop", miles: 4, description: "Cross the bridge, loop the island", waypoints: ["Roosevelt+Island+Bridge", "Roosevelt+Island"] },
-      { name: "Waterfront to Rainey Park", miles: 4, description: "North along East River to Rainey Park", waypoints: ["Rainey+Park,+Queens"] },
-    ],
-    5: [
-      { name: "Queensboro Bridge Out & Back", miles: 5, description: "Waterfront to the bridge and back", waypoints: ["Queensboro+Bridge"] },
-      { name: "Socrates Sculpture Park", miles: 5, description: "North to Socrates and Astoria", waypoints: ["Socrates+Sculpture+Park"] },
-    ],
-    6: [
-      { name: "Queensboro + Roosevelt Island", miles: 6, description: "Over the bridge, loop Roosevelt Island", waypoints: ["Queensboro+Bridge", "Roosevelt+Island"] },
-      { name: "Astoria Park Loop", miles: 6, description: "Waterfront up to Astoria Park", waypoints: ["Astoria+Park"] },
-    ],
-    8: [
-      { name: "Queensboro + East Side", miles: 8, description: "Over bridge, south on East Side path, back", waypoints: ["Queensboro+Bridge", "East+63rd+Street,+Manhattan", "Queensboro+Bridge"] },
-      { name: "Full Roosevelt + Astoria", miles: 8, description: "Roosevelt Island + waterfront to Astoria", waypoints: ["Roosevelt+Island", "Astoria+Park"] },
-    ],
-    10: [
-      { name: "Central Park South Loop", miles: 10, description: "Queensboro → Central Park south end → back", waypoints: ["Queensboro+Bridge", "Central+Park+South,+Manhattan", "Queensboro+Bridge"] },
-    ],
-    12: [
-      { name: "Central Park Half Loop", miles: 12, description: "Queensboro → half Central Park loop → back", waypoints: ["Queensboro+Bridge", "Central+Park,+Manhattan", "Queensboro+Bridge"] },
-    ],
-    14: [
-      { name: "Central Park Full Loop", miles: 14, description: "Queensboro → full Central Park loop (6 mi) → back", waypoints: ["Queensboro+Bridge", "Central+Park+North,+Manhattan", "Central+Park+South,+Manhattan", "Queensboro+Bridge"] },
-    ],
-    16: [
-      { name: "Central Park + Harlem Hill", miles: 16, description: "Full park loop with Harlem Hill repeats", waypoints: ["Queensboro+Bridge", "Central+Park,+Manhattan", "Harlem+Hill,+Central+Park", "Queensboro+Bridge"] },
-    ],
-    18: [
-      { name: "Central Park Double", miles: 18, description: "Queensboro → 1.5 Central Park loops → back", waypoints: ["Queensboro+Bridge", "Central+Park,+Manhattan", "Queensboro+Bridge"] },
-    ],
-    20: [
-      { name: "Marathon Simulation", miles: 20, description: "Queensboro → 2 full Central Park loops → back", waypoints: ["Queensboro+Bridge", "Central+Park,+Manhattan", "Queensboro+Bridge"] },
-    ],
-  };
-
-  // Build an OnTheGoMap URL for route creation
-  // onthegomap.com centers on a location where user can draw their route
-  const buildMapUrl = (waypoints: string[], miles: number) => {
-    // For GPS coordinates (lat,lng format)
-    if (startingPoint.includes(",") && !startingPoint.includes("+")) {
-      const [lat, lng] = startingPoint.split(",");
-      return `https://onthegomap.com/?lat=${lat}&lng=${lng}&zoom=14&d=${miles}`;
-    }
-    // For addresses, use a Google search redirect to get coords, or just center on LIC
-    // Default to Hunters Point coordinates
-    return `https://onthegomap.com/?lat=40.7433&lng=-73.9575&zoom=14&d=${miles}`;
-  };
-  
-  // Also provide a direct link to create a route on OnTheGoMap
-  const getOnTheGoMapLink = () => {
-    if (startingPoint.includes(",") && !startingPoint.includes("+")) {
-      const [lat, lng] = startingPoint.split(",");
-      return `https://onthegomap.com/?lat=${lat}&lng=${lng}&zoom=14`;
-    }
-    return "https://onthegomap.com/?lat=40.7433&lng=-73.9575&zoom=14";
-  };
-
-  // Get route suggestions for a given distance (with dynamic starting point)
-  const getRouteSuggestions = (miles: number): { name: string; description: string; miles: number; mapUrl: string }[] => {
-    const distances = Object.keys(routeDestinations).map(Number).sort((a, b) => a - b);
-    
-    // Get exact match or closest
-    const exactMatch = distances.find(d => d === miles);
-    const matchedRoutes = exactMatch ? routeDestinations[exactMatch] : null;
-    
-    // Find closest distance
-    const closest = distances.reduce((prev, curr) => 
-      Math.abs(curr - miles) < Math.abs(prev - miles) ? curr : prev
-    );
-    
-    // Also include one distance up if it's close
-    const nextUp = distances.find(d => d > miles);
-    const suggestions = [...(matchedRoutes || routeDestinations[closest] || [])];
-    
-    if (nextUp && nextUp - miles <= 2 && routeDestinations[nextUp]) {
-      suggestions.push(...routeDestinations[nextUp].slice(0, 1));
-    }
-    
-    // Build mapUrl for each route using current starting point
-    return suggestions.map(route => ({
-      name: route.name,
-      description: route.description,
-      miles: route.miles,
-      mapUrl: buildMapUrl(route.waypoints, route.miles),
-    }));
-  };
-
   // Generate mile splits for a run
   const generateMileSplits = (miles: number, type: RunType) => {
     const config = runTypes[type];
@@ -1608,90 +1469,54 @@ function MarathonTrackerInner() {
                     </div>
                   </div>
 
-                  {/* Suggested Routes */}
+                  {/* Route */}
                   <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="font-semibold">🗺️ Routes</h3>
-                      {customLocation && (
-                        <Button variant="ghost" size="sm" onClick={resetToHome} className="text-xs h-7">
-                          ← Back to home
-                        </Button>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground mb-3">
-                      Starting from {startingPointDisplay}
-                    </p>
+                    <h3 className="font-semibold mb-3">🗺️ Route</h3>
                     
-                    {/* Route list */}
-                    <div className="space-y-2">
-                      {getRouteSuggestions(selectedWorkout.miles).map((route, i) => (
-                        <a
-                          key={i}
-                          href={route.mapUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="block p-3 rounded-lg border border-border hover:border-primary/50 hover:bg-muted/30 transition-colors"
-                        >
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <p className="font-medium text-sm">{route.name}</p>
-                                <Badge variant="secondary" className="text-xs">{route.miles} mi</Badge>
-                              </div>
-                              <p className="text-xs text-muted-foreground">{route.description}</p>
-                            </div>
-                            <span className="text-primary text-sm">Map →</span>
-                          </div>
-                        </a>
-                      ))}
-                    </div>
-
-                    {/* Running away from home? */}
-                    <div className="mt-4 p-3 rounded-lg border border-dashed border-border">
-                      <p className="text-sm font-medium mb-2">🏃 Running away from home?</p>
-                      <div className="flex gap-2 mb-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={useCurrentLocation}
-                          disabled={gettingLocation}
-                          className="text-xs"
-                        >
-                          {gettingLocation ? "Getting location..." : "📍 Use my location"}
-                        </Button>
+                    <div className="p-4 rounded-lg bg-muted/30 border border-border">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-lg">
+                          ↔️
+                        </div>
+                        <div>
+                          <p className="font-medium">Out & Back</p>
+                          <p className="text-sm text-muted-foreground">
+                            Run {(selectedWorkout.miles / 2).toFixed(1)} mi out → turn around
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex gap-2">
-                        <Input
-                          placeholder="Or enter an address..."
-                          value={locationInput}
-                          onChange={(e) => setLocationInput(e.target.value)}
-                          onKeyDown={(e) => e.key === "Enter" && setCustomAddress()}
-                          className="text-sm h-8"
-                        />
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={setCustomAddress}
-                          disabled={!locationInput.trim()}
-                          className="text-xs"
-                        >
-                          Set
-                        </Button>
-                      </div>
-                    </div>
-                    
-                    <div className="mt-3 flex items-center justify-between">
-                      <p className="text-xs text-muted-foreground">
-                        💡 Click to open in OnTheGoMap
-                      </p>
-                      <a 
-                        href={getOnTheGoMapLink()} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-xs text-primary hover:underline"
+                      
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => {
+                          if (navigator.geolocation) {
+                            navigator.geolocation.getCurrentPosition(
+                              (pos) => {
+                                const { latitude, longitude } = pos.coords;
+                                window.open(
+                                  `https://www.google.com/maps/@${latitude},${longitude},16z`,
+                                  "_blank"
+                                );
+                              },
+                              () => {
+                                // Fallback to home location
+                                window.open(
+                                  "https://www.google.com/maps/@40.7433,-73.9575,16z",
+                                  "_blank"
+                                );
+                              }
+                            );
+                          } else {
+                            window.open(
+                              "https://www.google.com/maps/@40.7433,-73.9575,16z",
+                              "_blank"
+                            );
+                          }
+                        }}
                       >
-                        Draw custom route →
-                      </a>
+                        📍 Open Map at My Location
+                      </Button>
                     </div>
                   </div>
 
