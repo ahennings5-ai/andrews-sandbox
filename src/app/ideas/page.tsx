@@ -136,6 +136,7 @@ export default function IdeasPage() {
   const [filter, setFilter] = useState<"all" | "new" | "researched" | "ready" | "archived">("all");
   const [userNotes, setUserNotes] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [viewMode, setViewMode] = useState<"grid" | "kanban">("grid");
 
   // Fetch ideas
   useEffect(() => {
@@ -258,21 +259,41 @@ export default function IdeasPage() {
 
       {/* Filters */}
       <div className="container mx-auto px-4 py-4">
-        <div className="flex gap-2 flex-wrap">
-          {(["all", "new", "researched", "ready", "archived"] as const).map((f) => (
+        <div className="flex justify-between items-center">
+          <div className="flex gap-2 flex-wrap">
+            {(["all", "new", "researched", "ready", "archived"] as const).map((f) => (
+              <Button
+                key={f}
+                variant={filter === f ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFilter(f)}
+              >
+                {f.charAt(0).toUpperCase() + f.slice(1)}
+              </Button>
+            ))}
+          </div>
+          <div className="flex gap-1 bg-muted rounded-lg p-1">
             <Button
-              key={f}
-              variant={filter === f ? "default" : "outline"}
+              variant={viewMode === "grid" ? "secondary" : "ghost"}
               size="sm"
-              onClick={() => setFilter(f)}
+              onClick={() => setViewMode("grid")}
+              className="h-8 px-3"
             >
-              {f.charAt(0).toUpperCase() + f.slice(1)}
+              ⊞ Grid
             </Button>
-          ))}
+            <Button
+              variant={viewMode === "kanban" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("kanban")}
+              className="h-8 px-3"
+            >
+              ▤ Kanban
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Ideas Grid */}
+      {/* Ideas View */}
       <main className="container mx-auto px-4 pb-8">
         {ideas.length === 0 ? (
           <Card className="p-8 text-center">
@@ -281,7 +302,121 @@ export default function IdeasPage() {
               New ideas will appear here daily at 9 AM
             </p>
           </Card>
+        ) : viewMode === "kanban" ? (
+          /* Kanban Board */
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Layer 1: New Ideas */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg sticky top-20 z-10 backdrop-blur">
+                <Badge variant="outline">Layer 1</Badge>
+                <span className="font-medium">New Ideas</span>
+                <span className="text-muted-foreground text-sm ml-auto">
+                  {ideas.filter(i => i.layer === 1).length}
+                </span>
+              </div>
+              <div className="space-y-2 min-h-[200px]">
+                {ideas.filter(i => i.layer === 1).map(idea => (
+                  <Card
+                    key={idea.id}
+                    className="cursor-pointer hover:border-primary transition-all p-3"
+                    onClick={() => openIdea(idea)}
+                  >
+                    <div className="flex items-start gap-2 mb-2">
+                      <Badge variant="outline" className={`${categoryColors[idea.category] || ""} text-xs`}>
+                        {idea.category}
+                      </Badge>
+                      {(() => {
+                        const { grade } = calculateOverall(idea.scores);
+                        return (
+                          <span className={`text-xs font-bold ml-auto ${grade.startsWith('A') ? 'text-green-400' : grade.startsWith('B') ? 'text-blue-400' : 'text-yellow-400'}`}>
+                            {grade}
+                          </span>
+                        );
+                      })()}
+                    </div>
+                    <h4 className="font-medium text-sm leading-tight mb-1">{idea.name}</h4>
+                    <p className="text-xs text-muted-foreground line-clamp-2">{idea.oneLiner}</p>
+                    <div className="flex gap-1 mt-2">
+                      <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={(e) => { e.stopPropagation(); handleUpvote(idea); }}>
+                        👍 Research
+                      </Button>
+                      <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={(e) => { e.stopPropagation(); handleDownvote(idea); }}>
+                        ✕
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+
+            {/* Layer 2: Researched */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 p-3 bg-blue-500/10 rounded-lg sticky top-20 z-10 backdrop-blur">
+                <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">Layer 2</Badge>
+                <span className="font-medium">Researched</span>
+                <span className="text-muted-foreground text-sm ml-auto">
+                  {ideas.filter(i => i.layer === 2).length}
+                </span>
+              </div>
+              <div className="space-y-2 min-h-[200px]">
+                {ideas.filter(i => i.layer === 2).map(idea => (
+                  <Card
+                    key={idea.id}
+                    className="cursor-pointer border-blue-500/30 hover:border-blue-500 transition-all p-3"
+                    onClick={() => openIdea(idea)}
+                  >
+                    <div className="flex items-start gap-2 mb-2">
+                      <Badge variant="outline" className={`${categoryColors[idea.category] || ""} text-xs`}>
+                        {idea.category}
+                      </Badge>
+                      {idea.businessCase && <span className="text-xs text-blue-400">📊</span>}
+                    </div>
+                    <h4 className="font-medium text-sm leading-tight mb-1">{idea.name}</h4>
+                    <p className="text-xs text-muted-foreground line-clamp-2">{idea.oneLiner}</p>
+                    <div className="flex gap-1 mt-2">
+                      <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={(e) => { e.stopPropagation(); handleUpvote(idea); }}>
+                        👍 Plan
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+
+            {/* Layer 3: Ready */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 p-3 bg-green-500/10 rounded-lg sticky top-20 z-10 backdrop-blur">
+                <Badge className="bg-green-500/20 text-green-400 border-green-500/30">Layer 3</Badge>
+                <span className="font-medium">Ready to Build</span>
+                <span className="text-muted-foreground text-sm ml-auto">
+                  {ideas.filter(i => i.layer === 3).length}
+                </span>
+              </div>
+              <div className="space-y-2 min-h-[200px]">
+                {ideas.filter(i => i.layer >= 3).map(idea => (
+                  <Card
+                    key={idea.id}
+                    className="cursor-pointer border-green-500/30 hover:border-green-500 transition-all p-3 bg-green-500/5"
+                    onClick={() => openIdea(idea)}
+                  >
+                    <div className="flex items-start gap-2 mb-2">
+                      <Badge variant="outline" className={`${categoryColors[idea.category] || ""} text-xs`}>
+                        {idea.category}
+                      </Badge>
+                      {idea.executionPlan && <span className="text-xs text-green-400">🚀</span>}
+                    </div>
+                    <h4 className="font-medium text-sm leading-tight mb-1">{idea.name}</h4>
+                    <p className="text-xs text-muted-foreground line-clamp-2">{idea.oneLiner}</p>
+                    <Button size="sm" className="w-full mt-2 h-7 text-xs bg-green-600 hover:bg-green-700">
+                      View Execution Plan
+                    </Button>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          </div>
         ) : (
+          /* Grid View */
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {ideas.map((idea) => (
               <Card

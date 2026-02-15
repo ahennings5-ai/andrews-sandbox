@@ -489,6 +489,83 @@ export default function DynastyPage() {
               </Card>
             </div>
 
+            {/* Draft Capital Board - Visual Pick Display */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  🎯 Draft Capital Board
+                  <Badge variant="outline" className="ml-2">{picks.length} picks</Badge>
+                </CardTitle>
+                <CardDescription>Your picks across all years — hover for projected value</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {["2026", "2027", "2028"].map((year) => {
+                    const yearPicks = picks.filter((p) => p.season === year);
+                    const round1 = yearPicks.filter((p) => p.round === 1);
+                    const round2 = yearPicks.filter((p) => p.round === 2);
+                    const round3 = yearPicks.filter((p) => p.round === 3);
+                    const yearValue = yearPicks.reduce((s, p) => s + (p.drewValue || 0), 0);
+                    
+                    if (yearPicks.length === 0) return null;
+                    
+                    return (
+                      <div key={year} className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-lg">{year}</span>
+                            <Badge variant="secondary">{yearPicks.length} picks</Badge>
+                          </div>
+                          <span className="text-sm text-muted-foreground">{yearValue.toLocaleString()} value</span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {round1.map((pick, i) => (
+                            <div 
+                              key={`${year}-1-${i}`}
+                              className="group relative px-3 py-2 rounded-lg bg-amber-500/20 border border-amber-500/40 hover:bg-amber-500/30 transition-colors cursor-pointer"
+                              title={`${pick.originalOwner}&apos;s 1st — Value: ${pick.drewValue?.toLocaleString()}`}
+                            >
+                              <span className="font-bold text-amber-400">1st</span>
+                              <span className="text-xs text-muted-foreground ml-1">({pick.originalOwner?.slice(0, 6)})</span>
+                              <div className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-popover border rounded text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                                {pick.drewValue?.toLocaleString()} pts
+                              </div>
+                            </div>
+                          ))}
+                          {round2.map((pick, i) => (
+                            <div 
+                              key={`${year}-2-${i}`}
+                              className="group relative px-3 py-2 rounded-lg bg-slate-500/20 border border-slate-500/40 hover:bg-slate-500/30 transition-colors cursor-pointer"
+                              title={`${pick.originalOwner}&apos;s 2nd — Value: ${pick.drewValue?.toLocaleString()}`}
+                            >
+                              <span className="font-medium text-slate-300">2nd</span>
+                              <span className="text-xs text-muted-foreground ml-1">({pick.originalOwner?.slice(0, 6)})</span>
+                              <div className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-popover border rounded text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                                {pick.drewValue?.toLocaleString()} pts
+                              </div>
+                            </div>
+                          ))}
+                          {round3.map((pick, i) => (
+                            <div 
+                              key={`${year}-3-${i}`}
+                              className="group relative px-3 py-2 rounded-lg bg-zinc-600/20 border border-zinc-600/40 hover:bg-zinc-600/30 transition-colors cursor-pointer"
+                              title={`${pick.originalOwner}&apos;s 3rd — Value: ${pick.drewValue?.toLocaleString()}`}
+                            >
+                              <span className="font-medium text-zinc-400">3rd</span>
+                              <span className="text-xs text-muted-foreground ml-1">({pick.originalOwner?.slice(0, 6)})</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {picks.length === 0 && (
+                    <p className="text-muted-foreground text-center py-4">Sync your league to see draft capital</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Team Value Chart */}
             <Card>
               <CardHeader>
