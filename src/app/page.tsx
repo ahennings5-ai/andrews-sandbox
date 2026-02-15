@@ -37,7 +37,7 @@ const coachQuotes = [
 interface Stats {
   marathon: { totalMiles: number; runsThisWeek: number; streak: number };
   ideas: { total: number; upvoted: number; new: number };
-  dynasty: { teamValue: number; rank: number };
+  dynasty: { teamValue: number; rank: number; mode: string };
   meals: { plannedThisWeek: number };
 }
 
@@ -115,7 +115,8 @@ export default function Home() {
           },
           dynasty: { 
             teamValue: myTeam?.totalValue || 0, 
-            rank: myRank || 12
+            rank: myRank || 12,
+            mode: myTeam?.mode || syncData?.phaseRecommendation?.phase || "tank"
           },
           meals: { plannedThisWeek: 7 }
         });
@@ -199,8 +200,11 @@ export default function Home() {
               <Crown className="w-5 h-5" />
               <span className="text-xs uppercase tracking-wider">Dynasty</span>
             </div>
-            <div className="stat-value">#{stats?.dynasty.rank || "—"}</div>
-            <div className="stat-label">{stats?.dynasty.teamValue?.toLocaleString() || "—"} value</div>
+            <div className="stat-value flex items-center gap-2">
+              {stats?.dynasty.mode === "tank" ? "🔻" : stats?.dynasty.mode === "contend" ? "🚀" : "🔄"}
+              <span className="capitalize">{stats?.dynasty.mode || "Tank"}</span>
+            </div>
+            <div className="stat-label">Rank #{stats?.dynasty.rank || "—"}</div>
           </div>
         </section>
 
@@ -375,18 +379,21 @@ export default function Home() {
               <CardContent className="relative">
                 <div className="flex items-center gap-6">
                   <div>
-                    <div className="text-3xl font-bold text-cyan-400">#{stats?.dynasty.rank || "—"}</div>
-                    <div className="text-xs text-muted-foreground">league rank</div>
+                    <div className="text-3xl font-bold text-cyan-400 flex items-center gap-1">
+                      {stats?.dynasty.mode === "tank" ? "🔻" : stats?.dynasty.mode === "contend" ? "🚀" : "🔄"}
+                      <span className="capitalize">{stats?.dynasty.mode || "Tank"}</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground">current mode</div>
                   </div>
                   <div className="h-12 w-px bg-border" />
                   <div>
-                    <div className="text-3xl font-bold">{stats?.dynasty.teamValue?.toLocaleString() || "—"}</div>
-                    <div className="text-xs text-muted-foreground">team value</div>
+                    <div className="text-3xl font-bold">#{stats?.dynasty.rank || "12"}</div>
+                    <div className="text-xs text-muted-foreground">league rank</div>
                   </div>
                 </div>
                 <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
                   <Sparkles className="w-4 h-4" />
-                  <span>12-team Superflex PPR</span>
+                  <span>Accumulating picks & youth</span>
                 </div>
               </CardContent>
             </Card>
