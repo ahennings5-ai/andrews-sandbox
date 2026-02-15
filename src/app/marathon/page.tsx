@@ -1016,7 +1016,7 @@ function MarathonTrackerInner() {
                     notes: "Heavy (RPE 8), full depth, explosive up",
                     muscles: "Quads, Glutes, Core",
                     video: "https://www.youtube.com/results?search_query=barbell+back+squat+form",
-                    icon: "🏋️"
+                    image: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Full_Squat/0.jpg"
                   },
                   { 
                     name: "Romanian Deadlift", 
@@ -1024,7 +1024,7 @@ function MarathonTrackerInner() {
                     notes: "Hinge at hips, feel hamstrings stretch",
                     muscles: "Hamstrings, Glutes, Lower Back",
                     video: "https://www.youtube.com/results?search_query=romanian+deadlift+form",
-                    icon: "🔻"
+                    image: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Romanian_Deadlift/0.jpg"
                   },
                   { 
                     name: "Bulgarian Split Squat", 
@@ -1032,28 +1032,32 @@ function MarathonTrackerInner() {
                     notes: "Rear foot elevated, DB in each hand",
                     muscles: "Quads, Glutes, Balance",
                     video: "https://www.youtube.com/results?search_query=bulgarian+split+squat+form",
-                    icon: "🦵"
+                    image: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Split_Squat_with_Dumbbells/0.jpg"
                   },
                   { 
-                    name: "Single-Leg Hip Thrust", 
+                    name: "Single-Leg Glute Bridge", 
                     sets: "3 × 10 each", 
-                    notes: "Back on bench, squeeze glute at top",
+                    notes: "Squeeze glute at top, slow lower",
                     muscles: "Glute Max (top exercise for runners)",
-                    video: "https://www.youtube.com/results?search_query=single+leg+hip+thrust+form",
-                    icon: "🍑"
+                    video: "https://www.youtube.com/results?search_query=single+leg+glute+bridge+form",
+                    image: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Single_Leg_Glute_Bridge/0.jpg"
                   },
                   { 
-                    name: "Calf Raises", 
+                    name: "Standing Calf Raises", 
                     sets: "3 × 15", 
                     notes: "Slow, full ROM, pause at top 2 sec",
                     muscles: "Calves, Achilles",
                     video: "https://www.youtube.com/results?search_query=standing+calf+raise+form",
-                    icon: "⬆️"
+                    image: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Standing_Calf_Raises/0.jpg"
                   },
                 ].map((exercise, i) => (
                   <div key={i} className="flex items-start gap-4 p-4 rounded-lg border border-border bg-card hover:bg-muted/30 transition-colors">
-                    <div className="w-12 h-12 rounded-lg bg-amber-500/10 flex items-center justify-center text-2xl shrink-0">
-                      {exercise.icon}
+                    <div className="w-20 h-20 rounded-lg bg-muted overflow-hidden shrink-0">
+                      <img 
+                        src={exercise.image} 
+                        alt={exercise.name}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -1088,12 +1092,12 @@ function MarathonTrackerInner() {
               <CardContent className="space-y-4">
                 {[
                   { 
-                    name: "Cable Row", 
+                    name: "Seated Cable Row", 
                     sets: "3 × 10", 
                     notes: "Squeeze shoulder blades, control the negative",
                     muscles: "Upper Back, Posture",
                     video: "https://www.youtube.com/results?search_query=seated+cable+row+form",
-                    icon: "🚣"
+                    image: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Seated_Cable_Rows/0.jpg"
                   },
                   { 
                     name: "Dumbbell Bench Press", 
@@ -1101,7 +1105,7 @@ function MarathonTrackerInner() {
                     notes: "Full range of motion, don't bounce",
                     muscles: "Chest, Triceps, Arm Drive",
                     video: "https://www.youtube.com/results?search_query=dumbbell+bench+press+form",
-                    icon: "💪"
+                    image: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_Bench_Press/0.jpg"
                   },
                   { 
                     name: "Lat Pulldown", 
@@ -1109,7 +1113,7 @@ function MarathonTrackerInner() {
                     notes: "Wide grip, pull to chest, lean slightly back",
                     muscles: "Lats, Back Width",
                     video: "https://www.youtube.com/results?search_query=lat+pulldown+form",
-                    icon: "⬇️"
+                    image: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Wide-Grip_Lat_Pulldown/0.jpg"
                   },
                   { 
                     name: "Pallof Press", 
@@ -1117,15 +1121,15 @@ function MarathonTrackerInner() {
                     notes: "Cable at chest height, resist rotation",
                     muscles: "Core Anti-Rotation (key for running)",
                     video: "https://www.youtube.com/results?search_query=pallof+press+form",
-                    icon: "🎯"
+                    image: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cable_Chest_Press/0.jpg"
                   },
                   { 
-                    name: "Side Plank", 
-                    sets: "3 × 30 sec each", 
-                    notes: "Hips stacked, don't let hips sag",
-                    muscles: "Glute Med, Obliques, Hip Stability",
-                    video: "https://www.youtube.com/results?search_query=side+plank+form",
-                    icon: "📐"
+                    name: "Plank", 
+                    sets: "3 × 45 sec", 
+                    notes: "Elbows under shoulders, body straight line",
+                    muscles: "Core, Glutes, Shoulders",
+                    video: "https://www.youtube.com/results?search_query=plank+form",
+                    image: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Plank/0.jpg"
                   },
                   { 
                     name: "Dead Bug", 
@@ -1133,12 +1137,16 @@ function MarathonTrackerInner() {
                     notes: "Lower back pressed to floor throughout",
                     muscles: "Deep Core Stability",
                     video: "https://www.youtube.com/results?search_query=dead+bug+exercise+form",
-                    icon: "🐛"
+                    image: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cocoons/0.jpg"
                   },
                 ].map((exercise, i) => (
                   <div key={i} className="flex items-start gap-4 p-4 rounded-lg border border-border bg-card hover:bg-muted/30 transition-colors">
-                    <div className="w-12 h-12 rounded-lg bg-sky-500/10 flex items-center justify-center text-2xl shrink-0">
-                      {exercise.icon}
+                    <div className="w-20 h-20 rounded-lg bg-muted overflow-hidden shrink-0">
+                      <img 
+                        src={exercise.image} 
+                        alt={exercise.name}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
