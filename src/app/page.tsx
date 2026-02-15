@@ -83,16 +83,30 @@ export default function Home() {
           fetch("/api/dynasty/sync").catch(() => null),
         ]);
         
-        const ideas = ideasRes ? await ideasRes.json() : [];
-        const dynastyData = dynastyRes ? await dynastyRes.json() : null;
-        const runs = runsRes ? await runsRes.json() : [];
-        const syncData = syncRes ? await syncRes.json() : null;
+        const ideas = ideasRes?.ok ? await ideasRes.json().catch(() => []) : [];
+        const dynastyData = dynastyRes?.ok ? await dynastyRes.json().catch(() => null) : null;
+        const runs = runsRes?.ok ? await runsRes.json().catch(() => []) : [];
+        const syncData = syncRes?.ok ? await syncRes.json().catch(() => null) : null;
         
         // Find Andrew's team (rosterId 1) and calculate rank
         const allTeams = dynastyData?.teams || [];
-        const myTeam = allTeams.find((t: { rosterId: number }) => t.rosterId === 1);
-        const sortedTeams = [...allTeams].sort((a: { totalValue: number }, b: { totalValue: number }) => (b.totalValue || 0) - (a.totalValue || 0));
-        const myRank = sortedTeams.findIndex((t: { rosterId: number }) => t.rosterId === 1) + 1;
+        const myTeam = allTeams.find((t: { rosterId: number }) => t.rosterId === 1) || null;
+        const sortedTeams = allTeams.length > 0 
+          ? [...allTeams].sort((a: { totalValue: number }, b: { totalValue: number }) => (b.totalValue || 0) - (a.totalValue || 0))
+          : [];
+        const myRank = sortedTeams.length > 0 
+          ? sortedTeams.findIndex((t: { rosterId: number }) => t.rosterId === 1) + 1 
+          : 12;
+        
+        // Parse phase recommendation if it's a string
+        let phase = "tank";
+        if (syncData?.phaseRecommendation) {
+          const rec = typeof syncData.phaseRecommendation === "string" 
+            ? JSON.parse(syncData.phaseRecommendation) 
+            : syncData.phaseRecommendation;
+          phase = rec?.phase || "tank";
+        }
+        if (myTeam?.mode) phase = myTeam.mode;
         
         // Calculate running stats from actual data
         const totalMiles = Array.isArray(runs) 
@@ -115,8 +129,8 @@ export default function Home() {
           },
           dynasty: { 
             teamValue: myTeam?.totalValue || 0, 
-            rank: myRank || 12,
-            mode: myTeam?.mode || syncData?.phaseRecommendation?.phase || "tank"
+            rank: myRank,
+            mode: phase
           },
           meals: { plannedThisWeek: 7 }
         });
