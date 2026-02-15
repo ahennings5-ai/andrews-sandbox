@@ -773,7 +773,7 @@ function IdeasPageInner() {
                         </CardHeader>
                         <CardContent>
                           <ol className="list-decimal list-inside space-y-2 text-sm">
-                            {selectedIdea.executionPlan.weekByWeek.map((step, i) => (
+                            {(selectedIdea.executionPlan.weekByWeek || []).map((step, i) => (
                               <li key={i}>{step}</li>
                             ))}
                           </ol>
@@ -786,7 +786,7 @@ function IdeasPageInner() {
                         </CardHeader>
                         <CardContent>
                           <ul className="list-disc list-inside space-y-1 text-sm">
-                            {selectedIdea.executionPlan.hurdles.map((hurdle, i) => (
+                            {(selectedIdea.executionPlan.hurdles || []).map((hurdle, i) => (
                               <li key={i}>{hurdle}</li>
                             ))}
                           </ul>
