@@ -120,8 +120,32 @@ export default function Home() {
           ? runs.filter((r: {date?: string}) => r.date && new Date(r.date) >= weekStart).length
           : 0;
         
+        // Calculate actual streak from consecutive days
+        let streak = 0;
+        if (Array.isArray(runs) && runs.length > 0) {
+          const sortedRuns = [...runs].sort((a: { date: string }, b: { date: string }) => 
+            new Date(b.date).getTime() - new Date(a.date).getTime()
+          );
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          let checkDate = new Date(today);
+          
+          for (const run of sortedRuns) {
+            const runDate = new Date(run.date);
+            runDate.setHours(0, 0, 0, 0);
+            const diffDays = Math.floor((checkDate.getTime() - runDate.getTime()) / (24 * 60 * 60 * 1000));
+            
+            if (diffDays <= 1) {
+              streak++;
+              checkDate = runDate;
+            } else {
+              break;
+            }
+          }
+        }
+
         setStats({
-          marathon: { totalMiles, runsThisWeek, streak: 5 },
+          marathon: { totalMiles, runsThisWeek, streak },
           ideas: { 
             total: Array.isArray(ideas) ? ideas.length : 0,
             upvoted: Array.isArray(ideas) ? ideas.filter((i: {layer: number}) => i.layer >= 2).length : 0,
