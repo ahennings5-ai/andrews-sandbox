@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Component, ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -12,6 +12,41 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Link from "next/link";
+
+// Error Boundary to catch and display errors
+class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: Error | null }> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex items-center justify-center p-4">
+          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-6 max-w-lg">
+            <h2 className="text-red-500 font-bold text-lg mb-2">Something went wrong</h2>
+            <p className="text-sm text-muted-foreground mb-4">Error: {this.state.error?.message}</p>
+            <pre className="text-xs bg-black/50 p-2 rounded overflow-auto max-h-40">
+              {this.state.error?.stack}
+            </pre>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded"
+            >
+              Reload Page
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // Key dates
 const RACE_DATE = new Date("2026-11-01");
@@ -263,7 +298,7 @@ const feelingConfig = {
   struggled: { emoji: "😵", label: "Struggled" },
 } as const;
 
-export default function MarathonTracker() {
+function MarathonTrackerInner() {
   const [state, setState] = useState<TrainingState>({ logs: [] });
   const [selectedWeek, setSelectedWeek] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
@@ -1730,5 +1765,14 @@ export default function MarathonTracker() {
         </Dialog>
       </div>
     </div>
+  );
+}
+
+// Wrap with error boundary for better error display
+export default function MarathonTracker() {
+  return (
+    <ErrorBoundary>
+      <MarathonTrackerInner />
+    </ErrorBoundary>
   );
 }
