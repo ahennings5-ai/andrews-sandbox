@@ -1476,12 +1476,12 @@ function MarathonTrackerInner() {
                     <div className="p-4 rounded-lg bg-muted/30 border border-border">
                       <div className="flex items-center gap-3 mb-3">
                         <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-lg">
-                          ↔️
+                          🌉
                         </div>
                         <div>
-                          <p className="font-medium">Out & Back</p>
+                          <p className="font-medium">Queensboro Bridge Out & Back</p>
                           <p className="text-sm text-muted-foreground">
-                            Run {(selectedWorkout.miles / 2).toFixed(1)} mi out → turn around
+                            Head toward the bridge • {(selectedWorkout.miles / 2).toFixed(1)} mi out → turn around
                           </p>
                         </div>
                       </div>
@@ -1490,32 +1490,36 @@ function MarathonTrackerInner() {
                         variant="outline"
                         className="w-full"
                         onClick={() => {
+                          // Queensboro Bridge coordinates
+                          const bridgeLat = 40.7570;
+                          const bridgeLng = -73.9545;
+                          
                           if (navigator.geolocation) {
                             navigator.geolocation.getCurrentPosition(
                               (pos) => {
                                 const { latitude, longitude } = pos.coords;
                                 window.open(
-                                  `https://www.google.com/maps/@${latitude},${longitude},16z`,
+                                  `https://www.google.com/maps/dir/${latitude},${longitude}/${bridgeLat},${bridgeLng}/@${latitude},${longitude},14z/data=!4m2!4m1!3e2`,
                                   "_blank"
                                 );
                               },
                               () => {
-                                // Fallback to home location
+                                // Fallback to home → bridge
                                 window.open(
-                                  "https://www.google.com/maps/@40.7433,-73.9575,16z",
+                                  `https://www.google.com/maps/dir/40.7433,-73.9575/${bridgeLat},${bridgeLng}/@40.7433,-73.9575,14z/data=!4m2!4m1!3e2`,
                                   "_blank"
                                 );
                               }
                             );
                           } else {
                             window.open(
-                              "https://www.google.com/maps/@40.7433,-73.9575,16z",
+                              `https://www.google.com/maps/dir/40.7433,-73.9575/${bridgeLat},${bridgeLng}/@40.7433,-73.9575,14z/data=!4m2!4m1!3e2`,
                               "_blank"
                             );
                           }
                         }}
                       >
-                        📍 Open Map at My Location
+                        🗺️ Open Route to Bridge
                       </Button>
                     </div>
                   </div>
