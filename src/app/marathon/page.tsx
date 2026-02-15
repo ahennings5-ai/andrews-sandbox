@@ -771,7 +771,8 @@ function MarathonTrackerInner() {
                 {Object.entries(feelingCounts)
                   .sort((a, b) => b[1] - a[1])
                   .slice(0, 3)
-                  .map(([f]) => feelingConfig[f as keyof typeof feelingConfig].emoji)
+                  .map(([f]) => feelingConfig[f as keyof typeof feelingConfig]?.emoji)
+                  .filter(Boolean)
                   .join(" ") || "—"}
               </CardTitle>
             </CardHeader>
@@ -946,7 +947,7 @@ function MarathonTrackerInner() {
                         <div className="text-right shrink-0 hidden sm:block">
                           <div className="font-medium">{log.actualMiles} mi</div>
                           <div className="text-sm text-muted-foreground">
-                            {log.pace}/mi {feelingConfig[log.feeling].emoji}
+                            {log.pace}/mi {log.feeling && feelingConfig[log.feeling]?.emoji}
                           </div>
                         </div>
                       )}
@@ -1234,7 +1235,9 @@ function MarathonTrackerInner() {
                                 <Badge variant="outline" className={log.week <= BASE_WEEKS ? "border-emerald-500/30 text-emerald-500" : ""}>
                                   {log.week <= BASE_WEEKS ? "Base" : "Marathon"}
                                 </Badge>
-                                <span className="text-lg">{feelingConfig[log.feeling].emoji}</span>
+                                {log.feeling && feelingConfig[log.feeling] && (
+                                  <span className="text-lg">{feelingConfig[log.feeling].emoji}</span>
+                                )}
                               </div>
                               <p className="text-sm text-muted-foreground">{log.date}</p>
                               {log.notes && <p className="text-sm text-muted-foreground">{log.notes}</p>}
