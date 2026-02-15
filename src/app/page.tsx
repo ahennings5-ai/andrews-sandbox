@@ -215,10 +215,10 @@ export default function Home() {
               <span className="text-xs uppercase tracking-wider">Dynasty</span>
             </div>
             <div className="stat-value flex items-center gap-2">
-              {stats?.dynasty.mode === "tank" ? "🔻" : stats?.dynasty.mode === "contend" ? "🚀" : "🔄"}
-              <span className="capitalize">{stats?.dynasty.mode || "Tank"}</span>
+              {stats?.dynasty?.mode === "tank" ? "🔻" : stats?.dynasty?.mode === "contend" ? "🚀" : "🔄"}
+              <span className="capitalize">{stats?.dynasty?.mode || "Tank"}</span>
             </div>
-            <div className="stat-label">Rank #{stats?.dynasty.rank || "—"}</div>
+            <div className="stat-label">Rank #{stats?.dynasty?.rank || "12"}</div>
           </div>
         </section>
 
@@ -394,14 +394,14 @@ export default function Home() {
                 <div className="flex items-center gap-6">
                   <div>
                     <div className="text-3xl font-bold text-cyan-400 flex items-center gap-1">
-                      {stats?.dynasty.mode === "tank" ? "🔻" : stats?.dynasty.mode === "contend" ? "🚀" : "🔄"}
-                      <span className="capitalize">{stats?.dynasty.mode || "Tank"}</span>
+                      {stats?.dynasty?.mode === "tank" ? "🔻" : stats?.dynasty?.mode === "contend" ? "🚀" : "🔄"}
+                      <span className="capitalize">{stats?.dynasty?.mode || "Tank"}</span>
                     </div>
                     <div className="text-xs text-muted-foreground">current mode</div>
                   </div>
                   <div className="h-12 w-px bg-border" />
                   <div>
-                    <div className="text-3xl font-bold">#{stats?.dynasty.rank || "12"}</div>
+                    <div className="text-3xl font-bold">#{stats?.dynasty?.rank || "12"}</div>
                     <div className="text-xs text-muted-foreground">league rank</div>
                   </div>
                 </div>
