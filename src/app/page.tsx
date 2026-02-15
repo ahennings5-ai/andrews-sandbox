@@ -76,15 +76,23 @@ export default function Home() {
     // Fetch stats
     const fetchStats = async () => {
       try {
-        const [ideasRes, dynastyRes, runsRes] = await Promise.all([
+        const [ideasRes, dynastyRes, runsRes, syncRes] = await Promise.all([
           fetch("/api/ideas").catch(() => null),
-          fetch("/api/dynasty/teams?rosterId=1").catch(() => null),
+          fetch("/api/dynasty/teams").catch(() => null),
           fetch("/api/runs").catch(() => null),
+          fetch("/api/dynasty/sync").catch(() => null),
         ]);
         
         const ideas = ideasRes ? await ideasRes.json() : [];
-        const dynasty = dynastyRes ? await dynastyRes.json() : null;
+        const dynastyData = dynastyRes ? await dynastyRes.json() : null;
         const runs = runsRes ? await runsRes.json() : [];
+        const syncData = syncRes ? await syncRes.json() : null;
+        
+        // Find Andrew's team (rosterId 1) and calculate rank
+        const allTeams = dynastyData?.teams || [];
+        const myTeam = allTeams.find((t: { rosterId: number }) => t.rosterId === 1);
+        const sortedTeams = [...allTeams].sort((a: { totalValue: number }, b: { totalValue: number }) => (b.totalValue || 0) - (a.totalValue || 0));
+        const myRank = sortedTeams.findIndex((t: { rosterId: number }) => t.rosterId === 1) + 1;
         
         // Calculate running stats from actual data
         const totalMiles = Array.isArray(runs) 
@@ -106,8 +114,8 @@ export default function Home() {
             new: Array.isArray(ideas) ? ideas.filter((i: {status: string}) => i.status === "new").length : 0
           },
           dynasty: { 
-            teamValue: dynasty?.totalValue || 0, 
-            rank: dynasty?.leagueRank || 0 
+            teamValue: myTeam?.totalValue || 0, 
+            rank: myRank || 12
           },
           meals: { plannedThisWeek: 7 }
         });
