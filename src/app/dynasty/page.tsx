@@ -104,6 +104,20 @@ interface TradeSuggestion {
   priority: "high" | "medium" | "low";
 }
 
+interface TradeHistoryItem {
+  id: string;
+  date: string;
+  dateFormatted: string;
+  teams: string[];
+  sides: {
+    team: string;
+    receives: {
+      players: string[];
+      picks: string[];
+    };
+  }[];
+}
+
 interface ProspectReport {
   id: string;
   name: string;
@@ -165,6 +179,7 @@ export default function DynastyPage() {
   const [tradePartner, setTradePartner] = useState<Team | null>(null);
   // Trade suggestions
   const [tradeSuggestions, setTradeSuggestions] = useState<TradeSuggestion[]>([]);
+  const [tradeHistory, setTradeHistory] = useState<TradeHistoryItem[]>([]);
   const [loadingTrades, setLoadingTrades] = useState(false);
 
   // Load data
@@ -221,6 +236,17 @@ export default function DynastyPage() {
         console.error("Failed to load trade suggestions");
       } finally {
         setLoadingTrades(false);
+      }
+
+      // Load trade history
+      try {
+        const historyRes = await fetch("/api/dynasty/history");
+        if (historyRes.ok) {
+          const historyData = await historyRes.json();
+          setTradeHistory(historyData.trades || []);
+        }
+      } catch {
+        console.error("Failed to load trade history");
       }
     } catch (error) {
       console.error("Failed to load data:", error);
@@ -652,6 +678,63 @@ export default function DynastyPage() {
                       </div>
                     );
                   })}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Roster Age Heatmap */}
+            <Card>
+              <CardHeader>
+                <CardTitle>🎂 Roster Age Profile</CardTitle>
+                <CardDescription>Player age distribution — younger is greener</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-4 gap-2">
+                  {["QB", "RB", "WR", "TE"].map((pos) => {
+                    const posPlayers = players.filter((p) => p.position === pos);
+                    const avgAge = posPlayers.length > 0 
+                      ? posPlayers.reduce((s, p) => s + (p.age || 25), 0) / posPlayers.length
+                      : 25;
+                    
+                    return (
+                      <div key={pos} className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Badge className={positionColors[pos]}>{pos}</Badge>
+                          <span className="text-xs text-muted-foreground">avg {avgAge.toFixed(1)}</span>
+                        </div>
+                        <div className="space-y-1">
+                          {posPlayers
+                            .sort((a, b) => (a.age || 25) - (b.age || 25))
+                            .map((player) => {
+                              const age = player.age || 25;
+                              // Color based on age: green (young) to red (old)
+                              let ageColor = "bg-emerald-500"; // 21-23
+                              if (age >= 28) ageColor = "bg-red-500";
+                              else if (age >= 26) ageColor = "bg-amber-500";
+                              else if (age >= 24) ageColor = "bg-yellow-500";
+                              
+                              return (
+                                <div 
+                                  key={player.id}
+                                  className={`${ageColor}/20 border ${ageColor.replace('bg-', 'border-')}/40 rounded px-2 py-1 text-xs flex justify-between items-center cursor-pointer hover:opacity-80`}
+                                  onClick={() => setSelectedPlayer(player)}
+                                  title={`${player.name} - Age ${age}`}
+                                >
+                                  <span className="truncate">{player.name.split(' ').pop()}</span>
+                                  <span className="font-mono text-muted-foreground">{age}</span>
+                                </div>
+                              );
+                            })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="flex justify-center gap-4 mt-4 text-xs">
+                  <div className="flex items-center gap-1"><div className="w-3 h-3 bg-emerald-500 rounded" /> 21-23</div>
+                  <div className="flex items-center gap-1"><div className="w-3 h-3 bg-yellow-500 rounded" /> 24-25</div>
+                  <div className="flex items-center gap-1"><div className="w-3 h-3 bg-amber-500 rounded" /> 26-27</div>
+                  <div className="flex items-center gap-1"><div className="w-3 h-3 bg-red-500 rounded" /> 28+</div>
                 </div>
               </CardContent>
             </Card>
@@ -1418,12 +1501,50 @@ export default function DynastyPage() {
             <Card>
               <CardHeader>
                 <CardTitle>📜 League Trade History</CardTitle>
-                <CardDescription>All completed trades with analysis</CardDescription>
+                <CardDescription>All completed trades in your league</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground text-center py-8">
-                  Trade history will populate after first sync and as trades occur.
-                </p>
+                {tradeHistory.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-8">
+                    No trades found. Check back after trades occur.
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    {tradeHistory.map((trade) => (
+                      <div key={trade.id} className="border rounded-lg p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg">🔄</span>
+                            <span className="font-medium">{trade.teams.join(" ↔️ ")}</span>
+                          </div>
+                          <span className="text-sm text-muted-foreground">{trade.dateFormatted}</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          {trade.sides.map((side, idx) => (
+                            <div key={idx} className="space-y-1">
+                              <div className="text-sm font-medium text-muted-foreground">
+                                {side.team} receives:
+                              </div>
+                              <div className="space-y-1">
+                                {side.receives.players.map((p, i) => (
+                                  <div key={i} className="text-sm flex items-center gap-1">
+                                    <span className="text-green-400">+</span> {p}
+                                  </div>
+                                ))}
+                                {side.receives.picks.map((pick, i) => (
+                                  <div key={i} className="text-sm flex items-center gap-1">
+                                    <span className="text-green-400">+</span>
+                                    <Badge variant="outline" className="text-xs">{pick}</Badge>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
