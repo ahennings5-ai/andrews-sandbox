@@ -673,6 +673,7 @@ function MarathonTrackerInner() {
         <Tabs defaultValue="schedule" className="space-y-6">
           <TabsList>
             <TabsTrigger value="schedule">Schedule</TabsTrigger>
+            <TabsTrigger value="strength">💪 Strength</TabsTrigger>
             <TabsTrigger value="progress">Progress</TabsTrigger>
             <TabsTrigger value="log">Run Log</TabsTrigger>
             <TabsTrigger value="coach">🎯 Coach</TabsTrigger>
@@ -949,6 +950,292 @@ function MarathonTrackerInner() {
                     </div>
                   );
                 })}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Strength Tab */}
+          <TabsContent value="strength" className="space-y-6">
+            {/* Weekly Schedule */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Weekly Strength Schedule</CardTitle>
+                <CardDescription>Aligned with your running — never lift heavy before quality runs</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-7 gap-2 text-center text-sm">
+                  {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day, i) => {
+                    const schedule = [
+                      { run: "Easy", lift: "Lower A", liftTime: "PM" },
+                      { run: "Rest", lift: "Upper B", liftTime: "Any" },
+                      { run: "Quality", lift: "—", liftTime: "" },
+                      { run: "Easy", lift: "Optional", liftTime: "PM" },
+                      { run: "Rest", lift: "—", liftTime: "" },
+                      { run: "Long", lift: "—", liftTime: "" },
+                      { run: "Rest", lift: "—", liftTime: "" },
+                    ][i];
+                    const hasLift = schedule.lift !== "—";
+                    return (
+                      <div key={day} className={`p-3 rounded-lg border ${hasLift ? "border-amber-500/30 bg-amber-500/5" : "border-border"}`}>
+                        <div className="font-medium">{day}</div>
+                        <div className="text-xs text-muted-foreground mt-1">{schedule.run}</div>
+                        {hasLift && (
+                          <div className="mt-2">
+                            <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-500 border-amber-500/30">
+                              {schedule.lift}
+                            </Badge>
+                            {schedule.liftTime && (
+                              <div className="text-[10px] text-muted-foreground mt-1">{schedule.liftTime}</div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-muted-foreground mt-4 text-center">
+                  💡 Strength after easy runs only • 6+ hours apart if same day • Never before long run
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Session A: Lower Power */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <span className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center font-bold">A</span>
+                  Lower Power
+                </CardTitle>
+                <CardDescription>30-40 min • Heavy compound movements for running power</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {[
+                  { 
+                    name: "Barbell Back Squat", 
+                    sets: "4 × 5", 
+                    notes: "Heavy (RPE 8), full depth, explosive up",
+                    muscles: "Quads, Glutes, Core",
+                    video: "https://www.youtube.com/results?search_query=barbell+back+squat+form",
+                    icon: "🏋️"
+                  },
+                  { 
+                    name: "Romanian Deadlift", 
+                    sets: "3 × 8", 
+                    notes: "Hinge at hips, feel hamstrings stretch",
+                    muscles: "Hamstrings, Glutes, Lower Back",
+                    video: "https://www.youtube.com/results?search_query=romanian+deadlift+form",
+                    icon: "🔻"
+                  },
+                  { 
+                    name: "Bulgarian Split Squat", 
+                    sets: "3 × 8 each", 
+                    notes: "Rear foot elevated, DB in each hand",
+                    muscles: "Quads, Glutes, Balance",
+                    video: "https://www.youtube.com/results?search_query=bulgarian+split+squat+form",
+                    icon: "🦵"
+                  },
+                  { 
+                    name: "Single-Leg Hip Thrust", 
+                    sets: "3 × 10 each", 
+                    notes: "Back on bench, squeeze glute at top",
+                    muscles: "Glute Max (top exercise for runners)",
+                    video: "https://www.youtube.com/results?search_query=single+leg+hip+thrust+form",
+                    icon: "🍑"
+                  },
+                  { 
+                    name: "Calf Raises", 
+                    sets: "3 × 15", 
+                    notes: "Slow, full ROM, pause at top 2 sec",
+                    muscles: "Calves, Achilles",
+                    video: "https://www.youtube.com/results?search_query=standing+calf+raise+form",
+                    icon: "⬆️"
+                  },
+                ].map((exercise, i) => (
+                  <div key={i} className="flex items-start gap-4 p-4 rounded-lg border border-border bg-card hover:bg-muted/30 transition-colors">
+                    <div className="w-12 h-12 rounded-lg bg-amber-500/10 flex items-center justify-center text-2xl shrink-0">
+                      {exercise.icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium">{exercise.name}</span>
+                        <Badge variant="secondary" className="font-mono text-xs">{exercise.sets}</Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">{exercise.notes}</p>
+                      <p className="text-xs text-primary/60 mt-1">{exercise.muscles}</p>
+                    </div>
+                    <a
+                      href={exercise.video}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="shrink-0 px-3 py-1.5 text-xs bg-primary/10 text-primary rounded-md hover:bg-primary/20 transition-colors"
+                    >
+                      📹 Demo
+                    </a>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            {/* Session B: Upper + Core */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <span className="w-8 h-8 rounded-full bg-sky-500/20 text-sky-500 flex items-center justify-center font-bold">B</span>
+                  Upper + Core
+                </CardTitle>
+                <CardDescription>25-35 min • Posture, arm drive, and running stability</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {[
+                  { 
+                    name: "Cable Row", 
+                    sets: "3 × 10", 
+                    notes: "Squeeze shoulder blades, control the negative",
+                    muscles: "Upper Back, Posture",
+                    video: "https://www.youtube.com/results?search_query=seated+cable+row+form",
+                    icon: "🚣"
+                  },
+                  { 
+                    name: "Dumbbell Bench Press", 
+                    sets: "3 × 10", 
+                    notes: "Full range of motion, don't bounce",
+                    muscles: "Chest, Triceps, Arm Drive",
+                    video: "https://www.youtube.com/results?search_query=dumbbell+bench+press+form",
+                    icon: "💪"
+                  },
+                  { 
+                    name: "Lat Pulldown", 
+                    sets: "3 × 10", 
+                    notes: "Wide grip, pull to chest, lean slightly back",
+                    muscles: "Lats, Back Width",
+                    video: "https://www.youtube.com/results?search_query=lat+pulldown+form",
+                    icon: "⬇️"
+                  },
+                  { 
+                    name: "Pallof Press", 
+                    sets: "3 × 10 each", 
+                    notes: "Cable at chest height, resist rotation",
+                    muscles: "Core Anti-Rotation (key for running)",
+                    video: "https://www.youtube.com/results?search_query=pallof+press+form",
+                    icon: "🎯"
+                  },
+                  { 
+                    name: "Side Plank", 
+                    sets: "3 × 30 sec each", 
+                    notes: "Hips stacked, don't let hips sag",
+                    muscles: "Glute Med, Obliques, Hip Stability",
+                    video: "https://www.youtube.com/results?search_query=side+plank+form",
+                    icon: "📐"
+                  },
+                  { 
+                    name: "Dead Bug", 
+                    sets: "3 × 10 each", 
+                    notes: "Lower back pressed to floor throughout",
+                    muscles: "Deep Core Stability",
+                    video: "https://www.youtube.com/results?search_query=dead+bug+exercise+form",
+                    icon: "🐛"
+                  },
+                ].map((exercise, i) => (
+                  <div key={i} className="flex items-start gap-4 p-4 rounded-lg border border-border bg-card hover:bg-muted/30 transition-colors">
+                    <div className="w-12 h-12 rounded-lg bg-sky-500/10 flex items-center justify-center text-2xl shrink-0">
+                      {exercise.icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium">{exercise.name}</span>
+                        <Badge variant="secondary" className="font-mono text-xs">{exercise.sets}</Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">{exercise.notes}</p>
+                      <p className="text-xs text-primary/60 mt-1">{exercise.muscles}</p>
+                    </div>
+                    <a
+                      href={exercise.video}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="shrink-0 px-3 py-1.5 text-xs bg-primary/10 text-primary rounded-md hover:bg-primary/20 transition-colors"
+                    >
+                      📹 Demo
+                    </a>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            {/* Phase Guide */}
+            <Card>
+              <CardHeader>
+                <CardTitle>📊 Periodization</CardTitle>
+                <CardDescription>How strength training changes through your marathon journey</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {[
+                    { 
+                      phase: "Base Building", 
+                      dates: "Now → June", 
+                      freq: "3x/week",
+                      focus: "Build strength — progressive overload",
+                      color: "emerald"
+                    },
+                    { 
+                      phase: "Marathon Build", 
+                      dates: "July → Sept", 
+                      freq: "2x/week",
+                      focus: "Maintain — same weight, 3 sets",
+                      color: "amber"
+                    },
+                    { 
+                      phase: "Peak Training", 
+                      dates: "Oct 1-14", 
+                      freq: "2x/week",
+                      focus: "Reduce — 80% weight, 2 sets",
+                      color: "sky"
+                    },
+                    { 
+                      phase: "Taper", 
+                      dates: "Oct 15-26", 
+                      freq: "1x/week",
+                      focus: "Activation only — stop 5 days before race",
+                      color: "purple"
+                    },
+                  ].map((p, i) => (
+                    <div 
+                      key={i} 
+                      className={`p-4 rounded-lg border bg-${p.color}-500/5 border-${p.color}-500/30`}
+                      style={{
+                        backgroundColor: p.color === "emerald" ? "rgba(16, 185, 129, 0.05)" :
+                                        p.color === "amber" ? "rgba(245, 158, 11, 0.05)" :
+                                        p.color === "sky" ? "rgba(14, 165, 233, 0.05)" :
+                                        "rgba(168, 85, 247, 0.05)",
+                        borderColor: p.color === "emerald" ? "rgba(16, 185, 129, 0.3)" :
+                                    p.color === "amber" ? "rgba(245, 158, 11, 0.3)" :
+                                    p.color === "sky" ? "rgba(14, 165, 233, 0.3)" :
+                                    "rgba(168, 85, 247, 0.3)"
+                      }}
+                    >
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <div>
+                          <span className="font-medium">{p.phase}</span>
+                          <span className="text-sm text-muted-foreground ml-2">({p.dates})</span>
+                        </div>
+                        <Badge variant="outline">{p.freq}</Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">{p.focus}</p>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Research Callout */}
+            <Card className="bg-primary/5 border-primary/20">
+              <CardHeader>
+                <CardTitle className="text-base">🔬 Why This Works</CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm space-y-2">
+                <p><strong>Støren et al. (2008):</strong> Heavy squats (4×4) improved running economy by 5% and time to exhaustion by 21%.</p>
+                <p><strong>Collings et al. (2023):</strong> Single-leg RDL and hip thrusts produce the highest glute forces — critical for injury prevention.</p>
+                <p><strong>Key insight:</strong> It&apos;s not about getting huge. It&apos;s about force production speed — recruiting muscle faster so each stride is more efficient.</p>
               </CardContent>
             </Card>
           </TabsContent>
