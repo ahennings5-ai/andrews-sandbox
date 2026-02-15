@@ -88,8 +88,11 @@ export async function GET(request: NextRequest) {
         take: 10,
       });
 
+      // Recalculate totalValue with LIVE values
+      const liveTotal = roster.reduce((sum, p) => sum + p.value, 0);
+
       return NextResponse.json({ 
-        team: { ...team, roster }, 
+        team: { ...team, roster, totalValue: liveTotal }, 
         history: history.map(h => ({ date: h.recordedAt.toISOString().split("T")[0], value: h.totalValue })),
         trades 
       });
