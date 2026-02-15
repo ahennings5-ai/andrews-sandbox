@@ -617,16 +617,17 @@ export default function MarathonTracker() {
     return `Wk ${week - BASE_WEEKS}`;
   };
 
-  // Stats
+  // Stats (with defensive null checks)
+  const logs = state.logs || [];
   const totalPlannedMiles = trainingPlan.reduce((sum, w) => sum + w.miles, 0);
-  const totalLoggedMiles = state.logs.reduce((sum, l) => sum + l.actualMiles, 0);
-  const completedWorkouts = state.logs.length;
+  const totalLoggedMiles = logs.reduce((sum, l) => sum + (l.actualMiles || 0), 0);
+  const completedWorkouts = logs.length;
   const totalWorkouts = trainingPlan.filter((w) => w.type !== "rest").length;
   const completionRate = totalWorkouts > 0 ? (completedWorkouts / totalWorkouts) * 100 : 0;
 
   const weeklyMiles = Array.from({ length: TOTAL_WEEKS }, (_, i) => {
-    const weekLogs = state.logs.filter((l) => l.week === i + 1);
-    return weekLogs.reduce((sum, l) => sum + l.actualMiles, 0);
+    const weekLogs = logs.filter((l) => l.week === i + 1);
+    return weekLogs.reduce((sum, l) => sum + (l.actualMiles || 0), 0);
   });
 
   const weeklyPlannedMiles = Array.from({ length: TOTAL_WEEKS }, (_, i) => {
@@ -635,9 +636,9 @@ export default function MarathonTracker() {
 
   const currentWeekWorkouts = trainingPlan.filter((w) => w.week === selectedWeek);
 
-  const feelingCounts = state.logs.reduce(
+  const feelingCounts = logs.reduce(
     (acc, log) => {
-      acc[log.feeling] = (acc[log.feeling] || 0) + 1;
+      if (log.feeling) acc[log.feeling] = (acc[log.feeling] || 0) + 1;
       return acc;
     },
     {} as Record<string, number>
