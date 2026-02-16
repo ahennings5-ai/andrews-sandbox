@@ -56,6 +56,7 @@ interface Pick {
   round: number;
   pick: number | null;
   originalOwner: string;
+  currentOwner?: string;
   drewValue: number | null;
 }
 
@@ -151,6 +152,272 @@ const positionColors: Record<string, string> = {
   WR: "bg-sky-500",
   TE: "bg-amber-500",
 };
+
+// League Gem interface
+interface LeagueGem {
+  name: string;
+  position: string;
+  team: string | null;
+  age: number | null;
+  drewValue: number;
+  tier: string;
+  owner: string;
+  rosterId: number;
+  isOwned: boolean;
+  gemScore?: number;
+}
+
+// GemsTab Component - League-wide gem finder
+function GemsTab({ teams, positionColors }: { teams: Team[]; positionColors: Record<string, string> }) {
+  const [gems, setGems] = useState<{
+    buyTargets: LeagueGem[];
+    hiddenGems: LeagueGem[];
+    agingAssets: LeagueGem[];
+    byPosition: { QB: LeagueGem[]; RB: LeagueGem[]; WR: LeagueGem[] };
+    totalLeaguePlayers: number;
+  } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<"all" | "QB" | "RB" | "WR" | "TE">("all");
+
+  useEffect(() => {
+    async function loadGems() {
+      try {
+        const res = await fetch("/api/dynasty/gems");
+        if (res.ok) {
+          const data = await res.json();
+          setGems(data);
+        }
+      } catch (error) {
+        console.error("Failed to load gems:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadGems();
+  }, []);
+
+  if (loading) {
+    return <div className="text-center py-8 text-muted-foreground">Loading league-wide gems...</div>;
+  }
+
+  if (!gems) {
+    return <div className="text-center py-8 text-muted-foreground">Failed to load gems. Try syncing your league data.</div>;
+  }
+
+  const filteredBuyTargets = filter === "all" 
+    ? gems.buyTargets 
+    : gems.buyTargets.filter(p => p.position === filter);
+
+  const filteredHiddenGems = filter === "all"
+    ? gems.hiddenGems
+    : gems.hiddenGems.filter(p => p.position === filter);
+
+  return (
+    <div className="space-y-6">
+      {/* Filter buttons */}
+      <div className="flex gap-2 flex-wrap">
+        <Button 
+          variant={filter === "all" ? "default" : "outline"} 
+          size="sm"
+          onClick={() => setFilter("all")}
+        >
+          All Positions
+        </Button>
+        {(["QB", "RB", "WR", "TE"] as const).map(pos => (
+          <Button
+            key={pos}
+            variant={filter === pos ? "default" : "outline"}
+            size="sm"
+            className={filter === pos ? positionColors[pos] : ""}
+            onClick={() => setFilter(pos)}
+          >
+            {pos}
+          </Button>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Top Trade Targets */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <span className="text-2xl">🎯</span> Top Trade Targets
+            </CardTitle>
+            <CardDescription>
+              Highest-value players on other teams — sorted by age-adjusted gem score
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2 max-h-[400px] overflow-y-auto">
+              {filteredBuyTargets.length > 0 ? filteredBuyTargets.map((player, idx) => (
+                <div
+                  key={`${player.name}-${idx}`}
+                  className="flex items-center justify-between p-3 rounded-lg border border-primary/20 bg-primary/5 hover:bg-primary/10 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <Badge className={positionColors[player.position] || "bg-gray-500"}>{player.position}</Badge>
+                    <div>
+                      <div className="font-medium">{player.name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {player.team || "FA"} • Age {player.age} • <span className="text-primary">{player.owner}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-bold">{player.drewValue.toLocaleString()}</div>
+                    <Badge variant="outline" className="text-xs">{player.tier}</Badge>
+                  </div>
+                </div>
+              )) : (
+                <p className="text-muted-foreground text-center py-4">No targets found for this position.</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Hidden Gems - Young & Undervalued */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <span className="text-2xl">💎</span> Hidden Gems
+            </CardTitle>
+            <CardDescription>
+              Young players (under 26) with upside — potential buy-low candidates
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2 max-h-[400px] overflow-y-auto">
+              {filteredHiddenGems.length > 0 ? filteredHiddenGems.map((player, idx) => (
+                <div
+                  key={`${player.name}-${idx}`}
+                  className="flex items-center justify-between p-3 rounded-lg border border-green-500/20 bg-green-500/5 hover:bg-green-500/10 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <Badge className={positionColors[player.position] || "bg-gray-500"}>{player.position}</Badge>
+                    <div>
+                      <div className="font-medium">{player.name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {player.team || "FA"} • Age {player.age} • <span className="text-green-500">{player.owner}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-bold text-green-500">{player.drewValue.toLocaleString()}</div>
+                    <Badge variant="outline" className="text-xs">{player.tier}</Badge>
+                  </div>
+                </div>
+              )) : (
+                <p className="text-muted-foreground text-center py-4">No hidden gems found for this position.</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Aging Assets - Sell High on Other Teams */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <span className="text-2xl">📉</span> Declining Assets (League-wide)
+          </CardTitle>
+          <CardDescription>
+            Aging veterans on other teams whose value will decline — avoid trading FOR these players
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {gems.agingAssets.map((player, idx) => (
+              <div
+                key={`${player.name}-${idx}`}
+                className="flex items-center justify-between p-3 rounded-lg border border-amber-500/20 bg-amber-500/5"
+              >
+                <div className="flex items-center gap-2">
+                  <Badge className={positionColors[player.position] || "bg-gray-500"}>{player.position}</Badge>
+                  <div>
+                    <div className="font-medium text-sm">{player.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      Age {player.age} • {player.owner}
+                    </div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="font-bold text-amber-500">{player.drewValue.toLocaleString()}</div>
+                </div>
+              </div>
+            ))}
+            {gems.agingAssets.length === 0 && (
+              <p className="text-muted-foreground text-center py-4 col-span-full">No significant aging assets found.</p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Position-Specific Breakdown */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* QB Gems */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Badge className={positionColors.QB}>QB</Badge> Top QBs Available
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {gems.byPosition.QB.slice(0, 5).map((p, idx) => (
+                <div key={idx} className="flex justify-between text-sm">
+                  <span>{p.name}</span>
+                  <span className="text-muted-foreground">{p.drewValue.toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* RB Gems */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Badge className={positionColors.RB}>RB</Badge> Young RBs Available
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {gems.byPosition.RB.slice(0, 5).map((p, idx) => (
+                <div key={idx} className="flex justify-between text-sm">
+                  <span>{p.name} <span className="text-xs text-muted-foreground">({p.age})</span></span>
+                  <span className="text-muted-foreground">{p.drewValue.toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* WR Gems */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Badge className={positionColors.WR}>WR</Badge> Young WRs Available
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {gems.byPosition.WR.slice(0, 5).map((p, idx) => (
+                <div key={idx} className="flex justify-between text-sm">
+                  <span>{p.name} <span className="text-xs text-muted-foreground">({p.age})</span></span>
+                  <span className="text-muted-foreground">{p.drewValue.toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <p className="text-xs text-muted-foreground text-center">
+        Analyzing {gems.totalLeaguePlayers} players across {teams.length} teams
+      </p>
+    </div>
+  );
+}
 
 export default function DynastyPage() {
   const [settings, setSettings] = useState<Settings | null>(null);
@@ -1551,198 +1818,7 @@ export default function DynastyPage() {
 
           {/* Gem Finder Tab */}
           <TabsContent value="gems" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Undervalued Gems - Drew > Consensus */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <span className="text-2xl">💎</span> Hidden Gems
-                  </CardTitle>
-                  <CardDescription>
-                    Players where Drew values significantly higher than KTC consensus — potential buy targets
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {players
-                      .filter(p => {
-                        const drew = p.drewValue || 0;
-                        const ktc = p.ktcValue || drew;
-                        const diff = ((drew - ktc) / ktc) * 100;
-                        return diff >= 15 && drew > 500; // At least 15% higher and meaningful value
-                      })
-                      .sort((a, b) => {
-                        const diffA = ((a.drewValue || 0) - (a.ktcValue || a.drewValue || 1)) / (a.ktcValue || a.drewValue || 1);
-                        const diffB = ((b.drewValue || 0) - (b.ktcValue || b.drewValue || 1)) / (b.ktcValue || b.drewValue || 1);
-                        return diffB - diffA;
-                      })
-                      .slice(0, 10)
-                      .map((player) => {
-                        const drew = player.drewValue || 0;
-                        const ktc = player.ktcValue || drew;
-                        const diff = Math.round(((drew - ktc) / ktc) * 100);
-                        return (
-                          <div
-                            key={player.id}
-                            className="flex items-center justify-between p-3 rounded-lg border border-green-500/20 bg-green-500/5 hover:bg-green-500/10 cursor-pointer transition-colors"
-                            onClick={() => setSelectedPlayer(player)}
-                          >
-                            <div className="flex items-center gap-3">
-                              <Badge className={positionColors[player.position]}>{player.position}</Badge>
-                              <div>
-                                <div className="font-medium">{player.name}</div>
-                                <div className="text-xs text-muted-foreground">{player.team || "FA"} • Age {player.age}</div>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <div className="font-bold text-green-500">+{diff}%</div>
-                              <div className="text-xs text-muted-foreground">
-                                Drew: {drew.toLocaleString()} vs KTC: {ktc.toLocaleString()}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    {players.filter(p => {
-                      const drew = p.drewValue || 0;
-                      const ktc = p.ktcValue || drew;
-                      const diff = ((drew - ktc) / ktc) * 100;
-                      return diff >= 15 && drew > 500;
-                    }).length === 0 && (
-                      <p className="text-muted-foreground text-center py-4">
-                        No significant undervalued gems found. Sync data to analyze.
-                      </p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Overvalued - Drew < Consensus */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <span className="text-2xl">📉</span> Sell High Candidates
-                  </CardTitle>
-                  <CardDescription>
-                    Players where consensus values higher than Drew — potential sell targets
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {players
-                      .filter(p => {
-                        const drew = p.drewValue || 0;
-                        const ktc = p.ktcValue || drew;
-                        const diff = ((ktc - drew) / drew) * 100;
-                        return diff >= 15 && drew > 500; // KTC at least 15% higher
-                      })
-                      .sort((a, b) => {
-                        const diffA = ((a.ktcValue || a.drewValue || 1) - (a.drewValue || 1)) / (a.drewValue || 1);
-                        const diffB = ((b.ktcValue || b.drewValue || 1) - (b.drewValue || 1)) / (b.drewValue || 1);
-                        return diffB - diffA;
-                      })
-                      .slice(0, 10)
-                      .map((player) => {
-                        const drew = player.drewValue || 0;
-                        const ktc = player.ktcValue || drew;
-                        const diff = Math.round(((ktc - drew) / drew) * 100);
-                        return (
-                          <div
-                            key={player.id}
-                            className="flex items-center justify-between p-3 rounded-lg border border-amber-500/20 bg-amber-500/5 hover:bg-amber-500/10 cursor-pointer transition-colors"
-                            onClick={() => setSelectedPlayer(player)}
-                          >
-                            <div className="flex items-center gap-3">
-                              <Badge className={positionColors[player.position]}>{player.position}</Badge>
-                              <div>
-                                <div className="font-medium">{player.name}</div>
-                                <div className="text-xs text-muted-foreground">{player.team || "FA"} • Age {player.age}</div>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <div className="font-bold text-amber-500">+{diff}% KTC</div>
-                              <div className="text-xs text-muted-foreground">
-                                KTC: {ktc.toLocaleString()} vs Drew: {drew.toLocaleString()}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    {players.filter(p => {
-                      const drew = p.drewValue || 0;
-                      const ktc = p.ktcValue || drew;
-                      const diff = ((ktc - drew) / drew) * 100;
-                      return diff >= 15 && drew > 500;
-                    }).length === 0 && (
-                      <p className="text-muted-foreground text-center py-4">
-                        No significant overvalued players found. Sync data to analyze.
-                      </p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Prospect Gems */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <span className="text-2xl">🎓</span> Prospect Gems
-                </CardTitle>
-                <CardDescription>
-                  Prospects where Drew ranks significantly higher than consensus — draft targets
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {prospects
-                    .filter(p => {
-                      const drewRank = p.drewRank || 99;
-                      const consensus = p.consensus || drewRank;
-                      return consensus - drewRank >= 3; // Drew has them at least 3 spots higher
-                    })
-                    .sort((a, b) => {
-                      const diffA = (a.consensus || 99) - (a.drewRank || 99);
-                      const diffB = (b.consensus || 99) - (b.drewRank || 99);
-                      return diffB - diffA;
-                    })
-                    .slice(0, 9)
-                    .map((prospect) => {
-                      const drewRank = prospect.drewRank || 99;
-                      const consensus = prospect.consensus || drewRank;
-                      const diff = consensus - drewRank;
-                      return (
-                        <div
-                          key={prospect.id}
-                          className="p-3 rounded-lg border border-primary/20 bg-primary/5 hover:bg-primary/10 cursor-pointer transition-colors"
-                          onClick={() => loadProspectReport(prospect)}
-                        >
-                          <div className="flex items-center justify-between mb-2">
-                            <Badge className={positionColors[prospect.position] || "bg-gray-500"}>{prospect.position}</Badge>
-                            <Badge variant="outline" className="text-green-500 border-green-500/30">
-                              +{diff} spots
-                            </Badge>
-                          </div>
-                          <div className="font-medium">{prospect.name}</div>
-                          <div className="text-xs text-muted-foreground">{prospect.college}</div>
-                          <div className="text-xs mt-1">
-                            Drew: #{drewRank} • Consensus: #{consensus}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  {prospects.filter(p => {
-                    const drewRank = p.drewRank || 99;
-                    const consensus = p.consensus || drewRank;
-                    return consensus - drewRank >= 3;
-                  }).length === 0 && (
-                    <p className="text-muted-foreground text-center py-4 col-span-full">
-                      No prospect gems found with significant ranking difference.
-                    </p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+            <GemsTab teams={teams} positionColors={positionColors} />
           </TabsContent>
         </Tabs>
 

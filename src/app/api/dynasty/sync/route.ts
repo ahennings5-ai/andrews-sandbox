@@ -102,14 +102,16 @@ export async function POST() {
         // Try exact match first, then normalized
         const dpData = normalizedPlayerValues[playerName] || normalizedPlayerValues[normalizedName];
         let value = 100; // default for unknown players
-        let tier = "Bench";
+        let tier = "Clogger";
         
         if (dpData) {
           value = dpData.value;
-          tier = value >= 6000 ? "Elite" : 
-                 value >= 4000 ? "Star" : 
-                 value >= 2000 ? "Starter" : 
-                 value >= 500 ? "Flex" : "Bench";
+          // Match tiers to dynasty-values.ts
+          tier = value >= 9000 ? "Elite" : 
+                 value >= 7000 ? "Star" : 
+                 value >= 5000 ? "Starter" : 
+                 value >= 3000 ? "Flex" : 
+                 value >= 1500 ? "Bench" : "Clogger";
         }
         
         totalValue += value;
@@ -412,9 +414,14 @@ export async function POST() {
     const sortedByRoster = [...teamData].sort((a, b) => b.totalValue - a.totalValue);
     const leagueRank = sortedByRoster.findIndex(t => t.rosterId === MY_ROSTER_ID) + 1;
     
+    // Get my picks from the database after upsert
+    const myPicksFromDb = await prisma.dynastyPick.findMany({
+      where: { currentOwner: "Hendawg55" }
+    });
+    
     // Calculate total pick value using projected values based on original owner strength
-    const totalPickValue = myPicks.reduce((sum, p) => {
-      const baseValue = getPickValue(p.season, p.round, p.pick);
+    const totalPickValue = myPicksFromDb.reduce((sum, p) => {
+      const baseValue = getPickValue(p.season, p.round, p.pick || undefined);
       const ownerRank = usernameToRank[p.originalOwner] || Math.ceil(totalTeams / 2);
       const { value } = getProjectedPickValueByRank(baseValue, ownerRank, totalTeams);
       return sum + value;
