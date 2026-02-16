@@ -315,8 +315,8 @@ export default function DynastyPage() {
         const data = await res.json();
         setSelectedTeamRoster(data.team?.roster || []);
       }
-      // Find picks owned by this team (originalOwner matches username)
-      const teamPicks = picks.filter(p => p.originalOwner === team.ownerUsername);
+      // Find picks owned by this team (currentOwner matches username)
+      const teamPicks = picks.filter(p => p.currentOwner === team.ownerUsername);
       setSelectedTeamPicks(teamPicks);
     } catch (error) {
       console.error("Failed to load team roster:", error);

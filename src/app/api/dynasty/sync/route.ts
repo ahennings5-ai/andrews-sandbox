@@ -270,59 +270,82 @@ export async function POST() {
       usernameToRank[team.username] = idx + 1; // 1 = best roster, 12 = worst
     });
 
-    // Andrew's confirmed draft picks
-    const myPicks = [
-      { season: "2026", round: 1, pick: 2, originalOwner: "ldnmetsturtle" },
-      { season: "2026", round: 1, pick: 5, originalOwner: "agough" },
-      { season: "2026", round: 2, pick: 2, originalOwner: "ldnmetsturtle" },
-      { season: "2026", round: 2, pick: 4, originalOwner: "brookscarroll" },
-      { season: "2026", round: 2, pick: 11, originalOwner: "tmeredith21" },
-      { season: "2026", round: 2, pick: 12, originalOwner: "agyankees8" },
-      { season: "2027", round: 1, originalOwner: "brookscarroll" },
-      { season: "2027", round: 1, originalOwner: "agough" },
-      { season: "2027", round: 1, originalOwner: "Woodhaus71" },
-      { season: "2027", round: 1, originalOwner: "colbymorris08" },
-      { season: "2027", round: 1, originalOwner: "trund1e" },
-      { season: "2027", round: 1, originalOwner: "Hendawg55" },
-      { season: "2028", round: 1, originalOwner: "trund1e" },
-      { season: "2028", round: 1, originalOwner: "tmeredith21" },
-      { season: "2028", round: 2, originalOwner: "Woodhaus71" },
-      { season: "2028", round: 2, originalOwner: "trund1e" },
-    ];
-
+    // ═══════════════════════════════════════════════════════════
+    // FETCH TRADED PICKS FROM SLEEPER (LIVE DATA)
+    // ═══════════════════════════════════════════════════════════
+    const tradedPicks = await fetchJson(`https://api.sleeper.app/v1/league/${SLEEPER_LEAGUE_ID}/traded_picks`);
+    
+    // Map roster_id to username
+    const rosterIdToUsername: Record<number, string> = {};
+    for (const team of teamData) {
+      rosterIdToUsername[team.rosterId] = team.username;
+    }
+    
     const totalTeams = teamData.length || 12;
-    const pickUpdates = myPicks.map((pick) => {
-      const baseValue = getPickValue(pick.season, pick.round, pick.pick);
-      
-      // Get projected value based on original owner's team strength
-      const ownerRank = usernameToRank[pick.originalOwner] || Math.ceil(totalTeams / 2);
-      const { value: drewValue, projection } = getProjectedPickValueByRank(baseValue, ownerRank, totalTeams);
-      
-      return prisma.dynastyPick.upsert({
-        where: {
-          season_round_originalOwner: {
-            season: pick.season,
-            round: pick.round,
-            originalOwner: pick.originalOwner,
-          },
-        },
-        update: {
-          pick: pick.pick,
-          currentOwner: "Hendawg55",
-          isOwned: true,
-          drewValue,
-        },
-        create: {
-          season: pick.season,
-          round: pick.round,
-          pick: pick.pick,
-          originalOwner: pick.originalOwner,
-          currentOwner: "Hendawg55",
-          isOwned: true,
-          drewValue,
-        },
-      });
+    
+    // Clear old picks first
+    await prisma.dynastyPick.deleteMany({
+      where: { currentOwner: { not: undefined } }
     });
+    
+    // Process all picks for all teams (2025-2028)
+    const pickUpdates: ReturnType<typeof prisma.dynastyPick.upsert>[] = [];
+    const seasons = ["2025", "2026", "2027", "2028"];
+    const rounds = [1, 2, 3];
+    
+    for (const season of seasons) {
+      for (const round of rounds) {
+        for (let rosterId = 1; rosterId <= totalTeams; rosterId++) {
+          const originalOwnerUsername = rosterIdToUsername[rosterId] || `Team${rosterId}`;
+          
+          // Check if this pick was traded
+          const trade = tradedPicks.find(
+            (t: { season: string; round: number; roster_id: number }) => 
+              t.season === season && t.round === round && t.roster_id === rosterId
+          );
+          
+          // Determine current owner
+          let currentOwnerRosterId = rosterId; // Default: original owner still has it
+          if (trade) {
+            currentOwnerRosterId = trade.owner_id;
+          }
+          const currentOwnerUsername = rosterIdToUsername[currentOwnerRosterId] || `Team${currentOwnerRosterId}`;
+          
+          // Calculate value based on original owner's team strength (pick position)
+          const ownerRank = usernameToRank[originalOwnerUsername] || Math.ceil(totalTeams / 2);
+          const baseValue = getPickValue(season, round, undefined);
+          const { value: drewValue } = getProjectedPickValueByRank(baseValue, ownerRank, totalTeams);
+          
+          // Only include 2025+ picks, rounds 1-2 for value
+          if (parseInt(season) >= 2025 && round <= 2) {
+            pickUpdates.push(
+              prisma.dynastyPick.upsert({
+                where: {
+                  season_round_originalOwner: {
+                    season,
+                    round,
+                    originalOwner: originalOwnerUsername,
+                  },
+                },
+                update: {
+                  currentOwner: currentOwnerUsername,
+                  isOwned: currentOwnerUsername === "Hendawg55",
+                  drewValue,
+                },
+                create: {
+                  season,
+                  round,
+                  originalOwner: originalOwnerUsername,
+                  currentOwner: currentOwnerUsername,
+                  isOwned: currentOwnerUsername === "Hendawg55",
+                  drewValue,
+                },
+              })
+            );
+          }
+        }
+      }
+    }
 
     // Upsert prospects
     const prospectUpdates: ReturnType<typeof prisma.dynastyProspect.upsert>[] = [];
