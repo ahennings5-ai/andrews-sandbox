@@ -1051,29 +1051,29 @@ function MarathonTrackerInner() {
                     image: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Standing_Calf_Raises/0.jpg"
                   },
                 ].map((exercise, i) => (
-                  <div key={i} className="flex items-start gap-4 p-4 rounded-lg border border-border bg-card hover:bg-muted/30 transition-colors">
-                    <div className="w-20 h-20 rounded-lg bg-muted overflow-hidden shrink-0">
+                  <div key={i} className="flex items-start gap-3 p-3 rounded-lg border border-border bg-card hover:bg-muted/30 transition-colors">
+                    <div className="w-16 h-16 rounded-lg bg-black overflow-hidden shrink-0 flex items-center justify-center">
                       <img 
                         src={exercise.image} 
                         alt={exercise.name}
-                        className="w-full h-full object-cover"
+                        className="max-w-full max-h-full object-contain"
                       />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium">{exercise.name}</span>
+                        <span className="font-medium text-sm">{exercise.name}</span>
                         <Badge variant="secondary" className="font-mono text-xs">{exercise.sets}</Badge>
                       </div>
-                      <p className="text-sm text-muted-foreground mt-1">{exercise.notes}</p>
-                      <p className="text-xs text-primary/60 mt-1">{exercise.muscles}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{exercise.notes}</p>
+                      <p className="text-xs text-primary/60">{exercise.muscles}</p>
                     </div>
                     <a
                       href={exercise.video}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="shrink-0 px-3 py-1.5 text-xs bg-primary/10 text-primary rounded-md hover:bg-primary/20 transition-colors"
+                      className="shrink-0 px-2 py-1 text-xs bg-primary/10 text-primary rounded-md hover:bg-primary/20 transition-colors"
                     >
-                      📹 Demo
+                      📹
                     </a>
                   </div>
                 ))}
@@ -1140,29 +1140,29 @@ function MarathonTrackerInner() {
                     image: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cocoons/0.jpg"
                   },
                 ].map((exercise, i) => (
-                  <div key={i} className="flex items-start gap-4 p-4 rounded-lg border border-border bg-card hover:bg-muted/30 transition-colors">
-                    <div className="w-20 h-20 rounded-lg bg-muted overflow-hidden shrink-0">
+                  <div key={i} className="flex items-start gap-3 p-3 rounded-lg border border-border bg-card hover:bg-muted/30 transition-colors">
+                    <div className="w-16 h-16 rounded-lg bg-black overflow-hidden shrink-0 flex items-center justify-center">
                       <img 
                         src={exercise.image} 
                         alt={exercise.name}
-                        className="w-full h-full object-cover"
+                        className="max-w-full max-h-full object-contain"
                       />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium">{exercise.name}</span>
+                        <span className="font-medium text-sm">{exercise.name}</span>
                         <Badge variant="secondary" className="font-mono text-xs">{exercise.sets}</Badge>
                       </div>
-                      <p className="text-sm text-muted-foreground mt-1">{exercise.notes}</p>
-                      <p className="text-xs text-primary/60 mt-1">{exercise.muscles}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{exercise.notes}</p>
+                      <p className="text-xs text-primary/60">{exercise.muscles}</p>
                     </div>
                     <a
                       href={exercise.video}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="shrink-0 px-3 py-1.5 text-xs bg-primary/10 text-primary rounded-md hover:bg-primary/20 transition-colors"
+                      className="shrink-0 px-2 py-1 text-xs bg-primary/10 text-primary rounded-md hover:bg-primary/20 transition-colors"
                     >
-                      📹 Demo
+                      📹
                     </a>
                   </div>
                 ))}
