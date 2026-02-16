@@ -1,6 +1,9 @@
 import { prisma } from "@/lib/db";
 import { NextResponse } from "next/server";
-import { getPlayerValue, getPickValue, recommendPhase, PROSPECTS_2026, PROSPECTS_2027, PLAYER_VALUES_BY_NAME, getProjectedPickValueByRank } from "@/lib/dynasty-values";
+import { getPickValue, recommendPhase, PROSPECTS_2026, PROSPECTS_2027, PLAYER_VALUES_BY_NAME, getProjectedPickValueByRank } from "@/lib/dynasty-values";
+
+// FantasyCalc API - LIVE dynasty values (Superflex, PPR, 12-team)
+const FANTASYCALC_API = "https://api.fantasycalc.com/values/current?isDynasty=true&numQbs=2&numTeams=12&ppr=1";
 
 // Normalize player name for matching (removes Jr., II, III, Sr., etc.)
 function normalizeName(name: string): string {
@@ -10,12 +13,54 @@ function normalizeName(name: string): string {
     .trim();
 }
 
-// Build normalized lookup map
-const normalizedPlayerValues: Record<string, { value: number; pos: string; team: string | null; age: number | null }> = {};
+// Live values cache (populated at sync time)
+let livePlayerValues: Record<string, { value: number; pos: string; team: string | null; age: number | null }> = {};
+
+// Fetch live values from FantasyCalc API
+async function fetchLiveValues(): Promise<boolean> {
+  try {
+    const res = await fetch(FANTASYCALC_API, { cache: 'no-store' });
+    if (!res.ok) return false;
+    
+    const data = await res.json();
+    livePlayerValues = {};
+    
+    for (const item of data) {
+      if (item.player) {
+        const name = item.player.name;
+        const normalized = normalizeName(name);
+        const playerData = {
+          value: item.value,
+          pos: item.player.position,
+          team: item.player.maybeTeam || null,
+          age: item.player.maybeAge || null,
+        };
+        livePlayerValues[name] = playerData;
+        livePlayerValues[normalized] = playerData;
+      }
+    }
+    
+    console.log(`Fetched ${Object.keys(livePlayerValues).length / 2} live player values from FantasyCalc`);
+    return true;
+  } catch (error) {
+    console.error("Failed to fetch live values, using static fallback:", error);
+    return false;
+  }
+}
+
+// Build static fallback lookup map
+const staticPlayerValues: Record<string, { value: number; pos: string; team: string | null; age: number | null }> = {};
 for (const [name, data] of Object.entries(PLAYER_VALUES_BY_NAME)) {
   const normalized = normalizeName(name);
-  normalizedPlayerValues[normalized] = data;
-  normalizedPlayerValues[name] = data; // also keep original
+  staticPlayerValues[normalized] = data;
+  staticPlayerValues[name] = data;
+}
+
+// Get player value - prefer live, fallback to static
+function getPlayerValueLive(playerName: string): { value: number; pos: string; team: string | null; age: number | null } | null {
+  const normalized = normalizeName(playerName);
+  return livePlayerValues[playerName] || livePlayerValues[normalized] || 
+         staticPlayerValues[playerName] || staticPlayerValues[normalized] || null;
 }
 
 // Sleeper API constants
@@ -33,6 +78,9 @@ async function fetchJson(url: string) {
 // POST - sync all data from Sleeper
 export async function POST() {
   try {
+    // Fetch LIVE values from FantasyCalc API first
+    const usedLiveValues = await fetchLiveValues();
+    
     // Get current settings
     let settings = await prisma.dynastySettings.findUnique({
       where: { leagueId: SLEEPER_LEAGUE_ID },
@@ -96,17 +144,15 @@ export async function POST() {
         if (!player) continue;
         
         const playerName = player.full_name || `${player.first_name} ${player.last_name}`;
-        const normalizedName = normalizeName(playerName);
         
-        // Look up value by player name (from DynastyProcess data)
-        // Try exact match first, then normalized
-        const dpData = normalizedPlayerValues[playerName] || normalizedPlayerValues[normalizedName];
+        // Look up value - LIVE from FantasyCalc API, fallback to static
+        const playerData = getPlayerValueLive(playerName);
         let value = 100; // default for unknown players
         let tier = "Clogger";
         
-        if (dpData) {
-          value = dpData.value;
-          // Match tiers to dynasty-values.ts
+        if (playerData) {
+          value = playerData.value;
+          // Calculate tier from value
           tier = value >= 9000 ? "Elite" : 
                  value >= 7000 ? "Star" : 
                  value >= 5000 ? "Starter" : 
@@ -460,6 +506,7 @@ export async function POST() {
     return NextResponse.json({ 
       success: true, 
       message: "Sync complete",
+      valuesSource: usedLiveValues ? "FantasyCalc API (LIVE)" : "Static fallback",
       teamsUpdated: rosters.length,
       playersUpdated: myTeam ? (rosters.find((r: { roster_id: number }) => r.roster_id === MY_ROSTER_ID)?.players?.length || 0) : 0,
       prospectsUpdated: PROSPECTS_2026.length + PROSPECTS_2027.length,
