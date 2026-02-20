@@ -345,6 +345,31 @@ export async function POST() {
     
     const totalTeams = teamData.length || 12;
     
+    // ═══════════════════════════════════════════════════════════
+    // FETCH 2026 DRAFT ORDER FROM SLEEPER (ACTUAL, NOT PROJECTED)
+    // ═══════════════════════════════════════════════════════════
+    let draft2026SlotToRoster: Record<string, number> = {};
+    try {
+      // First get 2026 league ID
+      const leagues2026 = await fetchJson(`https://api.sleeper.app/v1/user/${SLEEPER_USER_ID}/leagues/nfl/2026`);
+      const league2026 = leagues2026?.find((l: { name: string }) => l.name === "Midd Baseball Dynasty");
+      if (league2026?.draft_id) {
+        const draft2026 = await fetchJson(`https://api.sleeper.app/v1/draft/${league2026.draft_id}`);
+        if (draft2026?.slot_to_roster_id) {
+          draft2026SlotToRoster = draft2026.slot_to_roster_id;
+          console.log("Fetched actual 2026 draft order from Sleeper");
+        }
+      }
+    } catch (e) {
+      console.log("Could not fetch 2026 draft, using projections");
+    }
+    
+    // Map roster_id to actual 2026 pick position (from Sleeper draft order)
+    const rosterIdTo2026PickPosition: Record<number, number> = {};
+    for (const [slot, rosterId] of Object.entries(draft2026SlotToRoster)) {
+      rosterIdTo2026PickPosition[rosterId as number] = parseInt(slot);
+    }
+    
     // Clear old picks first
     await prisma.dynastyPick.deleteMany({
       where: { currentOwner: { not: undefined } }
@@ -373,16 +398,26 @@ export async function POST() {
           }
           const currentOwnerUsername = rosterIdToUsername[currentOwnerRosterId] || `Team${currentOwnerRosterId}`;
           
-          // Calculate value based on original owner's STANDINGS (pick position)
-          // pickPosition: 1 = worst record = 1.01 (most valuable), 12 = best record = 1.12 (least)
-          const pickPosition = usernameToPickPosition[originalOwnerUsername] || Math.ceil(totalTeams / 2);
-          // Convert to rank format expected by getProjectedPickValueByRank (12 = worst = best pick)
+          // Calculate pick position
+          let pickPosition: number;
+          let pickNumber: number | undefined;
+          
+          if (season === "2026" && rosterIdTo2026PickPosition[rosterId]) {
+            // Use ACTUAL 2026 draft order from Sleeper
+            pickPosition = rosterIdTo2026PickPosition[rosterId];
+            pickNumber = pickPosition; // e.g., slot 2 = pick 2 in round 1
+          } else {
+            // For 2027+, project based on current standings
+            pickPosition = usernameToPickPosition[originalOwnerUsername] || Math.ceil(totalTeams / 2);
+          }
+          
+          // Convert to rank format expected by getProjectedPickValueByRank (12 = worst team = best pick)
           const ownerRank = totalTeams - pickPosition + 1;
-          const baseValue = getPickValue(season, round, undefined);
+          const baseValue = getPickValue(season, round, pickNumber);
           const { value: drewValue } = getProjectedPickValueByRank(baseValue, ownerRank, totalTeams);
           
-          // Only include 2025+ picks, rounds 1-2 for value
-          if (parseInt(season) >= 2025 && round <= 2) {
+          // Only include rounds 1-2 for value
+          if (round <= 2) {
             pickUpdates.push(
               prisma.dynastyPick.upsert({
                 where: {
@@ -396,6 +431,7 @@ export async function POST() {
                   currentOwner: currentOwnerUsername,
                   isOwned: currentOwnerUsername === "Hendawg55",
                   drewValue,
+                  pick: pickNumber || null,
                 },
                 create: {
                   season,
@@ -404,6 +440,7 @@ export async function POST() {
                   currentOwner: currentOwnerUsername,
                   isOwned: currentOwnerUsername === "Hendawg55",
                   drewValue,
+                  pick: pickNumber || null,
                 },
               })
             );
