@@ -15,8 +15,9 @@ function normalizeName(name: string): string {
 
 // Live values cache (populated at sync time)
 let livePlayerValues: Record<string, { value: number; pos: string; team: string | null; age: number | null }> = {};
+let livePickValues: Record<string, number> = {}; // e.g., "2026_1_2" -> 4780 (season_round_pick)
 
-// Fetch live values from FantasyCalc API
+// Fetch live values from FantasyCalc API (players AND picks)
 async function fetchLiveValues(): Promise<boolean> {
   try {
     const res = await fetch(FANTASYCALC_API, { cache: 'no-store' });
@@ -24,28 +25,60 @@ async function fetchLiveValues(): Promise<boolean> {
     
     const data = await res.json();
     livePlayerValues = {};
+    livePickValues = {};
     
     for (const item of data) {
       if (item.player) {
         const name = item.player.name;
-        const normalized = normalizeName(name);
-        const playerData = {
-          value: item.value,
-          pos: item.player.position,
-          team: item.player.maybeTeam || null,
-          age: item.player.maybeAge || null,
-        };
-        livePlayerValues[name] = playerData;
-        livePlayerValues[normalized] = playerData;
+        
+        // Check if this is a pick (e.g., "2026 Pick 1.02", "2027 1st")
+        const pickMatch = name.match(/^(\d{4})\s+Pick\s+(\d+)\.(\d+)$/);
+        const genericPickMatch = name.match(/^(\d{4})\s+(1st|2nd|3rd)$/);
+        
+        if (pickMatch) {
+          // Specific pick: "2026 Pick 1.02" -> "2026_1_2"
+          const [, season, round, pick] = pickMatch;
+          const key = `${season}_${round}_${parseInt(pick)}`;
+          livePickValues[key] = item.value;
+        } else if (genericPickMatch) {
+          // Generic pick: "2027 1st" -> "2027_1_mid"
+          const [, season, roundStr] = genericPickMatch;
+          const round = roundStr === "1st" ? 1 : roundStr === "2nd" ? 2 : 3;
+          const key = `${season}_${round}_mid`;
+          livePickValues[key] = item.value;
+        } else {
+          // Regular player
+          const normalized = normalizeName(name);
+          const playerData = {
+            value: item.value,
+            pos: item.player.position,
+            team: item.player.maybeTeam || null,
+            age: item.player.maybeAge || null,
+          };
+          livePlayerValues[name] = playerData;
+          livePlayerValues[normalized] = playerData;
+        }
       }
     }
     
-    console.log(`Fetched ${Object.keys(livePlayerValues).length / 2} live player values from FantasyCalc`);
+    console.log(`Fetched ${Object.keys(livePlayerValues).length / 2} player values and ${Object.keys(livePickValues).length} pick values from FantasyCalc`);
     return true;
   } catch (error) {
     console.error("Failed to fetch live values, using static fallback:", error);
     return false;
   }
+}
+
+// Get live pick value from FantasyCalc
+function getLivePickValue(season: string, round: number, pick?: number): number | null {
+  if (pick) {
+    // Try specific pick first
+    const key = `${season}_${round}_${pick}`;
+    if (livePickValues[key]) return livePickValues[key];
+  }
+  // Fall back to generic round value
+  const midKey = `${season}_${round}_mid`;
+  return livePickValues[midKey] || null;
 }
 
 // Build static fallback lookup map
@@ -398,22 +431,32 @@ export async function POST() {
           }
           const currentOwnerUsername = rosterIdToUsername[currentOwnerRosterId] || `Team${currentOwnerRosterId}`;
           
-          // Calculate pick value
+          // Calculate pick value - prefer LIVE from FantasyCalc
           let drewValue: number;
           let pickNumber: number | undefined;
           
           if (season === "2026" && rosterIdTo2026PickPosition[rosterId]) {
-            // Use ACTUAL 2026 draft order from Sleeper - no multiplier needed
+            // Use ACTUAL 2026 draft order from Sleeper
             pickNumber = rosterIdTo2026PickPosition[rosterId];
-            // Get exact pick value (e.g., "1.02" -> 4780)
-            drewValue = getPickValue(season, round, pickNumber);
+            // Get LIVE pick value from FantasyCalc, fallback to static
+            drewValue = getLivePickValue(season, round, pickNumber) || getPickValue(season, round, pickNumber);
           } else {
-            // For 2027+, project based on current standings and apply multiplier
-            const pickPosition = usernameToPickPosition[originalOwnerUsername] || Math.ceil(totalTeams / 2);
-            const ownerRank = totalTeams - pickPosition + 1;
-            const baseValue = getPickValue(season, round, undefined);
-            const projected = getProjectedPickValueByRank(baseValue, ownerRank, totalTeams);
-            drewValue = projected.value;
+            // For 2027+, get live generic round value, or project from static
+            const liveValue = getLivePickValue(season, round, undefined);
+            if (liveValue) {
+              // Use live value, apply multiplier for team strength
+              const pickPosition = usernameToPickPosition[originalOwnerUsername] || Math.ceil(totalTeams / 2);
+              const ownerRank = totalTeams - pickPosition + 1;
+              const projected = getProjectedPickValueByRank(liveValue, ownerRank, totalTeams);
+              drewValue = projected.value;
+            } else {
+              // Fallback to static values
+              const pickPosition = usernameToPickPosition[originalOwnerUsername] || Math.ceil(totalTeams / 2);
+              const ownerRank = totalTeams - pickPosition + 1;
+              const baseValue = getPickValue(season, round, undefined);
+              const projected = getProjectedPickValueByRank(baseValue, ownerRank, totalTeams);
+              drewValue = projected.value;
+            }
           }
           
           // Only include rounds 1-2 for value
