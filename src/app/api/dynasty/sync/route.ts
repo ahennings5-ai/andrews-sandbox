@@ -398,23 +398,23 @@ export async function POST() {
           }
           const currentOwnerUsername = rosterIdToUsername[currentOwnerRosterId] || `Team${currentOwnerRosterId}`;
           
-          // Calculate pick position
-          let pickPosition: number;
+          // Calculate pick value
+          let drewValue: number;
           let pickNumber: number | undefined;
           
           if (season === "2026" && rosterIdTo2026PickPosition[rosterId]) {
-            // Use ACTUAL 2026 draft order from Sleeper
-            pickPosition = rosterIdTo2026PickPosition[rosterId];
-            pickNumber = pickPosition; // e.g., slot 2 = pick 2 in round 1
+            // Use ACTUAL 2026 draft order from Sleeper - no multiplier needed
+            pickNumber = rosterIdTo2026PickPosition[rosterId];
+            // Get exact pick value (e.g., "1.02" -> 4780)
+            drewValue = getPickValue(season, round, pickNumber);
           } else {
-            // For 2027+, project based on current standings
-            pickPosition = usernameToPickPosition[originalOwnerUsername] || Math.ceil(totalTeams / 2);
+            // For 2027+, project based on current standings and apply multiplier
+            const pickPosition = usernameToPickPosition[originalOwnerUsername] || Math.ceil(totalTeams / 2);
+            const ownerRank = totalTeams - pickPosition + 1;
+            const baseValue = getPickValue(season, round, undefined);
+            const projected = getProjectedPickValueByRank(baseValue, ownerRank, totalTeams);
+            drewValue = projected.value;
           }
-          
-          // Convert to rank format expected by getProjectedPickValueByRank (12 = worst team = best pick)
-          const ownerRank = totalTeams - pickPosition + 1;
-          const baseValue = getPickValue(season, round, pickNumber);
-          const { value: drewValue } = getProjectedPickValueByRank(baseValue, ownerRank, totalTeams);
           
           // Only include rounds 1-2 for value
           if (round <= 2) {
