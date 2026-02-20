@@ -349,9 +349,21 @@ export function getPlayerValue(sleeperId: string, playerName?: string): { value:
 }
 
 export function getPickValue(season: string, round: number, pick?: number): number {
-  if (season === "2026" && pick) {
-    const key = `${round}.${pick.toString().padStart(2, "0")}`;
-    return PICK_VALUES_2026[key] || (round === 1 ? 4000 : round === 2 ? 2000 : 1000);
+  if (season === "2025") {
+    // 2025 picks - use same structure as 2026 (draft happening soon)
+    if (pick) {
+      const key = `${round}.${pick.toString().padStart(2, "0")}`;
+      return PICK_VALUES_2026[key] || (round === 1 ? 5000 : round === 2 ? 2500 : 1200);
+    }
+    // No specific pick yet - use mid-round estimate
+    return round === 1 ? 5000 : round === 2 ? 2500 : 1200;
+  } else if (season === "2026") {
+    if (pick) {
+      const key = `${round}.${pick.toString().padStart(2, "0")}`;
+      return PICK_VALUES_2026[key] || (round === 1 ? 4500 : round === 2 ? 2200 : 1000);
+    }
+    // No specific pick yet - use mid-round estimate
+    return round === 1 ? 4500 : round === 2 ? 2200 : 1000;
   } else if (season === "2027") {
     return round === 1 ? PICK_VALUES_2027["1st"] : round === 2 ? PICK_VALUES_2027["2nd"] : PICK_VALUES_2027["3rd"] || 1000;
   } else if (season === "2028") {
