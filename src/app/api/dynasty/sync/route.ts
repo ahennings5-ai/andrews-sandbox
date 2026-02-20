@@ -310,12 +310,26 @@ export async function POST() {
 
     // ═══════════════════════════════════════════════════════════
     // TEAM RANKINGS FOR PICK PROJECTIONS
-    // Sort by roster value (worst roster = best pick)
+    // Sort by STANDINGS (W-L, then fpts) - worst record = best pick (1.01)
     // ═══════════════════════════════════════════════════════════
-    const sortedTeams = [...teamData].sort((a, b) => b.totalValue - a.totalValue);
+    const sortedByStandings = [...teamData].sort((a, b) => {
+      // Sort ascending by wins (fewer wins = better pick)
+      if (a.wins !== b.wins) return a.wins - b.wins;
+      // Tiebreaker: lower points = better pick (not available, use roster value as proxy)
+      return a.totalValue - b.totalValue;
+    });
+    
+    // Map username to PICK POSITION (1 = worst team = 1.01, 12 = best team = 1.12)
+    const usernameToPickPosition: Record<string, number> = {};
+    sortedByStandings.forEach((team, idx) => {
+      usernameToPickPosition[team.username] = idx + 1; // 1 = worst record = 1.01
+    });
+    
+    // Also keep roster value ranks for display purposes
+    const sortedByValue = [...teamData].sort((a, b) => b.totalValue - a.totalValue);
     const usernameToRank: Record<string, number> = {};
-    sortedTeams.forEach((team, idx) => {
-      usernameToRank[team.username] = idx + 1; // 1 = best roster, 12 = worst
+    sortedByValue.forEach((team, idx) => {
+      usernameToRank[team.username] = idx + 1; // 1 = best roster
     });
 
     // ═══════════════════════════════════════════════════════════
@@ -336,9 +350,9 @@ export async function POST() {
       where: { currentOwner: { not: undefined } }
     });
     
-    // Process all picks for all teams (2025-2028)
+    // Process all picks for all teams (2026-2028 only - 2025 draft already happened)
     const pickUpdates: ReturnType<typeof prisma.dynastyPick.upsert>[] = [];
-    const seasons = ["2025", "2026", "2027", "2028"];
+    const seasons = ["2026", "2027", "2028"];
     const rounds = [1, 2, 3];
     
     for (const season of seasons) {
@@ -359,8 +373,11 @@ export async function POST() {
           }
           const currentOwnerUsername = rosterIdToUsername[currentOwnerRosterId] || `Team${currentOwnerRosterId}`;
           
-          // Calculate value based on original owner's team strength (pick position)
-          const ownerRank = usernameToRank[originalOwnerUsername] || Math.ceil(totalTeams / 2);
+          // Calculate value based on original owner's STANDINGS (pick position)
+          // pickPosition: 1 = worst record = 1.01 (most valuable), 12 = best record = 1.12 (least)
+          const pickPosition = usernameToPickPosition[originalOwnerUsername] || Math.ceil(totalTeams / 2);
+          // Convert to rank format expected by getProjectedPickValueByRank (12 = worst = best pick)
+          const ownerRank = totalTeams - pickPosition + 1;
           const baseValue = getPickValue(season, round, undefined);
           const { value: drewValue } = getProjectedPickValueByRank(baseValue, ownerRank, totalTeams);
           
@@ -465,10 +482,11 @@ export async function POST() {
       where: { currentOwner: "Hendawg55" }
     });
     
-    // Calculate total pick value using projected values based on original owner strength
+    // Calculate total pick value using projected values based on original owner STANDINGS
     const totalPickValue = myPicksFromDb.reduce((sum, p) => {
       const baseValue = getPickValue(p.season, p.round, p.pick || undefined);
-      const ownerRank = usernameToRank[p.originalOwner] || Math.ceil(totalTeams / 2);
+      const pickPosition = usernameToPickPosition[p.originalOwner] || Math.ceil(totalTeams / 2);
+      const ownerRank = totalTeams - pickPosition + 1;
       const { value } = getProjectedPickValueByRank(baseValue, ownerRank, totalTeams);
       return sum + value;
     }, 0);
@@ -494,13 +512,15 @@ export async function POST() {
       },
     });
 
-    // Build team rankings for UI
-    const teamRankings = sortedTeams.map((t, idx) => ({
+    // Build team rankings for UI (by standings, not roster value)
+    const teamRankings = sortedByStandings.map((t, idx) => ({
       username: t.username,
       rosterId: t.rosterId,
       rosterValue: t.totalValue,
-      leagueRank: idx + 1,
-      projectedPickPosition: totalTeams - idx, // Inverse: best roster = worst pick position
+      wins: t.wins,
+      losses: t.losses,
+      standingsRank: totalTeams - idx, // 1 = worst, 12 = best
+      projectedPickPosition: idx + 1, // 1 = worst record = 1.01
     }));
 
     return NextResponse.json({ 
