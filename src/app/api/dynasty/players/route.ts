@@ -1,23 +1,7 @@
 import { prisma } from "@/lib/db";
 import { NextResponse } from "next/server";
-import { PLAYER_VALUES_BY_NAME } from "@/lib/dynasty-values";
 
-// Normalize name for matching
-function normalizeName(name: string): string {
-  return name
-    .replace(/\s+(Jr\.?|Sr\.?|II|III|IV)$/i, "")
-    .replace(/[.']/g, "")
-    .trim();
-}
-
-// Build lookup map
-const normalizedValues: Record<string, number> = {};
-for (const [name, data] of Object.entries(PLAYER_VALUES_BY_NAME)) {
-  normalizedValues[normalizeName(name)] = data.value;
-  normalizedValues[name] = data.value;
-}
-
-// GET all owned players
+// GET all owned players - uses LIVE values from database (synced from FantasyCalc)
 export async function GET() {
   try {
     const dbPlayers = await prisma.dynastyPlayer.findMany({
@@ -25,17 +9,16 @@ export async function GET() {
       orderBy: { drewValue: "desc" },
     });
 
-    // Enrich with LIVE values from dynasty-values.ts
+    // Use LIVE values from DB (set by sync from FantasyCalc API)
     const players = dbPlayers.map(p => {
-      const liveValue = normalizedValues[p.name] || normalizedValues[normalizeName(p.name)] || p.drewValue || 100;
-      const tier = liveValue >= 9000 ? "Elite" :
-                   liveValue >= 7000 ? "Star" :
-                   liveValue >= 5000 ? "Starter" :
-                   liveValue >= 3000 ? "Flex" :
-                   liveValue >= 1500 ? "Bench" : "Clogger";
+      const value = p.drewValue || 100;
+      const tier = value >= 9000 ? "Elite" :
+                   value >= 7000 ? "Star" :
+                   value >= 5000 ? "Starter" :
+                   value >= 3000 ? "Flex" :
+                   value >= 1500 ? "Bench" : "Clogger";
       return {
         ...p,
-        drewValue: liveValue,
         tier,
       };
     }).sort((a, b) => (b.drewValue || 0) - (a.drewValue || 0));
