@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar, Cell } from "recharts";
 import Link from "next/link";
 
 // Types
@@ -29,6 +29,7 @@ interface RosterPlayer {
   age: number | null;
   value: number;
   tier: string;
+  trend30Day?: number;
 }
 
 interface ValueHistory {
@@ -48,6 +49,7 @@ interface Player {
   drewValue: number | null;
   recommendation: string | null;
   recommendReason: string | null;
+  trend30Day?: number;
 }
 
 interface Pick {
@@ -93,16 +95,65 @@ interface TradeAsset {
   name: string;
   position?: string;
   value: number;
+  trend30Day?: number;
 }
 
 interface TradeSuggestion {
+  id: string;
   targetTeam: string;
-  targetMode: string;
-  rationale: string;
-  yourSide: { players: string[]; picks: string[]; totalValue: number };
-  theirSide: { players: string[]; picks: string[]; totalValue: number };
-  type: string;
+  targetRosterId: number;
+  tradeType: "buy" | "sell" | "swap";
   priority: "high" | "medium" | "low";
+  rationale: string;
+  yourSide: {
+    players: Array<{ name: string; position: string; value: number }>;
+    picks: Array<{ name: string; value: number }>;
+    totalValue: number;
+  };
+  theirSide: {
+    players: Array<{ name: string; position: string; value: number }>;
+    picks: Array<{ name: string; value: number }>;
+    totalValue: number;
+  };
+  valueDiff: number;
+  fit: string;
+}
+
+interface ValueTrend {
+  name: string;
+  sleeperId: string | null;
+  position: string;
+  team: string | null;
+  age: number | null;
+  currentValue: number;
+  trend30Day: number;
+  trendPercent: number;
+  direction: "rising" | "falling" | "stable";
+  rank: number;
+}
+
+interface PowerRankingTeam {
+  rosterId: number;
+  owner: string;
+  teamName: string | null;
+  mode: string | null;
+  totalValue: number;
+  rank: number;
+  tier: string;
+  positionBreakdown: {
+    QB: { value: number; count: number; avgAge: number };
+    RB: { value: number; count: number; avgAge: number };
+    WR: { value: number; count: number; avgAge: number };
+    TE: { value: number; count: number; avgAge: number };
+  };
+  pickValue: number;
+  starPlayers: string[];
+  strengths: string[];
+  weaknesses: string[];
+  outlook: string;
+  contenderScore: number;
+  rebuildScore: number;
+  championship: number;
 }
 
 interface TradeHistoryItem {
@@ -167,7 +218,849 @@ interface LeagueGem {
   gemScore?: number;
 }
 
-// GemsTab Component - League-wide gem finder
+// ============================================================================
+// COMPONENT: Today's Actions Summary
+// ============================================================================
+function TodaysSummary({ 
+  settings, 
+  players, 
+  picks, 
+  totalValue, 
+  teams, 
+  tradeSuggestions,
+  valueTrends 
+}: { 
+  settings: Settings | null;
+  players: Player[];
+  picks: Pick[];
+  totalValue: number;
+  teams: Team[];
+  tradeSuggestions: TradeSuggestion[];
+  valueTrends: { risers: ValueTrend[]; fallers: ValueTrend[] } | null;
+}) {
+  const mode = settings?.mode || "tank";
+  const sellCandidates = players.filter(p => p.recommendation === "sell");
+  const myRisers = valueTrends?.risers.filter(r => players.some(p => p.name === r.name)) || [];
+  const myFallers = valueTrends?.fallers.filter(f => players.some(p => p.name === f.name)) || [];
+  const highPriorityTrades = tradeSuggestions.filter(t => t.priority === "high").slice(0, 3);
+
+  return (
+    <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-transparent">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2">
+          <span className="text-2xl">📋</span> What Should You Do Today?
+        </CardTitle>
+        <CardDescription>
+          Personalized actions based on your {modeConfig[mode].label} strategy
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Quick Stats Row */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="p-3 rounded-lg bg-muted/50 text-center">
+            <div className="text-2xl font-bold">{totalValue.toLocaleString()}</div>
+            <div className="text-xs text-muted-foreground">Total Value</div>
+          </div>
+          <div className="p-3 rounded-lg bg-muted/50 text-center">
+            <div className="text-2xl font-bold">#{teams.findIndex(t => t.ownerUsername === "Hendawg55") + 1 || "?"}</div>
+            <div className="text-xs text-muted-foreground">League Rank</div>
+          </div>
+          <div className="p-3 rounded-lg bg-muted/50 text-center">
+            <div className="text-2xl font-bold">{picks.filter(p => p.round === 1).length}</div>
+            <div className="text-xs text-muted-foreground">1st Round Picks</div>
+          </div>
+          <div className="p-3 rounded-lg bg-muted/50 text-center">
+            <div className="text-2xl font-bold text-red-500">{sellCandidates.length}</div>
+            <div className="text-xs text-muted-foreground">Sell Candidates</div>
+          </div>
+        </div>
+
+        {/* Action Cards */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {/* Top Priority Trade */}
+          {highPriorityTrades.length > 0 && (
+            <div className="p-3 rounded-lg border border-green-500/30 bg-green-500/5">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-lg">🎯</span>
+                <span className="font-semibold text-green-600">Top Trade Opportunity</span>
+              </div>
+              <p className="text-sm text-muted-foreground mb-2">{highPriorityTrades[0].rationale}</p>
+              <div className="text-xs">
+                <span className="text-red-400">Give: </span>
+                {highPriorityTrades[0].yourSide.players.map(p => p.name).join(", ") || highPriorityTrades[0].yourSide.picks.map(p => p.name).join(", ")}
+              </div>
+            </div>
+          )}
+
+          {/* Rising Players You Own */}
+          {myRisers.length > 0 && (
+            <div className="p-3 rounded-lg border border-emerald-500/30 bg-emerald-500/5">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-lg">📈</span>
+                <span className="font-semibold text-emerald-600">Your Risers (30d)</span>
+              </div>
+              <div className="space-y-1">
+                {myRisers.slice(0, 3).map(p => (
+                  <div key={p.name} className="flex justify-between text-sm">
+                    <span>{p.name}</span>
+                    <span className="text-emerald-500">+{p.trend30Day.toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Falling Players You Own */}
+          {myFallers.length > 0 && (
+            <div className="p-3 rounded-lg border border-red-500/30 bg-red-500/5">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-lg">📉</span>
+                <span className="font-semibold text-red-600">Your Fallers (30d)</span>
+              </div>
+              <div className="space-y-1">
+                {myFallers.slice(0, 3).map(p => (
+                  <div key={p.name} className="flex justify-between text-sm">
+                    <span>{p.name}</span>
+                    <span className="text-red-500">{p.trend30Day.toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Mode-Specific Advice */}
+          <div className={`p-3 rounded-lg border ${mode === "tank" ? "border-red-500/30 bg-red-500/5" : mode === "contend" ? "border-green-500/30 bg-green-500/5" : "border-yellow-500/30 bg-yellow-500/5"}`}>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-lg">{mode === "tank" ? "🎰" : mode === "contend" ? "🏆" : "🔄"}</span>
+              <span className="font-semibold">{modeConfig[mode].label} Strategy</span>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {mode === "tank" ? "Focus on selling aging veterans for picks. Target 2027+ draft capital." :
+               mode === "contend" ? "Look for win-now pieces. Trade future picks for proven talent." :
+               "Balance youth and production. Find value in mispriced assets."}
+            </p>
+          </div>
+
+          {/* Sell Candidates */}
+          {sellCandidates.length > 0 && (
+            <div className="p-3 rounded-lg border border-amber-500/30 bg-amber-500/5">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-lg">💰</span>
+                <span className="font-semibold text-amber-600">Sell These Players</span>
+              </div>
+              <div className="space-y-1">
+                {sellCandidates.slice(0, 3).map(p => (
+                  <div key={p.id} className="text-sm flex justify-between">
+                    <span>{p.name}</span>
+                    <Badge variant="outline" className="text-xs">{p.drewValue?.toLocaleString()}</Badge>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Quick Win */}
+          <div className="p-3 rounded-lg border border-blue-500/30 bg-blue-500/5">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-lg">⚡</span>
+              <span className="font-semibold text-blue-600">Quick Win</span>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Check the Value Trends tab to find buy-low targets on other rosters before their value rebounds.
+            </p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ============================================================================
+// COMPONENT: Enhanced Trade Calculator
+// ============================================================================
+function EnhancedTradeCalculator({
+  players,
+  picks,
+  teams,
+  positionColors,
+  mySideAssets,
+  theirSideAssets,
+  tradePartner,
+  setMySideAssets,
+  setTheirSideAssets,
+  setTradePartner,
+}: {
+  players: Player[];
+  picks: Pick[];
+  teams: Team[];
+  positionColors: Record<string, string>;
+  mySideAssets: TradeAsset[];
+  theirSideAssets: TradeAsset[];
+  tradePartner: (Team & { roster?: RosterPlayer[] }) | null;
+  setMySideAssets: (assets: TradeAsset[]) => void;
+  setTheirSideAssets: (assets: TradeAsset[]) => void;
+  setTradePartner: (team: (Team & { roster?: RosterPlayer[] }) | null) => void;
+}) {
+  const [searchMy, setSearchMy] = useState("");
+  const [searchTheir, setSearchTheir] = useState("");
+  const [partnerPicks, setPartnerPicks] = useState<Pick[]>([]);
+
+  // Load partner's picks when partner changes
+  useEffect(() => {
+    if (tradePartner) {
+      // Simulate picks they might own - in real app, fetch from API
+      setPartnerPicks([]);
+    }
+  }, [tradePartner]);
+
+  const addToMySide = (asset: TradeAsset) => {
+    if (!mySideAssets.find(a => a.id === asset.id)) {
+      setMySideAssets([...mySideAssets, asset]);
+    }
+  };
+
+  const addToTheirSide = (asset: TradeAsset) => {
+    if (!theirSideAssets.find(a => a.id === asset.id)) {
+      setTheirSideAssets([...theirSideAssets, asset]);
+    }
+  };
+
+  const removeFromMySide = (id: string) => {
+    setMySideAssets(mySideAssets.filter(a => a.id !== id));
+  };
+
+  const removeFromTheirSide = (id: string) => {
+    setTheirSideAssets(theirSideAssets.filter(a => a.id !== id));
+  };
+
+  const clearTrade = () => {
+    setMySideAssets([]);
+    setTheirSideAssets([]);
+    setTradePartner(null);
+  };
+
+  const mySideValue = mySideAssets.reduce((sum, a) => sum + a.value, 0);
+  const theirSideValue = theirSideAssets.reduce((sum, a) => sum + a.value, 0);
+  const valueDiff = theirSideValue - mySideValue;
+  const diffPercent = mySideValue > 0 ? (valueDiff / mySideValue) * 100 : 0;
+
+  // Trade fairness gauge
+  const getFairnessLevel = () => {
+    const absPercent = Math.abs(diffPercent);
+    if (absPercent < 5) return { label: "FAIR", color: "bg-yellow-500", emoji: "⚖️" };
+    if (absPercent < 15) return { label: valueDiff > 0 ? "SLIGHT WIN" : "SLIGHT OVERPAY", color: valueDiff > 0 ? "bg-green-400" : "bg-orange-400", emoji: valueDiff > 0 ? "👍" : "👎" };
+    if (absPercent < 30) return { label: valueDiff > 0 ? "SOLID WIN" : "OVERPAY", color: valueDiff > 0 ? "bg-green-500" : "bg-red-400", emoji: valueDiff > 0 ? "✅" : "⚠️" };
+    return { label: valueDiff > 0 ? "SMASH ACCEPT" : "BAD TRADE", color: valueDiff > 0 ? "bg-emerald-600" : "bg-red-600", emoji: valueDiff > 0 ? "🔥" : "❌" };
+  };
+
+  const fairness = getFairnessLevel();
+
+  // Filtered players for search
+  const filteredMyPlayers = players.filter(p => 
+    p.name.toLowerCase().includes(searchMy.toLowerCase()) &&
+    !mySideAssets.find(a => a.id === p.sleeperId)
+  );
+
+  const filteredTheirPlayers = (tradePartner?.roster || []).filter((p: RosterPlayer) =>
+    p.name.toLowerCase().includes(searchTheir.toLowerCase()) &&
+    !theirSideAssets.find(a => a.id === p.sleeperId)
+  );
+
+  const selectTradePartner = async (team: Team) => {
+    setTradePartner(team);
+    setTheirSideAssets([]);
+    try {
+      const res = await fetch(`/api/dynasty/teams?rosterId=${team.rosterId}`);
+      if (res.ok) {
+        const data = await res.json();
+        const roster = data.team?.roster || [];
+        setTradePartner({ ...team, roster });
+      }
+    } catch (e) {
+      console.error("Failed to load team roster:", e);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Trade Partner Selection - Compact */}
+      {!tradePartner && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Select Trade Partner</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {teams.filter(t => t.ownerUsername !== "Hendawg55").map((team) => (
+                <Button
+                  key={team.id}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => selectTradePartner(team)}
+                  className="text-xs"
+                >
+                  {team.ownerUsername}
+                  <Badge variant="secondary" className="ml-1 text-[10px]">
+                    {(team.totalValue || 0) >= 60000 ? "🏆" : (team.totalValue || 0) >= 45000 ? "📈" : "🔄"}
+                  </Badge>
+                </Button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Main Trade Interface */}
+      <div className="grid lg:grid-cols-[1fr,auto,1fr] gap-4">
+        {/* Your Side */}
+        <Card className="border-blue-500/30">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <span className="text-lg">🏠</span> You Give
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {/* Added Assets */}
+            <div className="min-h-[80px] space-y-1">
+              {mySideAssets.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-4">Select assets below</p>
+              ) : (
+                mySideAssets.map((asset) => (
+                  <div key={asset.id} className="flex items-center justify-between p-2 rounded bg-muted/50 text-sm">
+                    <div className="flex items-center gap-2">
+                      {asset.position && <Badge className={`${positionColors[asset.position]} text-[10px]`}>{asset.position}</Badge>}
+                      <span className="truncate max-w-[120px]">{asset.name}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="font-mono text-xs">{asset.value.toLocaleString()}</span>
+                      <Button size="sm" variant="ghost" className="h-5 w-5 p-0" onClick={() => removeFromMySide(asset.id)}>×</Button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Total */}
+            <div className="border-t pt-2 flex justify-between font-bold text-sm">
+              <span>Total:</span>
+              <span className="text-blue-500">{mySideValue.toLocaleString()}</span>
+            </div>
+
+            {/* Quick Add - Players */}
+            <div className="space-y-2">
+              <input
+                type="text"
+                placeholder="Search your players..."
+                value={searchMy}
+                onChange={(e) => setSearchMy(e.target.value)}
+                className="w-full px-3 py-1.5 text-sm rounded border border-border bg-background"
+              />
+              <div className="max-h-[200px] overflow-y-auto space-y-1">
+                {filteredMyPlayers.slice(0, 10).map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => addToMySide({ type: "player", id: p.sleeperId, name: p.name, position: p.position, value: p.drewValue || 0 })}
+                    className="w-full flex items-center justify-between p-1.5 rounded border border-border hover:bg-muted/50 text-xs"
+                  >
+                    <div className="flex items-center gap-1">
+                      <Badge className={`${positionColors[p.position]} text-[9px] px-1`}>{p.position}</Badge>
+                      <span className="truncate max-w-[100px]">{p.name}</span>
+                    </div>
+                    <span className="font-mono">{p.drewValue?.toLocaleString()}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Picks */}
+              <div className="flex flex-wrap gap-1">
+                {picks.filter(p => !mySideAssets.find(a => a.id === p.id)).slice(0, 6).map((p) => (
+                  <Button
+                    key={p.id}
+                    variant="outline"
+                    size="sm"
+                    className="text-[10px] h-6 px-2"
+                    onClick={() => addToMySide({ type: "pick", id: p.id, name: `${p.season} ${p.round === 1 ? "1st" : p.round === 2 ? "2nd" : "3rd"}`, value: p.drewValue || 0 })}
+                  >
+                    {p.season.slice(2)} R{p.round}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Center Analysis */}
+        <div className="flex flex-col items-center justify-center py-4 lg:py-0">
+          {(mySideAssets.length > 0 || theirSideAssets.length > 0) && (
+            <div className="text-center space-y-2">
+              {/* Fairness Gauge */}
+              <div className={`${fairness.color} text-white px-4 py-2 rounded-full font-bold text-sm flex items-center gap-2`}>
+                <span>{fairness.emoji}</span>
+                <span>{fairness.label}</span>
+              </div>
+              
+              {/* Value Diff */}
+              <div className={`text-2xl font-bold ${valueDiff > 0 ? "text-green-500" : valueDiff < 0 ? "text-red-500" : "text-yellow-500"}`}>
+                {valueDiff > 0 ? "+" : ""}{valueDiff.toLocaleString()}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {diffPercent > 0 ? "+" : ""}{diffPercent.toFixed(1)}% value
+              </div>
+
+              {/* Arrow */}
+              <div className="text-3xl">
+                {valueDiff > 0 ? "←" : valueDiff < 0 ? "→" : "↔"}
+              </div>
+
+              <Button variant="outline" size="sm" onClick={clearTrade}>Clear</Button>
+            </div>
+          )}
+        </div>
+
+        {/* Their Side */}
+        <Card className={`border-green-500/30 ${!tradePartner ? "opacity-50" : ""}`}>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">🎯</span> You Get
+              </div>
+              {tradePartner && (
+                <Badge variant="outline" className="text-xs">
+                  {tradePartner.ownerUsername}
+                  <button onClick={() => setTradePartner(null)} className="ml-1">×</button>
+                </Badge>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {/* Added Assets */}
+            <div className="min-h-[80px] space-y-1">
+              {theirSideAssets.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-4">
+                  {tradePartner ? "Select their assets below" : "Select a trade partner first"}
+                </p>
+              ) : (
+                theirSideAssets.map((asset) => (
+                  <div key={asset.id} className="flex items-center justify-between p-2 rounded bg-muted/50 text-sm">
+                    <div className="flex items-center gap-2">
+                      {asset.position && <Badge className={`${positionColors[asset.position]} text-[10px]`}>{asset.position}</Badge>}
+                      <span className="truncate max-w-[120px]">{asset.name}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="font-mono text-xs">{asset.value.toLocaleString()}</span>
+                      <Button size="sm" variant="ghost" className="h-5 w-5 p-0" onClick={() => removeFromTheirSide(asset.id)}>×</Button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Total */}
+            <div className="border-t pt-2 flex justify-between font-bold text-sm">
+              <span>Total:</span>
+              <span className="text-green-500">{theirSideValue.toLocaleString()}</span>
+            </div>
+
+            {/* Quick Add - Their Players */}
+            {tradePartner && tradePartner.roster && (
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  placeholder="Search their players..."
+                  value={searchTheir}
+                  onChange={(e) => setSearchTheir(e.target.value)}
+                  className="w-full px-3 py-1.5 text-sm rounded border border-border bg-background"
+                />
+                <div className="max-h-[200px] overflow-y-auto space-y-1">
+                  {filteredTheirPlayers.slice(0, 10).map((p: RosterPlayer) => (
+                    <button
+                      key={p.sleeperId}
+                      onClick={() => addToTheirSide({ type: "player", id: p.sleeperId, name: p.name, position: p.position, value: p.value })}
+                      className="w-full flex items-center justify-between p-1.5 rounded border border-border hover:bg-muted/50 text-xs"
+                    >
+                      <div className="flex items-center gap-1">
+                        <Badge className={`${positionColors[p.position] || "bg-gray-500"} text-[9px] px-1`}>{p.position}</Badge>
+                        <span className="truncate max-w-[100px]">{p.name}</span>
+                      </div>
+                      <span className="font-mono">{p.value.toLocaleString()}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Trade Analysis Details */}
+      {(mySideAssets.length > 0 && theirSideAssets.length > 0) && (
+        <Card className="border-primary/30">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">📊 Trade Analysis</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid md:grid-cols-3 gap-4 text-sm">
+              <div>
+                <h4 className="font-medium mb-1">Position Impact</h4>
+                <div className="space-y-1">
+                  {["QB", "RB", "WR", "TE"].map(pos => {
+                    const giving = mySideAssets.filter(a => a.position === pos).reduce((s, a) => s + a.value, 0);
+                    const getting = theirSideAssets.filter(a => a.position === pos).reduce((s, a) => s + a.value, 0);
+                    if (giving === 0 && getting === 0) return null;
+                    const net = getting - giving;
+                    return (
+                      <div key={pos} className="flex justify-between">
+                        <Badge className={positionColors[pos]}>{pos}</Badge>
+                        <span className={net > 0 ? "text-green-500" : net < 0 ? "text-red-500" : ""}>
+                          {net > 0 ? "+" : ""}{net.toLocaleString()}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <h4 className="font-medium mb-1">Age Analysis</h4>
+                <div className="text-muted-foreground">
+                  {(() => {
+                    const myAvgAge = mySideAssets.filter(a => a.type === "player").length > 0
+                      ? players.filter(p => mySideAssets.find(a => a.id === p.sleeperId)).reduce((s, p) => s + (p.age || 25), 0) / mySideAssets.filter(a => a.type === "player").length
+                      : 0;
+                    const theirAvgAge = theirSideAssets.filter(a => a.type === "player").length > 0
+                      ? (tradePartner?.roster || []).filter((p: RosterPlayer) => theirSideAssets.find(a => a.id === p.sleeperId)).reduce((s: number, p: RosterPlayer) => s + (p.age || 25), 0) / theirSideAssets.filter(a => a.type === "player").length
+                      : 0;
+                    const ageDiff = theirAvgAge - myAvgAge;
+                    return (
+                      <>
+                        <div>You give avg age: {myAvgAge.toFixed(1)}</div>
+                        <div>You get avg age: {theirAvgAge.toFixed(1)}</div>
+                        <div className={ageDiff < 0 ? "text-green-500" : ageDiff > 0 ? "text-amber-500" : ""}>
+                          {ageDiff < 0 ? "Getting younger! 📈" : ageDiff > 0 ? "Getting older ⚠️" : "Age neutral"}
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              <div>
+                <h4 className="font-medium mb-1">Verdict</h4>
+                <p className="text-muted-foreground">
+                  {valueDiff > 1000 ? "This trade heavily favors you. The other side probably won't accept without adjustments." :
+                   valueDiff > 500 ? "Good value for you. Consider if it fits your roster needs." :
+                   valueDiff > -500 ? "Fair trade. Comes down to positional needs and strategy." :
+                   valueDiff > -1000 ? "You're overpaying slightly. Only proceed if you really need the assets." :
+                   "This trade favors the other side significantly. Reconsider unless desperate."}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+// ============================================================================
+// COMPONENT: Value Trends Tab
+// ============================================================================
+function ValueTrendsTab({ positionColors }: { positionColors: Record<string, string> }) {
+  const [trends, setTrends] = useState<{ risers: ValueTrend[]; fallers: ValueTrend[]; byPosition: Record<string, { risers: ValueTrend[]; fallers: ValueTrend[] }> } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<"all" | "QB" | "RB" | "WR" | "TE">("all");
+
+  useEffect(() => {
+    async function loadTrends() {
+      try {
+        const res = await fetch("/api/dynasty/value-trends");
+        if (res.ok) {
+          const data = await res.json();
+          setTrends(data);
+        }
+      } catch (error) {
+        console.error("Failed to load trends:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadTrends();
+  }, []);
+
+  if (loading) {
+    return <div className="text-center py-8 text-muted-foreground">Loading value trends...</div>;
+  }
+
+  if (!trends) {
+    return <div className="text-center py-8 text-muted-foreground">Failed to load trends.</div>;
+  }
+
+  const displayRisers = filter === "all" ? trends.risers : (trends.byPosition[filter]?.risers || []);
+  const displayFallers = filter === "all" ? trends.fallers : (trends.byPosition[filter]?.fallers || []);
+
+  return (
+    <div className="space-y-6">
+      {/* Filter */}
+      <div className="flex gap-2 flex-wrap">
+        <Button variant={filter === "all" ? "default" : "outline"} size="sm" onClick={() => setFilter("all")}>All</Button>
+        {(["QB", "RB", "WR", "TE"] as const).map(pos => (
+          <Button
+            key={pos}
+            variant={filter === pos ? "default" : "outline"}
+            size="sm"
+            className={filter === pos ? positionColors[pos] : ""}
+            onClick={() => setFilter(pos)}
+          >
+            {pos}
+          </Button>
+        ))}
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-6">
+        {/* Risers */}
+        <Card className="border-green-500/30">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-green-500">
+              <span className="text-2xl">📈</span> Rising (30 Day)
+            </CardTitle>
+            <CardDescription>Players gaining the most dynasty value</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2 max-h-[500px] overflow-y-auto">
+              {displayRisers.map((player, idx) => (
+                <div
+                  key={`${player.name}-${idx}`}
+                  className="flex items-center justify-between p-3 rounded-lg border border-green-500/20 bg-green-500/5"
+                >
+                  <div className="flex items-center gap-3">
+                    <Badge className={positionColors[player.position] || "bg-gray-500"}>{player.position}</Badge>
+                    <div>
+                      <div className="font-medium">{player.name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {player.team || "FA"} • Age {player.age} • #{player.rank}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-bold text-green-500">+{player.trend30Day.toLocaleString()}</div>
+                    <div className="text-xs text-muted-foreground">{player.currentValue.toLocaleString()} total</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Fallers */}
+        <Card className="border-red-500/30">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-red-500">
+              <span className="text-2xl">📉</span> Falling (30 Day)
+            </CardTitle>
+            <CardDescription>Players losing the most dynasty value</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2 max-h-[500px] overflow-y-auto">
+              {displayFallers.map((player, idx) => (
+                <div
+                  key={`${player.name}-${idx}`}
+                  className="flex items-center justify-between p-3 rounded-lg border border-red-500/20 bg-red-500/5"
+                >
+                  <div className="flex items-center gap-3">
+                    <Badge className={positionColors[player.position] || "bg-gray-500"}>{player.position}</Badge>
+                    <div>
+                      <div className="font-medium">{player.name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {player.team || "FA"} • Age {player.age} • #{player.rank}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-bold text-red-500">{player.trend30Day.toLocaleString()}</div>
+                    <div className="text-xs text-muted-foreground">{player.currentValue.toLocaleString()} total</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// COMPONENT: Power Rankings Tab
+// ============================================================================
+function PowerRankingsTab({ positionColors }: { positionColors: Record<string, string> }) {
+  const [rankings, setRankings] = useState<PowerRankingTeam[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [expandedTeam, setExpandedTeam] = useState<number | null>(null);
+
+  useEffect(() => {
+    async function loadRankings() {
+      try {
+        const res = await fetch("/api/dynasty/power-rankings");
+        if (res.ok) {
+          const data = await res.json();
+          setRankings(data.rankings || []);
+        }
+      } catch (error) {
+        console.error("Failed to load rankings:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadRankings();
+  }, []);
+
+  if (loading) {
+    return <div className="text-center py-8 text-muted-foreground">Loading power rankings...</div>;
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Summary Chart */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle>League Value Distribution</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-48">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={rankings} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+                <YAxis type="category" dataKey="owner" tick={{ fontSize: 10 }} width={80} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }}
+                  formatter={(value) => [Number(value).toLocaleString(), "Value"]}
+                />
+                <Bar dataKey="totalValue" radius={[0, 4, 4, 0]}>
+                  {rankings.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.owner === "Hendawg55" ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))"} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Team Cards */}
+      <div className="space-y-3">
+        {rankings.map((team) => (
+          <Card 
+            key={team.rosterId}
+            className={`cursor-pointer transition-all ${
+              team.owner === "Hendawg55" ? "border-primary/50" : "border-border"
+            } ${expandedTeam === team.rosterId ? "ring-2 ring-primary/30" : ""}`}
+            onClick={() => setExpandedTeam(expandedTeam === team.rosterId ? null : team.rosterId)}
+          >
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg ${
+                    team.rank <= 3 ? "bg-amber-500/20 text-amber-500" :
+                    team.rank <= 6 ? "bg-blue-500/20 text-blue-500" :
+                    "bg-muted text-muted-foreground"
+                  }`}>
+                    {team.rank}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold">{team.owner}</span>
+                      {team.owner === "Hendawg55" && <Badge variant="secondary" className="text-xs">You</Badge>}
+                      <Badge variant={team.tier === "Elite" ? "default" : "outline"} className="text-xs">{team.tier}</Badge>
+                    </div>
+                    <div className="text-sm text-muted-foreground">{team.teamName || "—"}</div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="font-bold text-xl">{team.totalValue.toLocaleString()}</div>
+                  <div className="text-xs text-muted-foreground">
+                    🏆 {team.championship}% championship odds
+                  </div>
+                </div>
+              </div>
+
+              {/* Expanded View */}
+              {expandedTeam === team.rosterId && (
+                <div className="mt-4 pt-4 border-t space-y-4">
+                  <p className="text-sm text-muted-foreground italic">{team.outlook}</p>
+
+                  {/* Position Breakdown */}
+                  <div className="grid grid-cols-4 gap-2">
+                    {(["QB", "RB", "WR", "TE"] as const).map(pos => (
+                      <div key={pos} className="text-center p-2 rounded bg-muted/50">
+                        <Badge className={positionColors[pos]}>{pos}</Badge>
+                        <div className="font-bold mt-1">{team.positionBreakdown[pos].value.toLocaleString()}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {team.positionBreakdown[pos].count} players
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Avg {team.positionBreakdown[pos].avgAge.toFixed(1)} yrs
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Strengths/Weaknesses */}
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-green-500 font-medium">Strengths:</span>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {team.strengths.map((s, i) => <Badge key={i} variant="outline" className="text-xs">{s}</Badge>)}
+                        {team.strengths.length === 0 && <span className="text-muted-foreground">None</span>}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-red-500 font-medium">Weaknesses:</span>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {team.weaknesses.map((w, i) => <Badge key={i} variant="outline" className="text-xs">{w}</Badge>)}
+                        {team.weaknesses.length === 0 && <span className="text-muted-foreground">None</span>}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Star Players */}
+                  {team.starPlayers.length > 0 && (
+                    <div>
+                      <span className="text-amber-500 font-medium text-sm">⭐ Stars:</span>
+                      <span className="text-sm text-muted-foreground ml-2">{team.starPlayers.join(", ")}</span>
+                    </div>
+                  )}
+
+                  {/* Contender vs Rebuild Score */}
+                  <div className="flex gap-4 text-sm">
+                    <div className="flex-1">
+                      <div className="flex justify-between mb-1">
+                        <span className="text-green-500">Contender Score</span>
+                        <span>{team.contenderScore}</span>
+                      </div>
+                      <Progress value={team.contenderScore} className="h-2" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex justify-between mb-1">
+                        <span className="text-blue-500">Rebuild Score</span>
+                        <span>{team.rebuildScore}</span>
+                      </div>
+                      <Progress value={team.rebuildScore} className="h-2" />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// COMPONENT: Gems Tab (from original)
+// ============================================================================
 function GemsTab({ teams, positionColors }: { teams: Team[]; positionColors: Record<string, string> }) {
   const [gems, setGems] = useState<{
     buyTargets: LeagueGem[];
@@ -196,229 +1089,81 @@ function GemsTab({ teams, positionColors }: { teams: Team[]; positionColors: Rec
     loadGems();
   }, []);
 
-  if (loading) {
-    return <div className="text-center py-8 text-muted-foreground">Loading league-wide gems...</div>;
-  }
+  if (loading) return <div className="text-center py-8 text-muted-foreground">Loading gems...</div>;
+  if (!gems) return <div className="text-center py-8 text-muted-foreground">Failed to load gems.</div>;
 
-  if (!gems) {
-    return <div className="text-center py-8 text-muted-foreground">Failed to load gems. Try syncing your league data.</div>;
-  }
-
-  const filteredBuyTargets = filter === "all" 
-    ? gems.buyTargets 
-    : gems.buyTargets.filter(p => p.position === filter);
-
-  const filteredHiddenGems = filter === "all"
-    ? gems.hiddenGems
-    : gems.hiddenGems.filter(p => p.position === filter);
+  const filteredBuyTargets = filter === "all" ? gems.buyTargets : gems.buyTargets.filter(p => p.position === filter);
+  const filteredHiddenGems = filter === "all" ? gems.hiddenGems : gems.hiddenGems.filter(p => p.position === filter);
 
   return (
     <div className="space-y-6">
-      {/* Filter buttons */}
       <div className="flex gap-2 flex-wrap">
-        <Button 
-          variant={filter === "all" ? "default" : "outline"} 
-          size="sm"
-          onClick={() => setFilter("all")}
-        >
-          All Positions
-        </Button>
+        <Button variant={filter === "all" ? "default" : "outline"} size="sm" onClick={() => setFilter("all")}>All</Button>
         {(["QB", "RB", "WR", "TE"] as const).map(pos => (
-          <Button
-            key={pos}
-            variant={filter === pos ? "default" : "outline"}
-            size="sm"
-            className={filter === pos ? positionColors[pos] : ""}
-            onClick={() => setFilter(pos)}
-          >
-            {pos}
-          </Button>
+          <Button key={pos} variant={filter === pos ? "default" : "outline"} size="sm" className={filter === pos ? positionColors[pos] : ""} onClick={() => setFilter(pos)}>{pos}</Button>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Top Trade Targets */}
+      <div className="grid lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <span className="text-2xl">🎯</span> Top Trade Targets
-            </CardTitle>
-            <CardDescription>
-              Highest-value players on other teams — sorted by age-adjusted gem score
-            </CardDescription>
+            <CardTitle className="flex items-center gap-2"><span className="text-2xl">🎯</span> Trade Targets</CardTitle>
+            <CardDescription>Highest-value players on other teams</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-2 max-h-[400px] overflow-y-auto">
-              {filteredBuyTargets.length > 0 ? filteredBuyTargets.map((player, idx) => (
-                <div
-                  key={`${player.name}-${idx}`}
-                  className="flex items-center justify-between p-3 rounded-lg border border-primary/20 bg-primary/5 hover:bg-primary/10 transition-colors"
-                >
+              {filteredBuyTargets.map((p, idx) => (
+                <div key={`${p.name}-${idx}`} className="flex items-center justify-between p-3 rounded-lg border border-primary/20 bg-primary/5">
                   <div className="flex items-center gap-3">
-                    <Badge className={positionColors[player.position] || "bg-gray-500"}>{player.position}</Badge>
+                    <Badge className={positionColors[p.position] || "bg-gray-500"}>{p.position}</Badge>
                     <div>
-                      <div className="font-medium">{player.name}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {player.team || "FA"} • Age {player.age} • <span className="text-primary">{player.owner}</span>
-                      </div>
+                      <div className="font-medium">{p.name}</div>
+                      <div className="text-xs text-muted-foreground">{p.team || "FA"} • Age {p.age} • {p.owner}</div>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="font-bold">{player.drewValue.toLocaleString()}</div>
-                    <Badge variant="outline" className="text-xs">{player.tier}</Badge>
+                    <div className="font-bold">{p.drewValue.toLocaleString()}</div>
+                    <Badge variant="outline" className="text-xs">{p.tier}</Badge>
                   </div>
-                </div>
-              )) : (
-                <p className="text-muted-foreground text-center py-4">No targets found for this position.</p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Hidden Gems - Young & Undervalued */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <span className="text-2xl">💎</span> Hidden Gems
-            </CardTitle>
-            <CardDescription>
-              Young players (under 26) with upside — potential buy-low candidates
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2 max-h-[400px] overflow-y-auto">
-              {filteredHiddenGems.length > 0 ? filteredHiddenGems.map((player, idx) => (
-                <div
-                  key={`${player.name}-${idx}`}
-                  className="flex items-center justify-between p-3 rounded-lg border border-green-500/20 bg-green-500/5 hover:bg-green-500/10 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <Badge className={positionColors[player.position] || "bg-gray-500"}>{player.position}</Badge>
-                    <div>
-                      <div className="font-medium">{player.name}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {player.team || "FA"} • Age {player.age} • <span className="text-green-500">{player.owner}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-bold text-green-500">{player.drewValue.toLocaleString()}</div>
-                    <Badge variant="outline" className="text-xs">{player.tier}</Badge>
-                  </div>
-                </div>
-              )) : (
-                <p className="text-muted-foreground text-center py-4">No hidden gems found for this position.</p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Aging Assets - Sell High on Other Teams */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <span className="text-2xl">📉</span> Declining Assets (League-wide)
-          </CardTitle>
-          <CardDescription>
-            Aging veterans on other teams whose value will decline — avoid trading FOR these players
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {gems.agingAssets.map((player, idx) => (
-              <div
-                key={`${player.name}-${idx}`}
-                className="flex items-center justify-between p-3 rounded-lg border border-amber-500/20 bg-amber-500/5"
-              >
-                <div className="flex items-center gap-2">
-                  <Badge className={positionColors[player.position] || "bg-gray-500"}>{player.position}</Badge>
-                  <div>
-                    <div className="font-medium text-sm">{player.name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      Age {player.age} • {player.owner}
-                    </div>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="font-bold text-amber-500">{player.drewValue.toLocaleString()}</div>
-                </div>
-              </div>
-            ))}
-            {gems.agingAssets.length === 0 && (
-              <p className="text-muted-foreground text-center py-4 col-span-full">No significant aging assets found.</p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Position-Specific Breakdown */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* QB Gems */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Badge className={positionColors.QB}>QB</Badge> Top QBs Available
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {gems.byPosition.QB.slice(0, 5).map((p, idx) => (
-                <div key={idx} className="flex justify-between text-sm">
-                  <span>{p.name}</span>
-                  <span className="text-muted-foreground">{p.drewValue.toLocaleString()}</span>
                 </div>
               ))}
             </div>
           </CardContent>
         </Card>
 
-        {/* RB Gems */}
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Badge className={positionColors.RB}>RB</Badge> Young RBs Available
-            </CardTitle>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><span className="text-2xl">💎</span> Hidden Gems</CardTitle>
+            <CardDescription>Young players (under 26) with upside</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              {gems.byPosition.RB.slice(0, 5).map((p, idx) => (
-                <div key={idx} className="flex justify-between text-sm">
-                  <span>{p.name} <span className="text-xs text-muted-foreground">({p.age})</span></span>
-                  <span className="text-muted-foreground">{p.drewValue.toLocaleString()}</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* WR Gems */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Badge className={positionColors.WR}>WR</Badge> Young WRs Available
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {gems.byPosition.WR.slice(0, 5).map((p, idx) => (
-                <div key={idx} className="flex justify-between text-sm">
-                  <span>{p.name} <span className="text-xs text-muted-foreground">({p.age})</span></span>
-                  <span className="text-muted-foreground">{p.drewValue.toLocaleString()}</span>
+            <div className="space-y-2 max-h-[400px] overflow-y-auto">
+              {filteredHiddenGems.map((p, idx) => (
+                <div key={`${p.name}-${idx}`} className="flex items-center justify-between p-3 rounded-lg border border-green-500/20 bg-green-500/5">
+                  <div className="flex items-center gap-3">
+                    <Badge className={positionColors[p.position] || "bg-gray-500"}>{p.position}</Badge>
+                    <div>
+                      <div className="font-medium">{p.name}</div>
+                      <div className="text-xs text-muted-foreground">{p.team || "FA"} • Age {p.age} • {p.owner}</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-bold text-green-500">{p.drewValue.toLocaleString()}</div>
+                    <Badge variant="outline" className="text-xs">{p.tier}</Badge>
+                  </div>
                 </div>
               ))}
             </div>
           </CardContent>
         </Card>
       </div>
-
-      <p className="text-xs text-muted-foreground text-center">
-        Analyzing {gems.totalLeaguePlayers} players across {teams.length} teams
-      </p>
     </div>
   );
 }
 
+// ============================================================================
+// MAIN PAGE COMPONENT
+// ============================================================================
 export default function DynastyPage() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
@@ -439,13 +1184,15 @@ export default function DynastyPage() {
   const [prospectReport, setProspectReport] = useState<ProspectReport | null>(null);
   const [loadingProspectReport, setLoadingProspectReport] = useState(false);
   const [selectedTeamPicks, setSelectedTeamPicks] = useState<Pick[]>([]);
-  const [tradeTargetPlayer, setTradeTargetPlayer] = useState<Player | null>(null);
+
   // Trade calculator state
   const [mySideAssets, setMySideAssets] = useState<TradeAsset[]>([]);
   const [theirSideAssets, setTheirSideAssets] = useState<TradeAsset[]>([]);
-  const [tradePartner, setTradePartner] = useState<Team | null>(null);
-  // Trade suggestions
+  const [tradePartner, setTradePartner] = useState<(Team & { roster?: RosterPlayer[] }) | null>(null);
+
+  // New state for enhanced features
   const [tradeSuggestions, setTradeSuggestions] = useState<TradeSuggestion[]>([]);
+  const [valueTrends, setValueTrends] = useState<{ risers: ValueTrend[]; fallers: ValueTrend[] } | null>(null);
   const [tradeHistory, setTradeHistory] = useState<TradeHistoryItem[]>([]);
   const [loadingTrades, setLoadingTrades] = useState(false);
 
@@ -485,24 +1232,34 @@ export default function DynastyPage() {
       if (teamsRes.ok) {
         const data = await teamsRes.json();
         setTeams(data.teams || []);
-        // Get value history for Andrew's team (rosterId 1)
         if (data.historyByTeam && data.historyByTeam[1]) {
           setValueHistory(data.historyByTeam[1]);
         }
       }
 
-      // Load trade suggestions
+      // Load trade suggestions from new endpoint
       try {
         setLoadingTrades(true);
-        const tradesRes = await fetch("/api/dynasty/trades");
-        if (tradesRes.ok) {
-          const tradesData = await tradesRes.json();
-          setTradeSuggestions(tradesData.suggestions || []);
+        const tradeFinderRes = await fetch("/api/dynasty/trade-finder");
+        if (tradeFinderRes.ok) {
+          const tradeData = await tradeFinderRes.json();
+          setTradeSuggestions(tradeData.suggestions || []);
         }
       } catch {
-        console.error("Failed to load trade suggestions");
+        console.error("Failed to load trade finder");
       } finally {
         setLoadingTrades(false);
+      }
+
+      // Load value trends
+      try {
+        const trendsRes = await fetch("/api/dynasty/value-trends");
+        if (trendsRes.ok) {
+          const trendsData = await trendsRes.json();
+          setValueTrends({ risers: trendsData.risers, fallers: trendsData.fallers });
+        }
+      } catch {
+        console.error("Failed to load value trends");
       }
 
       // Load trade history
@@ -551,7 +1308,6 @@ export default function DynastyPage() {
       });
       if (res.ok) {
         setSettings((prev) => prev ? { ...prev, mode: newMode } : null);
-        // Re-sync to recalculate values based on new mode
         handleSync();
       }
     } catch (error) {
@@ -559,30 +1315,16 @@ export default function DynastyPage() {
     }
   };
 
-  // Reload prospects when class changes
-  useEffect(() => {
-    const loadProspects = async () => {
-      const res = await fetch(`/api/dynasty/prospects?class=${prospectClass}`);
-      if (res.ok) {
-        const data = await res.json();
-        setProspects(data.prospects || []);
-      }
-    };
-    loadProspects();
-  }, [prospectClass]);
-
-  // Load full roster and picks when team selected
+  // Load team roster when team selected
   const loadTeamRoster = async (team: Team) => {
     setSelectedTeam(team);
     setLoadingTeamRoster(true);
-    setSelectedTeamPicks([]);
     try {
       const res = await fetch(`/api/dynasty/teams?rosterId=${team.rosterId}`);
       if (res.ok) {
         const data = await res.json();
         setSelectedTeamRoster(data.team?.roster || []);
       }
-      // Find picks owned by this team (currentOwner matches username)
       const teamPicks = picks.filter(p => p.currentOwner === team.ownerUsername);
       setSelectedTeamPicks(teamPicks);
     } catch (error) {
@@ -592,7 +1334,7 @@ export default function DynastyPage() {
     }
   };
 
-  // Load prospect report when prospect selected
+  // Load prospect report
   const loadProspectReport = async (prospect: Prospect) => {
     setSelectedProspect(prospect);
     setProspectReport(null);
@@ -610,36 +1352,12 @@ export default function DynastyPage() {
     }
   };
 
-  // Trade calculator helpers
+  // Add asset to trade calculator helper
   const addToMySide = (asset: TradeAsset) => {
     if (!mySideAssets.find(a => a.id === asset.id)) {
       setMySideAssets([...mySideAssets, asset]);
     }
   };
-
-  const addToTheirSide = (asset: TradeAsset) => {
-    if (!theirSideAssets.find(a => a.id === asset.id)) {
-      setTheirSideAssets([...theirSideAssets, asset]);
-    }
-  };
-
-  const removeFromMySide = (id: string) => {
-    setMySideAssets(mySideAssets.filter(a => a.id !== id));
-  };
-
-  const removeFromTheirSide = (id: string) => {
-    setTheirSideAssets(theirSideAssets.filter(a => a.id !== id));
-  };
-
-  const clearTrade = () => {
-    setMySideAssets([]);
-    setTheirSideAssets([]);
-    setTradePartner(null);
-  };
-
-  const mySideValue = mySideAssets.reduce((sum, a) => sum + a.value, 0);
-  const theirSideValue = theirSideAssets.reduce((sum, a) => sum + a.value, 0);
-  const valueDiff = theirSideValue - mySideValue;
 
   if (isLoading) {
     return (
@@ -654,60 +1372,165 @@ export default function DynastyPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
-        {/* Header */}
-        <header className="mb-8">
-          <Link href="/" className="text-muted-foreground hover:text-foreground text-sm mb-4 inline-flex items-center gap-1">
-            ← Back
-          </Link>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="container mx-auto px-4 py-6 max-w-7xl">
+        {/* Compact Header */}
+        <header className="mb-4">
+          <Link href="/" className="text-muted-foreground hover:text-foreground text-sm mb-2 inline-flex items-center gap-1">← Back</Link>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
-              <h1 className="text-3xl font-bold text-foreground">🏈 Dynasty Manager</h1>
-              <p className="text-muted-foreground mt-1">
-                {settings?.leagueName} • {settings?.teamName}
-              </p>
+              <h1 className="text-2xl font-bold text-foreground">🏈 Dynasty Manager</h1>
+              <p className="text-muted-foreground text-sm">{settings?.leagueName} • {settings?.teamName}</p>
             </div>
-            <div className="flex items-center gap-3">
-              <Button onClick={handleSync} disabled={isSyncing} variant="outline">
-                {isSyncing ? "Syncing..." : "🔄 Sync Data"}
+            <div className="flex items-center gap-2">
+              <Button onClick={handleSync} disabled={isSyncing} variant="outline" size="sm">
+                {isSyncing ? "Syncing..." : "🔄 Sync"}
               </Button>
               {settings?.lastSync && (
-                <span className="text-xs text-muted-foreground">
-                  Last sync: {new Date(settings.lastSync).toLocaleDateString()}
-                </span>
+                <span className="text-xs text-muted-foreground">Last: {new Date(settings.lastSync).toLocaleDateString()}</span>
               )}
             </div>
           </div>
         </header>
 
-        <Tabs defaultValue="strategy" className="space-y-6">
+        {/* Today's Summary - Always visible */}
+        <div className="mb-6">
+          <TodaysSummary 
+            settings={settings}
+            players={players}
+            picks={picks}
+            totalValue={totalValue}
+            teams={teams}
+            tradeSuggestions={tradeSuggestions}
+            valueTrends={valueTrends}
+          />
+        </div>
+
+        <Tabs defaultValue="calculator" className="space-y-4">
           <div className="overflow-x-auto -mx-4 px-4 pb-2">
             <TabsList className="inline-flex w-max min-w-full sm:w-full sm:grid sm:grid-cols-7 gap-1 bg-muted p-1 rounded-lg">
-              <TabsTrigger value="strategy" className="whitespace-nowrap px-3 py-2 text-sm font-medium">📊 Strategy</TabsTrigger>
-              <TabsTrigger value="assets" className="whitespace-nowrap px-3 py-2 text-sm font-medium">💎 Assets</TabsTrigger>
+              <TabsTrigger value="calculator" className="whitespace-nowrap px-3 py-2 text-sm font-medium">🧮 Trade Calc</TabsTrigger>
+              <TabsTrigger value="finder" className="whitespace-nowrap px-3 py-2 text-sm font-medium">🔍 Trade Finder</TabsTrigger>
+              <TabsTrigger value="trends" className="whitespace-nowrap px-3 py-2 text-sm font-medium">📊 Trends</TabsTrigger>
+              <TabsTrigger value="rankings" className="whitespace-nowrap px-3 py-2 text-sm font-medium">🏆 Rankings</TabsTrigger>
+              <TabsTrigger value="roster" className="whitespace-nowrap px-3 py-2 text-sm font-medium">👥 Roster</TabsTrigger>
               <TabsTrigger value="scouting" className="whitespace-nowrap px-3 py-2 text-sm font-medium">🎓 Scouting</TabsTrigger>
-              <TabsTrigger value="calculator" className="whitespace-nowrap px-3 py-2 text-sm font-medium">🧮 Calculator</TabsTrigger>
-              <TabsTrigger value="trades" className="whitespace-nowrap px-3 py-2 text-sm font-medium">💱 Trades</TabsTrigger>
-              <TabsTrigger value="intel" className="whitespace-nowrap px-3 py-2 text-sm font-medium">🕵️ Intel</TabsTrigger>
-              <TabsTrigger value="history" className="whitespace-nowrap px-3 py-2 text-sm font-medium">📜 History</TabsTrigger>
-              <TabsTrigger value="gems" className="whitespace-nowrap px-3 py-2 text-sm font-medium">🔮 Gems</TabsTrigger>
+              <TabsTrigger value="gems" className="whitespace-nowrap px-3 py-2 text-sm font-medium">💎 Gems</TabsTrigger>
             </TabsList>
           </div>
 
-          {/* Strategy Dashboard */}
-          <TabsContent value="strategy" className="space-y-6">
-            {/* Mode Selector */}
+          {/* Trade Calculator Tab */}
+          <TabsContent value="calculator">
+            <EnhancedTradeCalculator
+              players={players}
+              picks={picks}
+              teams={teams}
+              positionColors={positionColors}
+              mySideAssets={mySideAssets}
+              theirSideAssets={theirSideAssets}
+              tradePartner={tradePartner}
+              setMySideAssets={setMySideAssets}
+              setTheirSideAssets={setTheirSideAssets}
+              setTradePartner={setTradePartner}
+            />
+          </TabsContent>
+
+          {/* Trade Finder Tab */}
+          <TabsContent value="finder" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Team Strategy Mode</CardTitle>
-                <CardDescription>This affects player valuations and recommendations</CardDescription>
+                <CardTitle className="flex items-center gap-2">
+                  <span className="text-2xl">🔍</span> AI Trade Finder
+                </CardTitle>
+                <CardDescription>Automatically generated trade ideas based on league analysis</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex gap-3">
+                {loadingTrades ? (
+                  <div className="text-center py-8 text-muted-foreground">Analyzing league...</div>
+                ) : tradeSuggestions.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">Sync data to generate trade suggestions</div>
+                ) : (
+                  <div className="space-y-4">
+                    {tradeSuggestions.map((trade) => (
+                      <Card 
+                        key={trade.id}
+                        className={`cursor-pointer transition-all hover:ring-2 hover:ring-primary/30 ${
+                          trade.priority === "high" ? "border-green-500/50" : trade.priority === "medium" ? "border-yellow-500/50" : "border-border"
+                        }`}
+                        onClick={() => {
+                          // Add to calculator
+                          setTradePartner(teams.find(t => t.rosterId === trade.targetRosterId) as Team & { roster?: RosterPlayer[] } || null);
+                          const myAssets: TradeAsset[] = [
+                            ...trade.yourSide.players.map(p => ({ type: "player" as const, id: p.name, name: p.name, position: p.position, value: p.value })),
+                            ...trade.yourSide.picks.map(pk => ({ type: "pick" as const, id: pk.name, name: pk.name, value: pk.value })),
+                          ];
+                          const theirAssets: TradeAsset[] = [
+                            ...trade.theirSide.players.map(p => ({ type: "player" as const, id: p.name, name: p.name, position: p.position, value: p.value })),
+                            ...trade.theirSide.picks.map(pk => ({ type: "pick" as const, id: pk.name, name: pk.name, value: pk.value })),
+                          ];
+                          setMySideAssets(myAssets);
+                          setTheirSideAssets(theirAssets);
+                        }}
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <Badge className={trade.priority === "high" ? "bg-green-500" : trade.priority === "medium" ? "bg-yellow-500" : "bg-muted"}>
+                                {trade.priority.toUpperCase()}
+                              </Badge>
+                              <Badge variant="outline">{trade.tradeType.toUpperCase()}</Badge>
+                              <span className="font-medium">→ {trade.targetTeam}</span>
+                            </div>
+                            <Badge variant={trade.valueDiff > 0 ? "default" : "secondary"}>
+                              {trade.valueDiff > 0 ? "+" : ""}{trade.valueDiff.toLocaleString()}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground mb-3">{trade.rationale}</p>
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div className="p-2 rounded bg-red-500/10">
+                              <div className="text-xs text-red-400 mb-1">You Give ({trade.yourSide.totalValue.toLocaleString()})</div>
+                              <div>{trade.yourSide.players.map(p => p.name).join(", ") || "—"}</div>
+                              {trade.yourSide.picks.length > 0 && <div className="text-xs">{trade.yourSide.picks.map(p => p.name).join(", ")}</div>}
+                            </div>
+                            <div className="p-2 rounded bg-green-500/10">
+                              <div className="text-xs text-green-400 mb-1">You Get ({trade.theirSide.totalValue.toLocaleString()})</div>
+                              <div>{trade.theirSide.players.map(p => p.name).join(", ") || "—"}</div>
+                              {trade.theirSide.picks.length > 0 && <div className="text-xs">{trade.theirSide.picks.map(p => p.name).join(", ")}</div>}
+                            </div>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-2 italic">{trade.fit}</p>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Value Trends Tab */}
+          <TabsContent value="trends">
+            <ValueTrendsTab positionColors={positionColors} />
+          </TabsContent>
+
+          {/* Power Rankings Tab */}
+          <TabsContent value="rankings">
+            <PowerRankingsTab positionColors={positionColors} />
+          </TabsContent>
+
+          {/* Roster Tab */}
+          <TabsContent value="roster" className="space-y-4">
+            {/* Mode Selector */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Team Strategy</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex gap-2">
                   {(["tank", "retool", "contend"] as const).map((m) => (
                     <Button
                       key={m}
                       variant={mode === m ? "default" : "outline"}
+                      size="sm"
                       onClick={() => handleModeChange(m)}
                       className={mode === m ? modeConfig[m].color : ""}
                     >
@@ -715,369 +1538,18 @@ export default function DynastyPage() {
                     </Button>
                   ))}
                 </div>
-                <p className="text-sm text-muted-foreground mt-3">
-                  Current: <strong>{modeConfig[mode].label}</strong> — {modeConfig[mode].description}
-                </p>
               </CardContent>
             </Card>
 
-            {/* Phase Recommendation */}
-            {phaseRecommendation && (
-              <Card className="border-primary/50 bg-primary/5">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    🤖 Drew&apos;s Recommendation
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center gap-3 mb-2">
-                    <Badge className={phaseRecommendation.phase === "tank" ? "bg-red-500" : phaseRecommendation.phase === "contend" ? "bg-green-500" : "bg-yellow-500"}>
-                      {phaseRecommendation.phase.toUpperCase()}
-                    </Badge>
-                    <span className="font-medium">is the optimal strategy</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground">{phaseRecommendation.reason}</p>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Team Overview */}
-            <div className="grid md:grid-cols-3 gap-4">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardDescription>Total Team Value</CardDescription>
-                  <CardTitle className="text-3xl">{totalValue.toLocaleString()}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">
-                    Players: {players.reduce((s, p) => s + (p.drewValue || 0), 0).toLocaleString()} |
-                    Picks: {picks.reduce((s, p) => s + (p.drewValue || 0), 0).toLocaleString()}
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardDescription>Draft Capital</CardDescription>
-                  <CardTitle className="text-3xl">{picks.length} picks</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">
-                    {picks.filter((p) => p.round === 1).length} 1sts •{" "}
-                    {picks.filter((p) => p.round === 2).length} 2nds
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardDescription>Sell Candidates</CardDescription>
-                  <CardTitle className="text-3xl">{sellCandidates.length}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">
-                    Players to move for max value
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Draft Capital Board - Visual Pick Display */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  🎯 Draft Capital Board
-                  <Badge variant="outline" className="ml-2">{picks.length} picks</Badge>
-                </CardTitle>
-                <CardDescription>Your picks across all years — hover for projected value</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {["2026", "2027", "2028"].map((year) => {
-                    const yearPicks = picks.filter((p) => p.season === year);
-                    const round1 = yearPicks.filter((p) => p.round === 1);
-                    const round2 = yearPicks.filter((p) => p.round === 2);
-                    const round3 = yearPicks.filter((p) => p.round === 3);
-                    const yearValue = yearPicks.reduce((s, p) => s + (p.drewValue || 0), 0);
-                    
-                    if (yearPicks.length === 0) return null;
-                    
-                    return (
-                      <div key={year} className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-lg">{year}</span>
-                            <Badge variant="secondary">{yearPicks.length} picks</Badge>
-                          </div>
-                          <span className="text-sm text-muted-foreground">{yearValue.toLocaleString()} value</span>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {round1.map((pick, i) => (
-                            <div 
-                              key={`${year}-1-${i}`}
-                              className="group relative px-3 py-2 rounded-lg bg-amber-500/20 border border-amber-500/40 hover:bg-amber-500/30 transition-colors cursor-pointer"
-                              title={`${pick.originalOwner}&apos;s 1st — Value: ${pick.drewValue?.toLocaleString()}`}
-                            >
-                              <span className="font-bold text-amber-400">1st</span>
-                              <span className="text-xs text-muted-foreground ml-1">({pick.originalOwner?.slice(0, 6)})</span>
-                              <div className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-popover border rounded text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-                                {pick.drewValue?.toLocaleString()} pts
-                              </div>
-                            </div>
-                          ))}
-                          {round2.map((pick, i) => (
-                            <div 
-                              key={`${year}-2-${i}`}
-                              className="group relative px-3 py-2 rounded-lg bg-slate-500/20 border border-slate-500/40 hover:bg-slate-500/30 transition-colors cursor-pointer"
-                              title={`${pick.originalOwner}&apos;s 2nd — Value: ${pick.drewValue?.toLocaleString()}`}
-                            >
-                              <span className="font-medium text-slate-300">2nd</span>
-                              <span className="text-xs text-muted-foreground ml-1">({pick.originalOwner?.slice(0, 6)})</span>
-                              <div className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-popover border rounded text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-                                {pick.drewValue?.toLocaleString()} pts
-                              </div>
-                            </div>
-                          ))}
-                          {round3.map((pick, i) => (
-                            <div 
-                              key={`${year}-3-${i}`}
-                              className="group relative px-3 py-2 rounded-lg bg-zinc-600/20 border border-zinc-600/40 hover:bg-zinc-600/30 transition-colors cursor-pointer"
-                              title={`${pick.originalOwner}&apos;s 3rd — Value: ${pick.drewValue?.toLocaleString()}`}
-                            >
-                              <span className="font-medium text-zinc-400">3rd</span>
-                              <span className="text-xs text-muted-foreground ml-1">({pick.originalOwner?.slice(0, 6)})</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
-                  {picks.length === 0 && (
-                    <p className="text-muted-foreground text-center py-4">Sync your league to see draft capital</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Team Value Chart */}
-            <Card>
-              <CardHeader>
-                <CardTitle>📈 Team Value Over Time</CardTitle>
-                <CardDescription>Track your dynasty&apos;s growth</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {valueHistory.length > 1 ? (
-                  <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={valueHistory} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                        <XAxis 
-                          dataKey="date" 
-                          stroke="hsl(var(--muted-foreground))"
-                          tick={{ fontSize: 12 }}
-                          tickFormatter={(val) => {
-                            const d = new Date(val);
-                            return `${d.getMonth() + 1}/${d.getDate()}`;
-                          }}
-                        />
-                        <YAxis 
-                          stroke="hsl(var(--muted-foreground))"
-                          tick={{ fontSize: 12 }}
-                          tickFormatter={(val) => `${(val / 1000).toFixed(0)}k`}
-                        />
-                        <Tooltip 
-                          contentStyle={{ 
-                            backgroundColor: "hsl(var(--card))", 
-                            border: "1px solid hsl(var(--border))",
-                            borderRadius: "8px"
-                          }}
-                          labelStyle={{ color: "hsl(var(--foreground))" }}
-                          formatter={(value) => [Number(value).toLocaleString(), "Value"]}
-                          labelFormatter={(label) => new Date(label).toLocaleDateString()}
-                        />
-                        <Line 
-                          type="monotone" 
-                          dataKey="value" 
-                          stroke="hsl(var(--primary))" 
-                          strokeWidth={2}
-                          dot={{ fill: "hsl(var(--primary))", strokeWidth: 2, r: 4 }}
-                          activeDot={{ r: 6, fill: "hsl(var(--primary))" }}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                ) : (
-                  <div className="h-64 flex items-center justify-center text-muted-foreground">
-                    <div className="text-center">
-                      <p>No history yet</p>
-                      <p className="text-sm mt-1">Chart will populate as you sync weekly</p>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Position Breakdown */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Roster Composition</CardTitle>
-                <CardDescription>Value by position</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {["QB", "RB", "WR", "TE"].map((pos) => {
-                    const posPlayers = players.filter((p) => p.position === pos);
-                    const posValue = posPlayers.reduce((s, p) => s + (p.drewValue || 0), 0);
-                    const maxValue = Math.max(...["QB", "RB", "WR", "TE"].map(
-                      (p) => players.filter((pl) => pl.position === p).reduce((s, pl) => s + (pl.drewValue || 0), 0)
-                    ));
-                    
-                    return (
-                      <div key={pos} className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Badge className={positionColors[pos]}>{pos}</Badge>
-                            <span className="text-sm">{posPlayers.length} players</span>
-                          </div>
-                          <span className="font-medium">{posValue.toLocaleString()}</span>
-                        </div>
-                        <Progress value={(posValue / maxValue) * 100} className="h-2" />
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Roster Age Heatmap */}
-            <Card>
-              <CardHeader>
-                <CardTitle>🎂 Roster Age Profile</CardTitle>
-                <CardDescription>Player age distribution — younger is greener</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-4 gap-2">
-                  {["QB", "RB", "WR", "TE"].map((pos) => {
-                    const posPlayers = players.filter((p) => p.position === pos);
-                    const avgAge = posPlayers.length > 0 
-                      ? posPlayers.reduce((s, p) => s + (p.age || 25), 0) / posPlayers.length
-                      : 25;
-                    
-                    return (
-                      <div key={pos} className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Badge className={positionColors[pos]}>{pos}</Badge>
-                          <span className="text-xs text-muted-foreground">avg {avgAge.toFixed(1)}</span>
-                        </div>
-                        <div className="space-y-1">
-                          {posPlayers
-                            .sort((a, b) => (a.age || 25) - (b.age || 25))
-                            .map((player) => {
-                              const age = player.age || 25;
-                              // Color based on age: green (young) to red (old)
-                              let ageColor = "bg-emerald-500"; // 21-23
-                              if (age >= 28) ageColor = "bg-red-500";
-                              else if (age >= 26) ageColor = "bg-amber-500";
-                              else if (age >= 24) ageColor = "bg-yellow-500";
-                              
-                              return (
-                                <div 
-                                  key={player.id}
-                                  className={`${ageColor}/20 border ${ageColor.replace('bg-', 'border-')}/40 rounded px-2 py-1 text-xs flex justify-between items-center cursor-pointer hover:opacity-80`}
-                                  onClick={() => setSelectedPlayer(player)}
-                                  title={`${player.name} - Age ${age}`}
-                                >
-                                  <span className="truncate">{player.name.split(' ').pop()}</span>
-                                  <span className="font-mono text-muted-foreground">{age}</span>
-                                </div>
-                              );
-                            })}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="flex justify-center gap-4 mt-4 text-xs">
-                  <div className="flex items-center gap-1"><div className="w-3 h-3 bg-emerald-500 rounded" /> 21-23</div>
-                  <div className="flex items-center gap-1"><div className="w-3 h-3 bg-yellow-500 rounded" /> 24-25</div>
-                  <div className="flex items-center gap-1"><div className="w-3 h-3 bg-amber-500 rounded" /> 26-27</div>
-                  <div className="flex items-center gap-1"><div className="w-3 h-3 bg-red-500 rounded" /> 28+</div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Recommended Actions */}
-            <Card>
-              <CardHeader>
-                <CardTitle>🎯 Recommended Actions</CardTitle>
-                <CardDescription>Based on your {modeConfig[mode].label} strategy</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {/* Top Trade Suggestions */}
-                  {tradeSuggestions.filter(t => t.priority === "high").slice(0, 3).map((trade, idx) => (
-                    <div
-                      key={`trade-${idx}`}
-                      className="flex items-center justify-between p-3 rounded-lg border border-green-500/30 bg-green-500/5"
-                    >
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <Badge className="bg-green-500">TRADE</Badge>
-                          <span className="font-medium">Target: {trade.targetTeam}</span>
-                        </div>
-                        <p className="text-sm text-muted-foreground mt-1">{trade.rationale}</p>
-                        <div className="text-xs mt-2">
-                          <span className="text-red-400">Give: {trade.yourSide.players.join(", ") || trade.yourSide.picks.join(", ")}</span>
-                          <span className="mx-2">→</span>
-                          <span className="text-green-400">Get: {trade.theirSide.players.join(", ") || trade.theirSide.picks.join(", ")}</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  
-                  {/* Sell Candidates */}
-                  {sellCandidates.slice(0, 3).map((player) => (
-                    <div
-                      key={player.id}
-                      className="flex items-center justify-between p-3 rounded-lg border border-red-500/30 bg-red-500/5"
-                    >
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="destructive">SELL</Badge>
-                          <span className="font-medium">{player.name}</span>
-                          <Badge variant="outline" className={positionColors[player.position]}>
-                            {player.position}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-muted-foreground mt-1">{player.recommendReason}</p>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-bold">{player.drewValue?.toLocaleString()}</div>
-                        <div className="text-xs text-muted-foreground">Drew Value</div>
-                      </div>
-                    </div>
-                  ))}
-                  
-                  {sellCandidates.length === 0 && tradeSuggestions.length === 0 && (
-                    <p className="text-center text-muted-foreground py-4">
-                      Sync data to generate recommendations
-                    </p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* My Assets */}
-          <TabsContent value="assets" className="space-y-6">
+            {/* My Roster */}
             <Card>
               <CardHeader>
                 <CardTitle>My Roster</CardTitle>
-                <CardDescription>Sorted by Drew Value • Click for trade recommendations</CardDescription>
+                <CardDescription>Click any player for trade recommendations</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {players.map((player) => (
+                  {players.sort((a, b) => (b.drewValue || 0) - (a.drewValue || 0)).map((player) => (
                     <button
                       key={player.id}
                       onClick={() => setSelectedPlayer(player)}
@@ -1093,15 +1565,9 @@ export default function DynastyPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-4">
-                        {player.recommendation === "sell" && (
-                          <Badge variant="destructive">SELL</Badge>
-                        )}
-                        {player.recommendation === "hold" && (
-                          <Badge variant="secondary">HOLD</Badge>
-                        )}
+                        {player.recommendation === "sell" && <Badge variant="destructive">SELL</Badge>}
                         <div className="text-right">
                           <div className="font-bold">{player.drewValue?.toLocaleString()}</div>
-                          <div className="text-xs text-muted-foreground">Drew Value</div>
                         </div>
                       </div>
                     </button>
@@ -1110,34 +1576,23 @@ export default function DynastyPage() {
               </CardContent>
             </Card>
 
+            {/* Draft Capital */}
             <Card>
               <CardHeader>
-                <CardTitle>My Draft Picks</CardTitle>
-                <CardDescription>Future assets</CardDescription>
+                <CardTitle>Draft Capital</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {picks.map((pick) => (
-                    <div
-                      key={pick.id}
-                      className="p-3 rounded-lg border border-border bg-card"
-                    >
+                    <div key={pick.id} className="p-3 rounded-lg border border-border bg-card">
                       <div className="flex items-center justify-between">
-                        <div>
-                          <span className="font-bold">
-                            {pick.season} {pick.round === 1 ? "1st" : pick.round === 2 ? "2nd" : "3rd"}
-                          </span>
-                          {pick.pick && (
-                            <span className="text-muted-foreground ml-1">
-                              ({pick.round}.{pick.pick.toString().padStart(2, "0")})
-                            </span>
-                          )}
-                        </div>
+                        <span className="font-bold">
+                          {pick.season} {pick.round === 1 ? "1st" : pick.round === 2 ? "2nd" : "3rd"}
+                          {pick.pick && <span className="text-muted-foreground ml-1">({pick.round}.{pick.pick.toString().padStart(2, "0")})</span>}
+                        </span>
                         <span className="font-medium text-primary">{pick.drewValue?.toLocaleString()}</span>
                       </div>
-                      <div className="text-xs text-muted-foreground mt-1">
-                        via {pick.originalOwner}
-                      </div>
+                      <div className="text-xs text-muted-foreground mt-1">via {pick.originalOwner}</div>
                     </div>
                   ))}
                 </div>
@@ -1145,30 +1600,18 @@ export default function DynastyPage() {
             </Card>
           </TabsContent>
 
-          {/* Scouting Central */}
-          <TabsContent value="scouting" className="space-y-6">
+          {/* Scouting Tab */}
+          <TabsContent value="scouting" className="space-y-4">
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle>🎓 Prospect Rankings</CardTitle>
-                    <CardDescription>Top 30 prospects • Drew&apos;s algorithm (SF + PPR weighted)</CardDescription>
+                    <CardDescription>Top 30 prospects</CardDescription>
                   </div>
                   <div className="flex gap-2">
-                    <Button
-                      variant={prospectClass === "2026" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setProspectClass("2026")}
-                    >
-                      2026
-                    </Button>
-                    <Button
-                      variant={prospectClass === "2027" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setProspectClass("2027")}
-                    >
-                      2027
-                    </Button>
+                    <Button variant={prospectClass === "2026" ? "default" : "outline"} size="sm" onClick={() => setProspectClass("2026")}>2026</Button>
+                    <Button variant={prospectClass === "2027" ? "default" : "outline"} size="sm" onClick={() => setProspectClass("2027")}>2027</Button>
                   </div>
                 </div>
               </CardHeader>
@@ -1181,12 +1624,8 @@ export default function DynastyPage() {
                       className="w-full flex items-center justify-between p-3 rounded-lg border border-border hover:border-primary/50 hover:bg-muted/50 transition-colors text-left"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
-                          {idx + 1}
-                        </div>
-                        <Badge className={positionColors[prospect.position] || "bg-gray-500"}>
-                          {prospect.position}
-                        </Badge>
+                        <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">{idx + 1}</div>
+                        <Badge className={positionColors[prospect.position] || "bg-gray-500"}>{prospect.position}</Badge>
                         <div>
                           <div className="font-medium">{prospect.name}</div>
                           <div className="text-xs text-muted-foreground">{prospect.college}</div>
@@ -1194,567 +1633,7 @@ export default function DynastyPage() {
                       </div>
                       <div className="text-right">
                         <div className="font-bold">{prospect.drewScore?.toFixed(1)}</div>
-                        <div className="text-xs text-muted-foreground">
-                          Consensus: #{prospect.consensus}
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Your Pick Targets */}
-            <Card>
-              <CardHeader>
-                <CardTitle>🎯 Your Pick Targets</CardTitle>
-                <CardDescription>Prospects available at your pick positions</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {picks
-                    .filter((p) => p.season === prospectClass && p.pick)
-                    .map((pick) => {
-                      const availableAt = prospects.slice((pick.pick || 1) - 3, (pick.pick || 1) + 2);
-                      return (
-                        <div key={pick.id} className="p-4 rounded-lg border border-border bg-muted/30">
-                          <div className="font-medium mb-2">
-                            Pick {pick.round}.{pick.pick?.toString().padStart(2, "0")} (via {pick.originalOwner})
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            {availableAt.map((p) => (
-                              <Badge key={p.id} variant="outline" className="cursor-pointer hover:bg-muted">
-                                {p.name} ({p.position})
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Trade Calculator */}
-          <TabsContent value="calculator" className="space-y-6">
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* My Side */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">🏠 Your Side</CardTitle>
-                  <CardDescription>Assets you&apos;re giving up</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2 mb-4 min-h-24">
-                    {mySideAssets.length === 0 ? (
-                      <p className="text-sm text-muted-foreground text-center py-4">Add assets from your roster below</p>
-                    ) : (
-                      mySideAssets.map((asset) => (
-                        <div key={asset.id} className="flex items-center justify-between p-2 rounded border border-border">
-                          <div className="flex items-center gap-2">
-                            {asset.position && <Badge className={positionColors[asset.position] || "bg-gray-500"} variant="outline">{asset.position}</Badge>}
-                            <span className="text-sm">{asset.name}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">{asset.value.toLocaleString()}</span>
-                            <Button size="sm" variant="ghost" onClick={() => removeFromMySide(asset.id)}>×</Button>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                  <div className="border-t pt-2">
-                    <div className="flex justify-between font-bold">
-                      <span>Total:</span>
-                      <span>{mySideValue.toLocaleString()}</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Their Side */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">🎯 Their Side</CardTitle>
-                  <CardDescription>
-                    {tradePartner ? `${tradePartner.ownerUsername}'s assets` : "Select a trade partner"}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2 mb-4 min-h-24">
-                    {theirSideAssets.length === 0 ? (
-                      <p className="text-sm text-muted-foreground text-center py-4">Select a trade partner and add their assets</p>
-                    ) : (
-                      theirSideAssets.map((asset) => (
-                        <div key={asset.id} className="flex items-center justify-between p-2 rounded border border-border">
-                          <div className="flex items-center gap-2">
-                            {asset.position && <Badge className={positionColors[asset.position] || "bg-gray-500"} variant="outline">{asset.position}</Badge>}
-                            <span className="text-sm">{asset.name}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">{asset.value.toLocaleString()}</span>
-                            <Button size="sm" variant="ghost" onClick={() => removeFromTheirSide(asset.id)}>×</Button>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                  <div className="border-t pt-2">
-                    <div className="flex justify-between font-bold">
-                      <span>Total:</span>
-                      <span>{theirSideValue.toLocaleString()}</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Trade Analysis */}
-            {(mySideAssets.length > 0 || theirSideAssets.length > 0) && (
-              <Card className={valueDiff > 500 ? "border-green-500/50 bg-green-500/5" : valueDiff < -500 ? "border-red-500/50 bg-red-500/5" : "border-yellow-500/50 bg-yellow-500/5"}>
-                <CardHeader>
-                  <CardTitle>📊 Trade Analysis</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-center gap-8 mb-4">
-                    <div className="text-center">
-                      <div className="text-2xl font-bold">{mySideValue.toLocaleString()}</div>
-                      <div className="text-sm text-muted-foreground">You give</div>
-                    </div>
-                    <div className="text-3xl">{valueDiff > 0 ? "←" : valueDiff < 0 ? "→" : "↔"}</div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold">{theirSideValue.toLocaleString()}</div>
-                      <div className="text-sm text-muted-foreground">You get</div>
-                    </div>
-                  </div>
-                  <div className="text-center">
-                    <Badge className={valueDiff > 500 ? "bg-green-500" : valueDiff < -500 ? "bg-red-500" : "bg-yellow-500"}>
-                      {valueDiff > 500 ? `+${valueDiff.toLocaleString()} WIN` : valueDiff < -500 ? `${valueDiff.toLocaleString()} LOSS` : "FAIR TRADE"}
-                    </Badge>
-                    <p className="text-sm text-muted-foreground mt-2">
-                      {valueDiff > 1000 ? "Smash accept! Great value for you." :
-                       valueDiff > 500 ? "Solid win. Take it if it fits your roster needs." :
-                       valueDiff > -500 ? "Fair trade. Depends on roster construction." :
-                       valueDiff > -1000 ? "Slight overpay. Only if you really need what you're getting." :
-                       "Bad trade. You're giving up too much value."}
-                    </p>
-                  </div>
-                  <div className="flex justify-center mt-4">
-                    <Button variant="outline" onClick={clearTrade}>Clear Trade</Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Asset Selectors */}
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* My Players */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Your Players</CardTitle>
-                </CardHeader>
-                <CardContent className="max-h-64 overflow-y-auto">
-                  <div className="space-y-1">
-                    {players.map((p) => (
-                      <button
-                        key={p.id}
-                        onClick={() => addToMySide({ type: "player", id: p.sleeperId, name: p.name, position: p.position, value: p.drewValue || 0 })}
-                        disabled={mySideAssets.some(a => a.id === p.sleeperId)}
-                        className="w-full flex items-center justify-between p-2 rounded border border-border hover:bg-muted/50 disabled:opacity-50 text-left text-sm"
-                      >
-                        <div className="flex items-center gap-2">
-                          <Badge className={positionColors[p.position]}>{p.position}</Badge>
-                          <span>{p.name}</span>
-                        </div>
-                        <span className="font-medium">{p.drewValue?.toLocaleString()}</span>
-                      </button>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* My Picks */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Your Picks</CardTitle>
-                </CardHeader>
-                <CardContent className="max-h-64 overflow-y-auto">
-                  <div className="space-y-1">
-                    {picks.map((p) => (
-                      <button
-                        key={p.id}
-                        onClick={() => addToMySide({ type: "pick", id: p.id, name: `${p.season} ${p.round === 1 ? "1st" : p.round === 2 ? "2nd" : "3rd"}${p.pick ? ` (${p.round}.${p.pick.toString().padStart(2, "0")})` : ""} via ${p.originalOwner}`, value: p.drewValue || 0 })}
-                        disabled={mySideAssets.some(a => a.id === p.id)}
-                        className="w-full flex items-center justify-between p-2 rounded border border-border hover:bg-muted/50 disabled:opacity-50 text-left text-sm"
-                      >
-                        <span>{p.season} {p.round === 1 ? "1st" : p.round === 2 ? "2nd" : "3rd"}{p.pick ? ` (${p.round}.${p.pick.toString().padStart(2, "0")})` : ""}</span>
-                        <span className="font-medium">{p.drewValue?.toLocaleString()}</span>
-                      </button>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Trade Partner Selector */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Select Trade Partner</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                  {teams.filter(t => t.ownerUsername !== "Hendawg55").map((team) => (
-                    <Button
-                      key={team.id}
-                      variant={tradePartner?.id === team.id ? "default" : "outline"}
-                      size="sm"
-                      onClick={async () => {
-                        setTradePartner(team);
-                        setTheirSideAssets([]);
-                        // Load their roster
-                        const res = await fetch(`/api/dynasty/teams?rosterId=${team.rosterId}`);
-                        if (res.ok) {
-                          const data = await res.json();
-                          const roster = data.team?.roster || [];
-                          setTradePartner({ ...team, roster });
-                        }
-                      }}
-                      className="text-xs"
-                    >
-                      {team.ownerUsername}
-                    </Button>
-                  ))}
-                </div>
-
-                {/* Partner's Roster */}
-                {tradePartner?.roster && tradePartner.roster.length > 0 && (
-                  <div className="mt-4 max-h-48 overflow-y-auto">
-                    <h4 className="font-medium mb-2">{tradePartner.ownerUsername}&apos;s Roster</h4>
-                    <div className="space-y-1">
-                      {tradePartner.roster.sort((a: RosterPlayer, b: RosterPlayer) => b.value - a.value).map((p: RosterPlayer) => (
-                        <button
-                          key={p.sleeperId}
-                          onClick={() => addToTheirSide({ type: "player", id: p.sleeperId, name: p.name, position: p.position, value: p.value })}
-                          disabled={theirSideAssets.some(a => a.id === p.sleeperId)}
-                          className="w-full flex items-center justify-between p-2 rounded border border-border hover:bg-muted/50 disabled:opacity-50 text-left text-sm"
-                        >
-                          <div className="flex items-center gap-2">
-                            <Badge className={positionColors[p.position] || "bg-gray-500"}>{p.position}</Badge>
-                            <span>{p.name}</span>
-                          </div>
-                          <span className="font-medium">{p.value.toLocaleString()}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Trade Finder */}
-          <TabsContent value="trades" className="space-y-6">
-            {/* Trade Builder Section */}
-            <Card className="border-primary/30">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <span className="text-2xl">🔄</span> Interactive Trade Builder
-                </CardTitle>
-                <CardDescription>Select a player to explore trade packages</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {/* Player Selection */}
-                <div className="mb-6">
-                  <p className="text-sm text-muted-foreground mb-3">Click a player to build a trade around them:</p>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 max-h-48 overflow-y-auto">
-                    {players
-                      .sort((a, b) => (b.drewValue || 0) - (a.drewValue || 0))
-                      .map((player) => (
-                        <div
-                          key={player.id}
-                          className={`p-2 rounded border cursor-pointer transition-colors ${
-                            tradeTargetPlayer?.id === player.id 
-                              ? "border-primary bg-primary/10" 
-                              : "border-border hover:border-primary/50 hover:bg-muted/50"
-                          }`}
-                          onClick={() => setTradeTargetPlayer(player)}
-                        >
-                          <div className="flex items-center gap-2">
-                            <Badge className={`${positionColors[player.position]} text-xs`}>{player.position}</Badge>
-                            <span className="text-sm font-medium truncate">{player.name}</span>
-                          </div>
-                          <div className="text-xs text-muted-foreground mt-1">
-                            {player.drewValue?.toLocaleString()}
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                </div>
-
-                {/* Trade Package Builder */}
-                {tradeTargetPlayer && (
-                  <div className="p-4 rounded-lg border border-primary/30 bg-primary/5">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <Badge className={positionColors[tradeTargetPlayer.position]}>{tradeTargetPlayer.position}</Badge>
-                        <span className="font-semibold text-lg">{tradeTargetPlayer.name}</span>
-                        <span className="text-muted-foreground">({tradeTargetPlayer.drewValue?.toLocaleString()} value)</span>
-                      </div>
-                      <Button variant="ghost" size="sm" onClick={() => setTradeTargetPlayer(null)}>✕</Button>
-                    </div>
-
-                    {/* Trade Packages */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                      {/* Best Trade Partners */}
-                      <div>
-                        <h4 className="font-medium mb-2 text-sm">🎯 Best Trade Partners</h4>
-                        <div className="space-y-2">
-                          {teams
-                            .filter((t) => t.weaknesses?.includes(tradeTargetPlayer.position))
-                            .sort((a, b) => {
-                              // Prioritize contenders for veterans, rebuilders for young players
-                              const playerAge = tradeTargetPlayer.age || 25;
-                              if (playerAge >= 27) {
-                                return (b.mode === "contending" ? 1 : 0) - (a.mode === "contending" ? 1 : 0);
-                              }
-                              return (b.totalValue || 0) - (a.totalValue || 0);
-                            })
-                            .slice(0, 4)
-                            .map((team) => (
-                              <div 
-                                key={team.id} 
-                                className="p-3 rounded border border-border hover:bg-muted/50 cursor-pointer"
-                                onClick={() => loadTeamRoster(team)}
-                              >
-                                <div className="flex items-center justify-between">
-                                  <div>
-                                    <span className="font-medium">{team.ownerUsername}</span>
-                                    <Badge variant="outline" className="ml-2 text-xs">{team.mode}</Badge>
-                                  </div>
-                                  <span className="text-xs text-muted-foreground">Needs: {tradeTargetPlayer.position}</span>
-                                </div>
-                              </div>
-                            ))}
-                          {teams.filter((t) => t.weaknesses?.includes(tradeTargetPlayer.position)).length === 0 && (
-                            <p className="text-sm text-muted-foreground text-center py-2">
-                              No teams currently need {tradeTargetPlayer.position}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Suggested Returns */}
-                      <div>
-                        <h4 className="font-medium mb-2 text-sm">💰 Target Returns</h4>
-                        <div className="space-y-2">
-                          {/* Pick packages */}
-                          <div className="p-3 rounded border border-green-500/20 bg-green-500/5">
-                            <div className="font-medium text-sm text-green-600 mb-1">📦 Pick Package</div>
-                            <p className="text-sm">
-                              {(tradeTargetPlayer.drewValue || 0) >= 7000 ? "2026 1.01-1.03 + 2nd" :
-                               (tradeTargetPlayer.drewValue || 0) >= 5500 ? "2026 1st (early) + 2027 2nd" :
-                               (tradeTargetPlayer.drewValue || 0) >= 4000 ? "2026 1st (mid)" :
-                               (tradeTargetPlayer.drewValue || 0) >= 2500 ? "2026 Late 1st OR 2027 1st" :
-                               (tradeTargetPlayer.drewValue || 0) >= 1500 ? "2026 2nd + 3rd" :
-                               "2026 3rd + future pick"}
-                            </p>
-                          </div>
-
-                          {/* Player swap */}
-                          <div className="p-3 rounded border border-blue-500/20 bg-blue-500/5">
-                            <div className="font-medium text-sm text-blue-600 mb-1">🔄 Player Swap</div>
-                            <p className="text-sm">
-                              {(tradeTargetPlayer.drewValue || 0) >= 7000 ? "Young WR1/RB1 + sweetener" :
-                               (tradeTargetPlayer.drewValue || 0) >= 5000 ? "Rising starter + 2nd round pick" :
-                               (tradeTargetPlayer.drewValue || 0) >= 3000 ? "Upside player + mid pick" :
-                               "Depth + late pick"}
-                            </p>
-                          </div>
-
-                          {/* Tank mode specific */}
-                          {mode === "tank" && (tradeTargetPlayer.age || 0) >= 26 && (
-                            <div className="p-3 rounded border border-amber-500/20 bg-amber-500/5">
-                              <div className="font-medium text-sm text-amber-600 mb-1">🎯 Tank Mode Target</div>
-                              <p className="text-sm">
-                                Prioritize 2027+ picks over 2026. Target rebuilding teams&apos; future 1sts.
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Action Button */}
-                    <div className="mt-4 flex gap-2">
-                      <Button 
-                        className="flex-1"
-                        onClick={() => {
-                          addToMySide({
-                            type: "player",
-                            id: tradeTargetPlayer.sleeperId,
-                            name: tradeTargetPlayer.name,
-                            position: tradeTargetPlayer.position,
-                            value: tradeTargetPlayer.drewValue || 0
-                          });
-                          setTradeTargetPlayer(null);
-                        }}
-                      >
-                        Add to Trade Calculator →
-                      </Button>
-                      <Button variant="outline" onClick={() => setSelectedPlayer(tradeTargetPlayer)}>
-                        Full Details
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Existing Sell Candidates */}
-            <Card>
-              <CardHeader>
-                <CardTitle>💱 Auto-Suggested Sells</CardTitle>
-                <CardDescription>Based on your {modeConfig[mode].label} strategy</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {sellCandidates.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">
-                    No sell candidates in {modeConfig[mode].label} mode. Adjust strategy or roster.
-                  </p>
-                ) : (
-                  <div className="space-y-3">
-                    {sellCandidates.slice(0, 5).map((player) => {
-                      const needyTeams = teams.filter(
-                        (t) => t.weaknesses?.includes(player.position) && t.mode === "contending"
-                      );
-                      return (
-                        <div 
-                          key={player.id} 
-                          className="p-3 rounded-lg border border-red-500/20 bg-red-500/5 hover:bg-red-500/10 cursor-pointer transition-colors"
-                          onClick={() => setTradeTargetPlayer(player)}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <Badge variant="destructive" className="text-xs">SELL</Badge>
-                              <Badge className={positionColors[player.position]}>{player.position}</Badge>
-                              <span className="font-medium">{player.name}</span>
-                            </div>
-                            <div className="text-right">
-                              <div className="font-medium">{player.drewValue?.toLocaleString()}</div>
-                              {needyTeams.length > 0 && (
-                                <div className="text-xs text-muted-foreground">
-                                  {needyTeams.length} interested team{needyTeams.length > 1 ? "s" : ""}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* League Intel */}
-          <TabsContent value="intel" className="space-y-6">
-            {/* AI Trade Suggestions */}
-            <Card className="border-primary/50">
-              <CardHeader>
-                <CardTitle>🎯 AI Trade Suggestions</CardTitle>
-                <CardDescription>Based on league-wide roster analysis and team needs</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {loadingTrades ? (
-                  <p className="text-center text-muted-foreground py-4">Analyzing league...</p>
-                ) : tradeSuggestions.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-4">Sync data to generate trade ideas</p>
-                ) : (
-                  <div className="space-y-4">
-                    {tradeSuggestions.slice(0, 8).map((trade, idx) => (
-                      <div
-                        key={idx}
-                        className={`p-4 rounded-lg border ${
-                          trade.priority === "high" 
-                            ? "border-green-500/50 bg-green-500/5" 
-                            : trade.priority === "medium"
-                            ? "border-yellow-500/50 bg-yellow-500/5"
-                            : "border-border"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <Badge variant={trade.priority === "high" ? "default" : "secondary"}>
-                              {trade.priority.toUpperCase()}
-                            </Badge>
-                            <Badge variant="outline">{trade.type}</Badge>
-                            <span className="font-medium">→ {trade.targetTeam}</span>
-                            <span className="text-xs text-muted-foreground">({trade.targetMode})</span>
-                          </div>
-                        </div>
-                        <p className="text-sm text-muted-foreground mb-3">{trade.rationale}</p>
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div className="p-2 rounded bg-red-500/10">
-                            <div className="text-xs text-red-400 mb-1">You Give</div>
-                            <div>{trade.yourSide.players.join(", ") || "—"}</div>
-                            {trade.yourSide.picks.length > 0 && (
-                              <div className="text-xs text-muted-foreground">{trade.yourSide.picks.join(", ")}</div>
-                            )}
-                          </div>
-                          <div className="p-2 rounded bg-green-500/10">
-                            <div className="text-xs text-green-400 mb-1">You Get</div>
-                            <div>{trade.theirSide.players.join(", ") || "—"}</div>
-                            {trade.theirSide.picks.length > 0 && (
-                              <div className="text-xs text-muted-foreground">{trade.theirSide.picks.join(", ")}</div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>📊 League Standings by Value</CardTitle>
-                <CardDescription>Click a team for details</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {teams.map((team, idx) => (
-                    <button
-                      key={team.id}
-                      onClick={() => loadTeamRoster(team)}
-                      className="w-full flex items-center justify-between p-3 rounded-lg border border-border hover:border-primary/50 hover:bg-muted/50 transition-colors text-left"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center font-bold text-sm">
-                          {idx + 1}
-                        </div>
-                        <div>
-                          <div className="font-medium">
-                            {team.ownerUsername}
-                            {team.ownerUsername === "Hendawg55" && (
-                              <Badge variant="secondary" className="ml-2">You</Badge>
-                            )}
-                          </div>
-                          {team.teamName && (
-                            <div className="text-xs text-muted-foreground">{team.teamName}</div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <Badge variant={team.mode === "contending" ? "default" : team.mode === "rebuilding" ? "destructive" : "secondary"}>
-                          {team.mode}
-                        </Badge>
-                        <div className="text-right">
-                          <div className="font-bold">{team.totalValue?.toLocaleString()}</div>
-                          <div className="text-xs text-muted-foreground">Total Value</div>
-                        </div>
+                        <div className="text-xs text-muted-foreground">Consensus: #{prospect.consensus}</div>
                       </div>
                     </button>
                   ))}
@@ -1763,89 +1642,25 @@ export default function DynastyPage() {
             </Card>
           </TabsContent>
 
-          {/* Trade History */}
-          <TabsContent value="history" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>📜 League Trade History</CardTitle>
-                <CardDescription>All completed trades in your league</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {tradeHistory.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">
-                    No trades found. Check back after trades occur.
-                  </p>
-                ) : (
-                  <div className="space-y-4">
-                    {tradeHistory.map((trade) => (
-                      <div key={trade.id} className="border rounded-lg p-4 space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="text-lg">🔄</span>
-                            <span className="font-medium">{trade.teams.join(" ↔️ ")}</span>
-                          </div>
-                          <span className="text-sm text-muted-foreground">{trade.dateFormatted}</span>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          {trade.sides.map((side, idx) => (
-                            <div key={idx} className="space-y-1">
-                              <div className="text-sm font-medium text-muted-foreground">
-                                {side.team} receives:
-                              </div>
-                              <div className="space-y-1">
-                                {side.receives.players.map((p, i) => (
-                                  <div key={i} className="text-sm flex items-center gap-1">
-                                    <span className="text-green-400">+</span> {p}
-                                  </div>
-                                ))}
-                                {side.receives.picks.map((pick, i) => (
-                                  <div key={i} className="text-sm flex items-center gap-1">
-                                    <span className="text-green-400">+</span>
-                                    <Badge variant="outline" className="text-xs">{pick}</Badge>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Gem Finder Tab */}
-          <TabsContent value="gems" className="space-y-6">
+          {/* Gems Tab */}
+          <TabsContent value="gems">
             <GemsTab teams={teams} positionColors={positionColors} />
           </TabsContent>
         </Tabs>
 
-        {/* Player Detail Modal - Enhanced */}
-        <Dialog open={!!selectedPlayer} onOpenChange={() => { setSelectedPlayer(null); setTradeTargetPlayer(null); }}>
-          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        {/* Player Detail Modal */}
+        <Dialog open={!!selectedPlayer} onOpenChange={() => setSelectedPlayer(null)}>
+          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
             {selectedPlayer && (
               <>
                 <DialogHeader>
                   <DialogTitle className="flex items-center gap-3">
                     <Badge className={positionColors[selectedPlayer.position]}>{selectedPlayer.position}</Badge>
-                    <span className="text-xl">{selectedPlayer.name}</span>
-                    <Badge variant="outline" className="ml-auto">
-                      {(selectedPlayer.drewValue || 0) >= 9000 ? "Elite" :
-                       (selectedPlayer.drewValue || 0) >= 7000 ? "Star" :
-                       (selectedPlayer.drewValue || 0) >= 5000 ? "Starter" :
-                       (selectedPlayer.drewValue || 0) >= 3000 ? "Flex" :
-                       (selectedPlayer.drewValue || 0) >= 1500 ? "Bench" : "Clogger"}
-                    </Badge>
+                    <span>{selectedPlayer.name}</span>
                   </DialogTitle>
-                  <DialogDescription>
-                    {selectedPlayer.team || "Free Agent"} • Age {selectedPlayer.age || "Unknown"}
-                  </DialogDescription>
+                  <DialogDescription>{selectedPlayer.team || "FA"} • Age {selectedPlayer.age || "?"}</DialogDescription>
                 </DialogHeader>
-                
                 <div className="space-y-4 mt-4">
-                  {/* Values Grid */}
                   <div className="grid grid-cols-3 gap-3 text-center">
                     <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
                       <div className="text-2xl font-bold text-primary">{selectedPlayer.drewValue?.toLocaleString()}</div>
@@ -1861,173 +1676,53 @@ export default function DynastyPage() {
                     </div>
                   </div>
 
-                  {/* Outlook Section */}
-                  <div className="p-4 rounded-lg bg-muted/50 border border-border">
-                    <h4 className="font-semibold mb-2">📊 Dynasty Outlook</h4>
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div>
-                        <span className="text-muted-foreground">Position:</span>{" "}
-                        <span className="font-medium">{selectedPlayer.position}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Age:</span>{" "}
-                        <span className="font-medium">{selectedPlayer.age || "Unknown"}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Phase:</span>{" "}
-                        <span className={`font-medium ${
-                          selectedPlayer.position === "RB" && (selectedPlayer.age || 0) >= 27 ? "text-red-500" :
-                          selectedPlayer.position === "WR" && (selectedPlayer.age || 0) >= 29 ? "text-amber-500" :
-                          selectedPlayer.position === "QB" && (selectedPlayer.age || 0) >= 34 ? "text-amber-500" :
-                          "text-green-500"
-                        }`}>
-                          {selectedPlayer.position === "RB" ? (
-                            (selectedPlayer.age || 0) < 24 ? "Ascending" :
-                            (selectedPlayer.age || 0) <= 27 ? "Peak" :
-                            (selectedPlayer.age || 0) <= 29 ? "Declining" : "Cliff"
-                          ) : selectedPlayer.position === "WR" ? (
-                            (selectedPlayer.age || 0) < 25 ? "Ascending" :
-                            (selectedPlayer.age || 0) <= 29 ? "Peak" :
-                            (selectedPlayer.age || 0) <= 32 ? "Declining" : "Cliff"
-                          ) : selectedPlayer.position === "QB" ? (
-                            (selectedPlayer.age || 0) < 27 ? "Developing" :
-                            (selectedPlayer.age || 0) <= 34 ? "Prime" : "Declining"
-                          ) : "Active"}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Team:</span>{" "}
-                        <span className="font-medium">{selectedPlayer.team || "Free Agent"}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Recommendation */}
                   <div className={`p-4 rounded-lg border ${selectedPlayer.recommendation === "sell" ? "border-red-500/30 bg-red-500/5" : "border-green-500/30 bg-green-500/5"}`}>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge variant={selectedPlayer.recommendation === "sell" ? "destructive" : "secondary"}>
-                        {selectedPlayer.recommendation?.toUpperCase() || "HOLD"}
-                      </Badge>
-                      <span className="font-medium">Recommendation</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground">{selectedPlayer.recommendReason || "Solid asset for your roster."}</p>
+                    <Badge variant={selectedPlayer.recommendation === "sell" ? "destructive" : "secondary"} className="mb-2">
+                      {selectedPlayer.recommendation?.toUpperCase() || "HOLD"}
+                    </Badge>
+                    <p className="text-sm text-muted-foreground">{selectedPlayer.recommendReason || "Solid asset."}</p>
                   </div>
 
-                  {/* Trade Options - Always Show */}
-                  <div className="p-4 rounded-lg bg-muted/50 border border-border">
-                    <h4 className="font-semibold mb-3">💱 Trade Options</h4>
-                    
-                    {/* Teams that need this position */}
-                    <div className="mb-4">
-                      <p className="text-sm text-muted-foreground mb-2">Teams needing {selectedPlayer.position}:</p>
-                      <div className="flex flex-wrap gap-2">
-                        {teams
-                          .filter((t) => t.weaknesses?.includes(selectedPlayer.position))
-                          .slice(0, 5)
-                          .map((team) => (
-                            <Badge 
-                              key={team.id} 
-                              variant="outline" 
-                              className="cursor-pointer hover:bg-primary/10"
-                              onClick={() => loadTeamRoster(team)}
-                            >
-                              {team.ownerUsername}
-                              <span className="ml-1 text-xs text-muted-foreground">
-                                ({team.mode})
-                              </span>
-                            </Badge>
-                          ))}
-                        {teams.filter((t) => t.weaknesses?.includes(selectedPlayer.position)).length === 0 && (
-                          <span className="text-sm text-muted-foreground">No teams currently weak at {selectedPlayer.position}</span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Suggested Returns */}
-                    <div className="mb-4">
-                      <p className="text-sm text-muted-foreground mb-2">Target return value: ~{((selectedPlayer.drewValue || 0) * 1.1).toLocaleString()}</p>
-                      <div className="grid grid-cols-1 gap-2">
-                        {/* Pick equivalent */}
-                        <div className="p-2 rounded border border-border text-sm flex justify-between">
-                          <span>Pick Equivalent:</span>
-                          <span className="font-medium">
-                            {(selectedPlayer.drewValue || 0) >= 6000 ? "2026 Early 1st + 2nd" :
-                             (selectedPlayer.drewValue || 0) >= 4500 ? "2026 Mid 1st" :
-                             (selectedPlayer.drewValue || 0) >= 3000 ? "2026 Late 1st" :
-                             (selectedPlayer.drewValue || 0) >= 2000 ? "2026 2nd" :
-                             (selectedPlayer.drewValue || 0) >= 1000 ? "2026 3rd" : "Dart throw"}
-                          </span>
-                        </div>
-                        {/* Young player swap */}
-                        <div className="p-2 rounded border border-border text-sm flex justify-between">
-                          <span>+ Young Player:</span>
-                          <span className="font-medium">
-                            {(selectedPlayer.drewValue || 0) >= 5000 ? "Rising WR/RB under 24" :
-                             (selectedPlayer.drewValue || 0) >= 3000 ? "Promising flex player" :
-                             "Depth piece + pick"}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Add to Trade Calculator Button */}
-                    <Button 
-                      className="w-full" 
-                      variant="outline"
-                      onClick={() => {
-                        addToMySide({
-                          type: "player",
-                          id: selectedPlayer.sleeperId,
-                          name: selectedPlayer.name,
-                          position: selectedPlayer.position,
-                          value: selectedPlayer.drewValue || 0
-                        });
-                        setSelectedPlayer(null);
-                      }}
-                    >
-                      Add to Trade Calculator →
-                    </Button>
-                  </div>
+                  <Button 
+                    className="w-full"
+                    onClick={() => {
+                      addToMySide({
+                        type: "player",
+                        id: selectedPlayer.sleeperId,
+                        name: selectedPlayer.name,
+                        position: selectedPlayer.position,
+                        value: selectedPlayer.drewValue || 0
+                      });
+                      setSelectedPlayer(null);
+                    }}
+                  >
+                    Add to Trade Calculator →
+                  </Button>
                 </div>
               </>
             )}
           </DialogContent>
         </Dialog>
 
-        {/* Prospect Detail Modal - Enhanced */}
+        {/* Prospect Detail Modal */}
         <Dialog open={!!selectedProspect} onOpenChange={() => { setSelectedProspect(null); setProspectReport(null); }}>
-          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
             {selectedProspect && (
               <>
                 <DialogHeader>
                   <DialogTitle className="flex items-center gap-3">
-                    <Badge className={positionColors[selectedProspect.position] || "bg-gray-500"}>
-                      {selectedProspect.position}
-                    </Badge>
-                    <span className="text-xl">{selectedProspect.name}</span>
-                    {prospectReport && (
-                      <Badge variant="outline" className="ml-auto">{prospectReport.grade}</Badge>
-                    )}
+                    <Badge className={positionColors[selectedProspect.position] || "bg-gray-500"}>{selectedProspect.position}</Badge>
+                    <span>{selectedProspect.name}</span>
                   </DialogTitle>
-                  <DialogDescription className="flex items-center gap-2">
-                    {prospectReport ? (
-                      <>
-                        {prospectReport.school} • {prospectReport.height}, {prospectReport.weight} lbs • {prospectReport.draftYear} Class
-                        <Badge variant="secondary" className="ml-2">{prospectReport.projectedPick}</Badge>
-                      </>
-                    ) : (
-                      <>{selectedProspect.college} • {selectedProspect.draftClass} Class</>
-                    )}
-                  </DialogDescription>
+                  <DialogDescription>{selectedProspect.college} • {selectedProspect.draftClass} Class</DialogDescription>
                 </DialogHeader>
 
                 {loadingProspectReport ? (
-                  <div className="py-8 text-center text-muted-foreground">Loading scouting report...</div>
+                  <div className="py-8 text-center text-muted-foreground">Loading report...</div>
                 ) : (
                   <div className="space-y-4 mt-4">
-                    {/* Rankings */}
                     <div className="grid grid-cols-3 gap-3 text-center">
-                      <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
+                      <div className="p-3 rounded-lg bg-primary/10">
                         <div className="text-2xl font-bold text-primary">#{selectedProspect.drewRank}</div>
                         <div className="text-xs text-muted-foreground">Drew Rank</div>
                       </div>
@@ -2037,118 +1732,49 @@ export default function DynastyPage() {
                       </div>
                       <div className="p-3 rounded-lg bg-muted">
                         <div className="text-2xl font-bold">{selectedProspect.drewScore?.toFixed(0)}</div>
-                        <div className="text-xs text-muted-foreground">Drew Score</div>
+                        <div className="text-xs text-muted-foreground">Score</div>
                       </div>
                     </div>
 
-                    {/* Why This Ranking */}
-                    <div className="p-4 rounded-lg bg-muted/50 border border-border">
-                      <h4 className="font-semibold mb-2 text-primary">📊 Ranking Breakdown</h4>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        Base: 100 - (Consensus #{selectedProspect.consensus} × 2) = {100 - ((selectedProspect.consensus || 1) - 1) * 2}
-                      </p>
-                      <div className="text-sm text-muted-foreground">
-                        {selectedProspect.position === "QB" && <span className="text-green-500">+15 SF QB Premium</span>}
-                        {["WR", "TE"].includes(selectedProspect.position) && <span className="text-blue-500">+5 PPR Bonus</span>}
-                      </div>
-                    </div>
-
-                    {/* Comps */}
-                    {prospectReport?.comps && prospectReport.comps.length > 0 && (
-                      <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                        <h4 className="font-semibold mb-2 text-amber-500">🎯 Player Comps</h4>
-                        <div className="flex flex-wrap gap-2">
-                          {prospectReport.comps.map((comp, i) => (
-                            <Badge key={i} variant="outline" className="bg-amber-500/10">{comp}</Badge>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Strengths & Weaknesses */}
                     {prospectReport && (
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="p-4 rounded-lg border border-green-500/30 bg-green-500/5">
-                          <h4 className="font-semibold text-green-500 mb-2">✅ Strengths</h4>
-                          <ul className="space-y-1">
-                            {prospectReport.strengths.map((s, i) => (
-                              <li key={i} className="text-sm text-muted-foreground">• {s}</li>
-                            ))}
-                          </ul>
+                      <>
+                        {prospectReport.comps.length > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                            <span className="text-sm text-muted-foreground">Comps:</span>
+                            {prospectReport.comps.map((c, i) => <Badge key={i} variant="outline">{c}</Badge>)}
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="p-3 rounded-lg border border-green-500/30 bg-green-500/5">
+                            <h4 className="font-semibold text-green-500 mb-2">✅ Strengths</h4>
+                            <ul className="space-y-1 text-sm">
+                              {prospectReport.strengths.map((s, i) => <li key={i}>• {s}</li>)}
+                            </ul>
+                          </div>
+                          <div className="p-3 rounded-lg border border-red-500/30 bg-red-500/5">
+                            <h4 className="font-semibold text-red-500 mb-2">⚠️ Weaknesses</h4>
+                            <ul className="space-y-1 text-sm">
+                              {prospectReport.weaknesses.map((w, i) => <li key={i}>• {w}</li>)}
+                            </ul>
+                          </div>
                         </div>
-                        <div className="p-4 rounded-lg border border-red-500/30 bg-red-500/5">
-                          <h4 className="font-semibold text-red-500 mb-2">⚠️ Weaknesses</h4>
-                          <ul className="space-y-1">
-                            {prospectReport.weaknesses.map((w, i) => (
-                              <li key={i} className="text-sm text-muted-foreground">• {w}</li>
-                            ))}
-                          </ul>
+
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div className="p-2 rounded bg-muted/50">
+                            <span className="text-muted-foreground">Ceiling:</span> {prospectReport.ceiling}
+                          </div>
+                          <div className="p-2 rounded bg-muted/50">
+                            <span className="text-muted-foreground">Floor:</span> {prospectReport.floor}
+                          </div>
                         </div>
-                      </div>
+
+                        <p className="text-sm text-muted-foreground">{prospectReport.summary}</p>
+                      </>
                     )}
 
-                    {/* Ceiling/Floor */}
-                    {prospectReport && (
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="p-3 rounded-lg bg-muted/50">
-                          <h4 className="text-xs text-muted-foreground mb-1">🚀 Ceiling</h4>
-                          <p className="text-sm font-medium">{prospectReport.ceiling}</p>
-                        </div>
-                        <div className="p-3 rounded-lg bg-muted/50">
-                          <h4 className="text-xs text-muted-foreground mb-1">📉 Floor</h4>
-                          <p className="text-sm font-medium">{prospectReport.floor}</p>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Summary */}
-                    <div className="p-4 rounded-lg bg-muted/50">
-                      <h4 className="font-semibold mb-2">📝 Scouting Summary</h4>
-                      <p className="text-sm text-muted-foreground">
-                        {prospectReport?.summary || selectedProspect.notes}
-                      </p>
-                    </div>
-
-                    {/* Stats if available */}
-                    {prospectReport?.stats && Object.keys(prospectReport.stats).length > 0 && (
-                      <div className="p-4 rounded-lg bg-muted/50">
-                        <h4 className="font-semibold mb-2">📈 College Stats</h4>
-                        <div className="grid grid-cols-4 gap-2 text-center">
-                          {prospectReport.stats.passYds && (
-                            <div><div className="font-bold">{prospectReport.stats.passYds.toLocaleString()}</div><div className="text-xs text-muted-foreground">Pass Yds</div></div>
-                          )}
-                          {prospectReport.stats.passTD && (
-                            <div><div className="font-bold">{prospectReport.stats.passTD}</div><div className="text-xs text-muted-foreground">Pass TD</div></div>
-                          )}
-                          {prospectReport.stats.rushYds && (
-                            <div><div className="font-bold">{prospectReport.stats.rushYds.toLocaleString()}</div><div className="text-xs text-muted-foreground">Rush Yds</div></div>
-                          )}
-                          {prospectReport.stats.rushTD && (
-                            <div><div className="font-bold">{prospectReport.stats.rushTD}</div><div className="text-xs text-muted-foreground">Rush TD</div></div>
-                          )}
-                          {prospectReport.stats.recYds && (
-                            <div><div className="font-bold">{prospectReport.stats.recYds.toLocaleString()}</div><div className="text-xs text-muted-foreground">Rec Yds</div></div>
-                          )}
-                          {prospectReport.stats.recTD && (
-                            <div><div className="font-bold">{prospectReport.stats.recTD}</div><div className="text-xs text-muted-foreground">Rec TD</div></div>
-                          )}
-                          {prospectReport.stats.ypc && (
-                            <div><div className="font-bold">{prospectReport.stats.ypc}</div><div className="text-xs text-muted-foreground">YPC</div></div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Ideal NFL Fits */}
-                    {prospectReport?.idealFits && prospectReport.idealFits.length > 0 && (
-                      <div className="p-4 rounded-lg bg-muted/50">
-                        <h4 className="font-semibold mb-2">🏈 Ideal NFL Fits</h4>
-                        <div className="flex flex-wrap gap-2">
-                          {prospectReport.idealFits.map((fit, i) => (
-                            <Badge key={i} variant="outline">{fit}</Badge>
-                          ))}
-                        </div>
-                      </div>
+                    {!prospectReport && selectedProspect.notes && (
+                      <p className="text-sm text-muted-foreground">{selectedProspect.notes}</p>
                     )}
                   </div>
                 )}
@@ -2158,112 +1784,40 @@ export default function DynastyPage() {
         </Dialog>
 
         {/* Team Detail Modal */}
-        <Dialog open={!!selectedTeam} onOpenChange={() => { setSelectedTeam(null); setSelectedTeamRoster([]); setSelectedTeamPicks([]); }}>
-          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <Dialog open={!!selectedTeam} onOpenChange={() => { setSelectedTeam(null); setSelectedTeamRoster([]); }}>
+          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
             {selectedTeam && (
               <>
                 <DialogHeader>
                   <DialogTitle>{selectedTeam.ownerUsername}</DialogTitle>
                   <DialogDescription>
-                    {selectedTeam.teamName || "No team name"} • {selectedTeam.mode}
+                    {selectedTeam.teamName || "—"} • Total Value: {selectedTeam.totalValue?.toLocaleString()}
                   </DialogDescription>
                 </DialogHeader>
-                <div className="space-y-4 mt-4">
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="p-3 rounded-lg bg-muted text-center">
-                      <div className="text-2xl font-bold">{selectedTeam.totalValue?.toLocaleString()}</div>
-                      <div className="text-xs text-muted-foreground">Total Value</div>
-                    </div>
-                    <div className="p-3 rounded-lg border border-green-500/30 bg-green-500/5 text-center">
-                      <h4 className="text-xs text-green-500 mb-1">Strengths</h4>
-                      <div className="flex flex-wrap gap-1 justify-center">
-                        {(selectedTeam.strengths as string[] || []).map((s) => (
-                          <Badge key={s} variant="outline" className="text-xs">{s}</Badge>
-                        ))}
-                        {(!selectedTeam.strengths || (selectedTeam.strengths as string[]).length === 0) && (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="p-3 rounded-lg border border-red-500/30 bg-red-500/5 text-center">
-                      <h4 className="text-xs text-red-500 mb-1">Weaknesses</h4>
-                      <div className="flex flex-wrap gap-1 justify-center">
-                        {(selectedTeam.weaknesses as string[] || []).map((w) => (
-                          <Badge key={w} variant="outline" className="text-xs">{w}</Badge>
-                        ))}
-                        {(!selectedTeam.weaknesses || (selectedTeam.weaknesses as string[]).length === 0) && (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
 
-                  {/* Full Roster */}
-                  <div>
-                    <h4 className="font-medium mb-2">Full Roster</h4>
-                    {loadingTeamRoster ? (
-                      <p className="text-sm text-muted-foreground text-center py-4">Loading roster...</p>
-                    ) : selectedTeamRoster.length > 0 ? (
-                      <div className="space-y-1 max-h-64 overflow-y-auto">
-                        {selectedTeamRoster
-                          .sort((a, b) => b.value - a.value)
-                          .map((p) => (
-                          <div key={p.sleeperId} className="flex items-center justify-between p-2 rounded border border-border text-sm">
-                            <div className="flex items-center gap-2">
-                              <Badge className={`${positionColors[p.position] || "bg-gray-500"} text-xs`}>{p.position}</Badge>
-                              <span>{p.name}</span>
-                              <span className="text-xs text-muted-foreground">{p.team || "FA"}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-muted-foreground">{p.tier}</span>
-                              <span className="font-medium">{p.value.toLocaleString()}</span>
-                            </div>
+                {loadingTeamRoster ? (
+                  <div className="py-8 text-center text-muted-foreground">Loading roster...</div>
+                ) : (
+                  <div className="space-y-4 mt-4">
+                    <div className="flex gap-2">
+                      {selectedTeam.strengths?.map((s, i) => <Badge key={i} className="bg-green-500/20 text-green-500">{s}</Badge>)}
+                      {selectedTeam.weaknesses?.map((w, i) => <Badge key={i} className="bg-red-500/20 text-red-500">{w}</Badge>)}
+                    </div>
+
+                    <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                      {selectedTeamRoster.sort((a, b) => b.value - a.value).map((p) => (
+                        <div key={p.sleeperId} className="flex items-center justify-between p-2 rounded border border-border">
+                          <div className="flex items-center gap-2">
+                            <Badge className={positionColors[p.position] || "bg-gray-500"}>{p.position}</Badge>
+                            <span>{p.name}</span>
+                            <span className="text-xs text-muted-foreground">Age {p.age}</span>
                           </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground text-center py-4">No roster data. Sync to load.</p>
-                    )}
+                          <span className="font-medium">{p.value.toLocaleString()}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-
-                  {/* Draft Picks */}
-                  <div>
-                    <h4 className="font-medium mb-2">🎯 Draft Capital</h4>
-                    {selectedTeamPicks.length > 0 ? (
-                      <div className="grid grid-cols-2 gap-2">
-                        {selectedTeamPicks
-                          .sort((a, b) => a.season.localeCompare(b.season) || a.round - b.round)
-                          .map((pick) => (
-                          <div key={pick.id} className="flex items-center justify-between p-2 rounded border border-border text-sm">
-                            <span className="font-medium">
-                              {pick.season} R{pick.round}
-                              {pick.pick && `.${pick.pick.toString().padStart(2, "0")}`}
-                            </span>
-                            <span className="text-muted-foreground">{pick.drewValue?.toLocaleString() || "—"}</span>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground text-center py-2">
-                        No picks tracked for this team. They may have traded away their picks.
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="p-3 rounded-lg bg-muted/50">
-                    <h4 className="font-medium mb-2">💡 Trade Opportunity</h4>
-                    {(selectedTeam.weaknesses as string[] || []).length > 0 ? (
-                      <p className="text-sm text-muted-foreground">
-                        This team needs help at <span className="font-medium text-amber-500">{(selectedTeam.weaknesses as string[]).join(", ")}</span>. 
-                        Check your roster for assets to offer.
-                      </p>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">
-                        No clear needs identified. May be a good trade partner for picks.
-                      </p>
-                    )}
-                  </div>
-                </div>
+                )}
               </>
             )}
           </DialogContent>
