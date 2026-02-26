@@ -1,28 +1,11 @@
 import { prisma } from "@/lib/db";
 import { NextResponse } from "next/server";
-import { PLAYER_VALUES_BY_NAME } from "@/lib/dynasty-values";
 
 const SLEEPER_LEAGUE_ID = "1180181459838525440";
 const MY_ROSTER_ID = 1;
 
-// Normalize name for matching
-function normalizeName(name: string): string {
-  return name
-    .replace(/\s+(Jr\.?|Sr\.?|II|III|IV)$/i, "")
-    .replace(/[.']/g, "")
-    .trim();
-}
-
-// Build lookup map
-const normalizedValues: Record<string, number> = {};
-for (const [name, data] of Object.entries(PLAYER_VALUES_BY_NAME)) {
-  normalizedValues[normalizeName(name)] = data.value;
-  normalizedValues[name] = data.value;
-}
-
-function getLiveValue(name: string): number {
-  return normalizedValues[name] || normalizedValues[normalizeName(name)] || 100;
-}
+// Values come from rosterJson (set by sync from FantasyCalc API)
+// No static overrides!
 
 function getTier(value: number): string {
   if (value >= 9000) return "Elite";
@@ -99,17 +82,17 @@ export async function GET() {
       where: { isOwned: true },
     });
 
-    // Parse team data with LIVE values
+    // Parse team data - values already in rosterJson from FantasyCalc sync
     const teamAnalyses: TeamAnalysis[] = teams.map((team) => {
       const rawPlayers = team.rosterJson ? JSON.parse(team.rosterJson as string) : [];
-      const players = rawPlayers.map((p: { name: string; position: string; age: number | null }) => {
-        const liveValue = getLiveValue(p.name);
+      const players = rawPlayers.map((p: { name: string; position: string; age: number | null; value?: number }) => {
+        const value = p.value || 100; // Use value from rosterJson (set by sync)
         return {
           name: p.name,
           position: p.position,
-          value: liveValue,
+          value,
           age: p.age,
-          tier: getTier(liveValue),
+          tier: getTier(value),
         };
       });
       const playersWithAge = players.filter((p: { age: number | null }) => p.age);

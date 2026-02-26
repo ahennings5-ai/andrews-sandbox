@@ -1162,6 +1162,282 @@ function GemsTab({ teams, positionColors }: { teams: Team[]; positionColors: Rec
 }
 
 // ============================================================================
+// TEAM ROADMAPS TAB
+// ============================================================================
+
+interface RoadmapData {
+  team: {
+    rosterId: number;
+    username: string;
+    teamName: string | null;
+    mode: string;
+    totalValue: number;
+    avgAge: number;
+    strengths: string[];
+    weaknesses: string[];
+    players: { name: string; position: string; value: number; age: number | null; tier: string }[];
+    eliteCount: number;
+    starCount: number;
+    cloggerCount: number;
+  };
+  summary: string;
+  phase: "contend" | "retool" | "rebuild" | "tank";
+  keyActions: string[];
+  sellCandidates: { player: string; reason: string; targetValue: string }[];
+  buyCandidates: { player: string; owner: string; reason: string }[];
+  tradeRecommendations: {
+    type: "sell" | "buy" | "swap";
+    priority: "high" | "medium" | "low";
+    targetTeam: string;
+    give: string[];
+    receive: string[];
+    rationale: string;
+    valueGiven: number;
+    valueReceived: number;
+  }[];
+  draftStrategy: string;
+  timeline: string;
+}
+
+function TeamRoadmapsTab({ teams }: { teams: Team[] }) {
+  const [roadmaps, setRoadmaps] = useState<RoadmapData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedTeam, setSelectedTeam] = useState<number | null>(null);
+
+  useEffect(() => {
+    async function loadRoadmaps() {
+      try {
+        const res = await fetch("/api/dynasty/roadmap");
+        if (res.ok) {
+          const data = await res.json();
+          setRoadmaps(data.roadmaps || []);
+        }
+      } catch (error) {
+        console.error("Failed to load roadmaps:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadRoadmaps();
+  }, []);
+
+  if (loading) return <div className="text-center py-8 text-muted-foreground">Analyzing all teams...</div>;
+
+  const phaseColors: Record<string, string> = {
+    contend: "bg-green-500/20 text-green-400 border-green-500/50",
+    retool: "bg-yellow-500/20 text-yellow-400 border-yellow-500/50",
+    rebuild: "bg-blue-500/20 text-blue-400 border-blue-500/50",
+    tank: "bg-red-500/20 text-red-400 border-red-500/50",
+  };
+
+  const phaseEmoji: Record<string, string> = {
+    contend: "🏆",
+    retool: "🔧",
+    rebuild: "🏗️",
+    tank: "📉",
+  };
+
+  const selectedRoadmap = selectedTeam ? roadmaps.find(r => r.team.rosterId === selectedTeam) : null;
+
+  return (
+    <div className="space-y-6">
+      {/* Team Selector Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+        {roadmaps.map((r) => (
+          <Card
+            key={r.team.rosterId}
+            className={`cursor-pointer transition-all hover:ring-2 hover:ring-primary/50 ${
+              selectedTeam === r.team.rosterId ? "ring-2 ring-primary" : ""
+            }`}
+            onClick={() => setSelectedTeam(r.team.rosterId)}
+          >
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-2xl">{phaseEmoji[r.phase]}</span>
+                <Badge className={phaseColors[r.phase]}>{r.phase}</Badge>
+              </div>
+              <div className="font-semibold truncate">{r.team.username}</div>
+              <div className="text-sm text-muted-foreground">
+                {r.team.totalValue.toLocaleString()} value
+              </div>
+              {r.team.rosterId === 1 && (
+                <Badge variant="outline" className="mt-2 text-xs">YOUR TEAM</Badge>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Selected Team Roadmap */}
+      {selectedRoadmap && (
+        <Card className="border-2 border-primary/30">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-3">
+                  <span className="text-3xl">{phaseEmoji[selectedRoadmap.phase]}</span>
+                  {selectedRoadmap.team.username}
+                  {selectedRoadmap.team.teamName && (
+                    <span className="text-muted-foreground font-normal">({selectedRoadmap.team.teamName})</span>
+                  )}
+                </CardTitle>
+                <CardDescription className="mt-2">{selectedRoadmap.summary}</CardDescription>
+              </div>
+              <Badge className={`text-lg px-4 py-2 ${phaseColors[selectedRoadmap.phase]}`}>
+                {selectedRoadmap.phase.toUpperCase()}
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Stats Row */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-center p-3 rounded-lg bg-muted">
+                <div className="text-2xl font-bold">{selectedRoadmap.team.totalValue.toLocaleString()}</div>
+                <div className="text-xs text-muted-foreground">Roster Value</div>
+              </div>
+              <div className="text-center p-3 rounded-lg bg-muted">
+                <div className="text-2xl font-bold">{selectedRoadmap.team.avgAge}</div>
+                <div className="text-xs text-muted-foreground">Avg Age</div>
+              </div>
+              <div className="text-center p-3 rounded-lg bg-muted">
+                <div className="text-2xl font-bold">{selectedRoadmap.team.eliteCount + selectedRoadmap.team.starCount}</div>
+                <div className="text-xs text-muted-foreground">Elite/Star Players</div>
+              </div>
+              <div className="text-center p-3 rounded-lg bg-muted">
+                <div className="text-2xl font-bold">{selectedRoadmap.team.cloggerCount}</div>
+                <div className="text-xs text-muted-foreground">Roster Cloggers</div>
+              </div>
+            </div>
+
+            {/* Strengths & Weaknesses */}
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <h4 className="font-semibold mb-2 text-green-400">✅ Strengths</h4>
+                <div className="flex flex-wrap gap-2">
+                  {selectedRoadmap.team.strengths.length > 0 
+                    ? selectedRoadmap.team.strengths.map(s => <Badge key={s} variant="outline" className="border-green-500/50">{s}</Badge>)
+                    : <span className="text-muted-foreground text-sm">No clear strengths</span>}
+                </div>
+              </div>
+              <div>
+                <h4 className="font-semibold mb-2 text-red-400">❌ Weaknesses</h4>
+                <div className="flex flex-wrap gap-2">
+                  {selectedRoadmap.team.weaknesses.length > 0
+                    ? selectedRoadmap.team.weaknesses.map(w => <Badge key={w} variant="outline" className="border-red-500/50">{w}</Badge>)
+                    : <span className="text-muted-foreground text-sm">No clear weaknesses</span>}
+                </div>
+              </div>
+            </div>
+
+            {/* Key Actions */}
+            <div>
+              <h4 className="font-semibold mb-3">🎯 Key Actions</h4>
+              <div className="space-y-2">
+                {selectedRoadmap.keyActions.map((action, idx) => (
+                  <div key={idx} className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
+                    <span className="text-primary font-bold">{idx + 1}.</span>
+                    <span>{action}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Trade Recommendations */}
+            {selectedRoadmap.tradeRecommendations.length > 0 && (
+              <div>
+                <h4 className="font-semibold mb-3">🔄 Recommended Trades</h4>
+                <div className="space-y-3">
+                  {selectedRoadmap.tradeRecommendations.map((trade, idx) => (
+                    <Card key={idx} className={`border ${
+                      trade.priority === "high" ? "border-green-500/50 bg-green-500/5" : 
+                      trade.priority === "medium" ? "border-yellow-500/50 bg-yellow-500/5" : 
+                      "border-border"
+                    }`}>
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <Badge variant={trade.priority === "high" ? "default" : "outline"}>
+                            {trade.priority.toUpperCase()} PRIORITY
+                          </Badge>
+                          <span className="text-sm text-muted-foreground">→ {trade.targetTeam}</span>
+                        </div>
+                        <div className="grid md:grid-cols-2 gap-4 my-3">
+                          <div className="p-3 rounded bg-red-500/10 border border-red-500/30">
+                            <div className="text-xs text-red-400 mb-1">GIVE</div>
+                            <div className="font-medium">{trade.give.join(", ")}</div>
+                            <div className="text-xs text-muted-foreground">{trade.valueGiven.toLocaleString()} value</div>
+                          </div>
+                          <div className="p-3 rounded bg-green-500/10 border border-green-500/30">
+                            <div className="text-xs text-green-400 mb-1">RECEIVE</div>
+                            <div className="font-medium">{trade.receive.join(", ")}</div>
+                            <div className="text-xs text-muted-foreground">{trade.valueReceived.toLocaleString()} value</div>
+                          </div>
+                        </div>
+                        <p className="text-sm text-muted-foreground italic">{trade.rationale}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Sell & Buy Candidates */}
+            <div className="grid md:grid-cols-2 gap-4">
+              {selectedRoadmap.sellCandidates.length > 0 && (
+                <div>
+                  <h4 className="font-semibold mb-3 text-red-400">📤 Sell Candidates</h4>
+                  <div className="space-y-2">
+                    {selectedRoadmap.sellCandidates.map((c, idx) => (
+                      <div key={idx} className="p-3 rounded-lg border border-red-500/30 bg-red-500/5">
+                        <div className="font-medium">{c.player}</div>
+                        <div className="text-xs text-muted-foreground">{c.reason}</div>
+                        <div className="text-xs text-green-400 mt-1">Target: {c.targetValue}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {selectedRoadmap.buyCandidates.length > 0 && (
+                <div>
+                  <h4 className="font-semibold mb-3 text-green-400">📥 Buy Candidates</h4>
+                  <div className="space-y-2">
+                    {selectedRoadmap.buyCandidates.map((c, idx) => (
+                      <div key={idx} className="p-3 rounded-lg border border-green-500/30 bg-green-500/5">
+                        <div className="font-medium">{c.player}</div>
+                        <div className="text-xs text-muted-foreground">Owner: {c.owner}</div>
+                        <div className="text-xs text-blue-400 mt-1">{c.reason}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Draft Strategy & Timeline */}
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="p-4 rounded-lg bg-muted">
+                <h4 className="font-semibold mb-2">🎓 Draft Strategy</h4>
+                <p className="text-sm text-muted-foreground">{selectedRoadmap.draftStrategy}</p>
+              </div>
+              <div className="p-4 rounded-lg bg-muted">
+                <h4 className="font-semibold mb-2">📅 Timeline</h4>
+                <p className="text-sm text-muted-foreground">{selectedRoadmap.timeline}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {!selectedTeam && (
+        <div className="text-center py-12 text-muted-foreground">
+          <span className="text-4xl block mb-4">👆</span>
+          Click a team above to see their offseason roadmap
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================================
 // MAIN PAGE COMPONENT
 // ============================================================================
 export default function DynastyPage() {
@@ -1407,9 +1683,10 @@ export default function DynastyPage() {
 
         <Tabs defaultValue="calculator" className="space-y-4">
           <div className="overflow-x-auto -mx-4 px-4 pb-2">
-            <TabsList className="inline-flex w-max min-w-full sm:w-full sm:grid sm:grid-cols-7 gap-1 bg-muted p-1 rounded-lg">
+            <TabsList className="inline-flex w-max min-w-full sm:w-full sm:grid sm:grid-cols-8 gap-1 bg-muted p-1 rounded-lg">
               <TabsTrigger value="calculator" className="whitespace-nowrap px-3 py-2 text-sm font-medium">🧮 Trade Calc</TabsTrigger>
               <TabsTrigger value="finder" className="whitespace-nowrap px-3 py-2 text-sm font-medium">🔍 Trade Finder</TabsTrigger>
+              <TabsTrigger value="roadmap" className="whitespace-nowrap px-3 py-2 text-sm font-medium">🗺️ Roadmaps</TabsTrigger>
               <TabsTrigger value="trends" className="whitespace-nowrap px-3 py-2 text-sm font-medium">📊 Trends</TabsTrigger>
               <TabsTrigger value="rankings" className="whitespace-nowrap px-3 py-2 text-sm font-medium">🏆 Rankings</TabsTrigger>
               <TabsTrigger value="roster" className="whitespace-nowrap px-3 py-2 text-sm font-medium">👥 Roster</TabsTrigger>
@@ -1505,6 +1782,11 @@ export default function DynastyPage() {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Team Roadmaps Tab */}
+          <TabsContent value="roadmap">
+            <TeamRoadmapsTab teams={teams} />
           </TabsContent>
 
           {/* Value Trends Tab */}

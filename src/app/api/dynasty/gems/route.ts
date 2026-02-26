@@ -1,28 +1,10 @@
 import { prisma } from "@/lib/db";
 import { NextResponse } from "next/server";
-import { PLAYER_VALUES_BY_NAME } from "@/lib/dynasty-values";
 
 const SLEEPER_LEAGUE_ID = "1180181459838525440";
 
-// Normalize name for matching
-function normalizeName(name: string): string {
-  return name
-    .replace(/\s+(Jr\.?|Sr\.?|II|III|IV)$/i, "")
-    .replace(/[.']/g, "")
-    .trim();
-}
-
-// Build lookup map with ALL player data
-const normalizedValues: Record<string, { value: number; pos: string; team: string | null; age: number | null }> = {};
-for (const [name, data] of Object.entries(PLAYER_VALUES_BY_NAME)) {
-  normalizedValues[normalizeName(name)] = data;
-  normalizedValues[name] = data;
-}
-
-function getLiveValue(name: string): number {
-  const data = normalizedValues[name] || normalizedValues[normalizeName(name)];
-  return data?.value || 100;
-}
+// Values come from rosterJson (set by sync from FantasyCalc API)
+// No static overrides!
 
 function getTier(value: number): string {
   if (value >= 9000) return "Elite";
@@ -60,7 +42,7 @@ export async function GET() {
       try {
         const roster = JSON.parse(team.rosterJson);
         for (const p of roster) {
-          const drewValue = getLiveValue(p.name);
+          const drewValue = p.value || 100; // Use value from rosterJson (set by sync from FantasyCalc)
           allPlayers.push({
             name: p.name,
             position: p.position,
