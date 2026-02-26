@@ -282,8 +282,8 @@ export async function GET(request: NextRequest) {
 
       // Key actions based on phase
       const keyActions: string[] = [];
-      const first2027Picks = teamPicks.filter(p => p.season === "2027" && p.round === 1);
-      const first2026Picks = teamPicks.filter(p => p.season === "2026" && p.round === 1);
+      const my2027Firsts = teamPicks.filter(p => p.season === "2027" && p.round === 1);
+      const my2026Firsts = teamPicks.filter(p => p.season === "2026" && p.round === 1);
       
       if (phase === "contend") {
         keyActions.push("Trade future picks for proven win-now talent");
@@ -295,17 +295,17 @@ export async function GET(request: NextRequest) {
         keyActions.push("Buy young upside from contenders");
       } else if (phase === "rebuild" || phase === "tank") {
         // Check if they already have a lot of picks
-        if (first2027Picks.length >= 6) {
-          keyActions.push(`You have ${first2027Picks.length} 2027 1sts - HOLD and dominate that draft`);
+        if (my2027Firsts.length >= 6) {
+          keyActions.push(`You have ${my2027Firsts.length} 2027 1sts - HOLD and dominate that draft`);
           keyActions.push("Focus on acquiring young players, not more picks");
-        } else if (first2027Picks.length >= 4) {
-          keyActions.push(`You have ${first2027Picks.length} 2027 1sts - add 1-2 more if cheap`);
+        } else if (my2027Firsts.length >= 4) {
+          keyActions.push(`You have ${my2027Firsts.length} 2027 1sts - add 1-2 more if cheap`);
         } else {
           keyActions.push("Accumulate 2027 draft picks (target: 5-6 1sts)");
         }
         
-        if (first2026Picks.length >= 2) {
-          keyActions.push(`Nail your ${first2026Picks.length} 2026 1st(s) - this is the cornerstone draft`);
+        if (my2026Firsts.length >= 2) {
+          keyActions.push(`Nail your ${my2026Firsts.length} 2026 1st(s) - this is the cornerstone draft`);
         }
         
         keyActions.push("Sell any player over 27 for future value");
@@ -322,8 +322,8 @@ export async function GET(request: NextRequest) {
         : phase === "retool"
         ? `Middle of the pack. Decide: push for playoffs or sell for future. Sitting in the middle is worst outcome.`
         : phase === "rebuild"
-        ? `Rebuilding with ${first2027Picks.length} 2027 1sts and ${totalPickValue.toLocaleString()} total pick value. Target 2027 competition window.`
-        : `Full tank mode. ${first2027Picks.length} 2027 1sts, ${first2026Picks.length} 2026 1sts. Stay the course - you're positioned well.`;
+        ? `Rebuilding with ${my2027Firsts.length} 2027 1sts and ${totalPickValue.toLocaleString()} total pick value. Target 2027 competition window.`
+        : `Full tank mode. ${my2027Firsts.length} 2027 1sts, ${my2026Firsts.length} 2026 1sts. Stay the course - you're positioned well.`;
 
       // Timeline
       const timeline = phase === "contend"
